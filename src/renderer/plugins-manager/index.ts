@@ -64,10 +64,7 @@ const createPluginManager = (): any => {
 
   const loadPlugin = async (plugin) => {
     setSearchValue('');
-    ipcRenderer.send('msg-trigger', {
-      type: 'setExpendHeight',
-      data: 60,
-    });
+    // 缩窗由主进程 openPlugin 内 resizeLauncherContent 统一处理；此处再发 setExpendHeight 会与主进程次序交叉，高 DPI 下二次改尺寸导致跳动
     state.pluginLoading = true;
     state.currentPlugin = plugin;
     // 自带的插件不需要检测更新

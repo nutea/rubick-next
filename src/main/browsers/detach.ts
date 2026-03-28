@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, nativeTheme, screen } from 'electron';
+import { BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import localConfig from '../common/initLocalConfig';
 import commonConst from '@/common/utils/commonConst';
 import path from 'path';
@@ -15,6 +15,19 @@ export default () => {
     const createWin = await createWindow(pluginInfo, viewInfo, view);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('@electron/remote/main').enable(createWin.webContents);
+  };
+
+  /** 插件 BrowserView 不可铺满整个客户区，否则会盖住 detach 页顶栏（无法拖动/关闭）。 */
+  const layoutDetachPluginView = (w: BrowserWindow) => {
+    const bv = w.getBrowserView();
+    if (!bv) return;
+    const [cw, ch] = w.getContentSize();
+    bv.setBounds({
+      x: 0,
+      y: WINDOW_MIN_HEIGHT,
+      width: cw,
+      height: Math.max(0, ch - WINDOW_MIN_HEIGHT),
+    });
   };
 
   const createWindow = async (pluginInfo, viewInfo, view) => {
@@ -44,11 +57,39 @@ export default () => {
         spellcheck: false,
       },
     });
-    if (process.env.WEBPACK_DEV_SERVER_URL) {
-      // Load the url of the dev server if in development mode
-      createWin.loadURL('http://localhost:8082');
+    const detachFileUrl = `file://${path.join(
+      __static,
+      './detach/index.html'
+    )}`;
+    // 勿与主窗口 WEBPACK_DEV_SERVER_URL 绑定：electron:serve 时 8082 往往未启动（需单独 cd detach && npm run serve）。
+    // 需要调试分离窗壳时设置环境变量 DETACH_DEV_SERVER_URL，例如 http://localhost:8082
+    const detachDevUrl = process.env.DETACH_DEV_SERVER_URL;
+    if (detachDevUrl) {
+      const onFail = (
+        _e: Electron.Event,
+        _code: number,
+        _desc: string,
+        url: string,
+        isMainFrame: boolean
+      ) => {
+        if (!isMainFrame) return;
+        createWin.webContents.removeListener('did-fail-load', onFail);
+        createWin.webContents.removeListener('did-finish-load', onOk);
+        void createWin.loadURL(detachFileUrl);
+      };
+      const onOk = () => {
+        createWin.webContents.removeListener('did-fail-load', onFail);
+        createWin.webContents.removeListener('did-finish-load', onOk);
+      };
+      createWin.webContents.once('did-fail-load', onFail);
+      createWin.webContents.once('did-finish-load', onOk);
+      void createWin.loadURL(detachDevUrl).catch(() => {
+        createWin.webContents.removeListener('did-fail-load', onFail);
+        createWin.webContents.removeListener('did-finish-load', onOk);
+        void createWin.loadURL(detachFileUrl);
+      });
     } else {
-      createWin.loadURL(`file://${path.join(__static, './detach/index.html')}`);
+      void createWin.loadURL(detachFileUrl);
     }
     createWin.on('close', () => {
       executeHooks('PluginOut', null);
@@ -69,49 +110,27 @@ export default () => {
         createWin.webContents.executeJavaScript(
           `document.body.classList.add("dark");window.rubick.theme="dark"`
         );
-      view.setAutoResize({ width: true, height: true });
       createWin.setBrowserView(view);
       view.inDetach = true;
+      layoutDetachPluginView(createWin);
       createWin.webContents.executeJavaScript(
         `window.initDetach(${JSON.stringify(pluginInfo)})`
       );
+      win = createWin;
       createWin.show();
     });
+
+    createWin.on('resize', () => layoutDetachPluginView(createWin));
 
     // 最大化设置
     createWin.on('maximize', () => {
       createWin.webContents.executeJavaScript('window.maximizeTrigger()');
-      const view = createWin.getBrowserView();
-      if (!view) return;
-      const display = screen.getDisplayMatching(createWin.getBounds());
-      view.setBounds({
-        x: 0,
-        y: WINDOW_MIN_HEIGHT,
-        width: display.workArea.width,
-        height: display.workArea.height - WINDOW_MIN_HEIGHT,
-      });
+      layoutDetachPluginView(createWin);
     });
     // 最小化
     createWin.on('unmaximize', () => {
       createWin.webContents.executeJavaScript('window.unmaximizeTrigger()');
-      const view = createWin.getBrowserView();
-      if (!view) return;
-      const bounds = createWin.getBounds();
-      const display = screen.getDisplayMatching(bounds);
-      const width =
-        (display.scaleFactor * bounds.width) % 1 == 0
-          ? bounds.width
-          : bounds.width - 2;
-      const height =
-        (display.scaleFactor * bounds.height) % 1 == 0
-          ? bounds.height
-          : bounds.height - 2;
-      view.setBounds({
-        x: 0,
-        y: WINDOW_MIN_HEIGHT,
-        width,
-        height: height - WINDOW_MIN_HEIGHT,
-      });
+      layoutDetachPluginView(createWin);
     });
 
     createWin.on('page-title-updated', (e) => {

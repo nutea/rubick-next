@@ -41,6 +41,7 @@ import useDrag from '../common/utils/dragWindow';
 import { getGlobal } from '@electron/remote';
 import { PLUGIN_HISTORY } from '@/common/constans/renderer';
 import { message } from 'ant-design-vue';
+import debounce from 'lodash.debounce';
 import localConfig from './confOp';
 
 const { onMouseDown } = useDrag();
@@ -91,10 +92,8 @@ getPluginInfo({
   remote.getGlobal('LOCAL_PLUGINS').addPlugin(res);
 });
 
-watch(
-  [options, pluginHistory, currentPlugin],
+const flushExpendHeight = debounce(
   () => {
-    currentSelect.value = 0;
     if (currentPlugin.value.name) return;
     window.rubick.setExpendHeight(
       getWindowHeight(
@@ -104,6 +103,16 @@ watch(
           : pluginHistory.value
       )
     );
+  },
+  40,
+  { leading: true, trailing: true, maxWait: 120 }
+);
+
+watch(
+  [options, pluginHistory, currentPlugin],
+  () => {
+    currentSelect.value = 0;
+    flushExpendHeight();
   },
   {
     immediate: true,

@@ -8,6 +8,7 @@ import {
   WINDOW_PLUGIN_HEIGHT,
   WINDOW_WIDTH,
 } from '@/common/constans/common';
+import { applyMainWindowContentHeight } from '@/main/common/mainWindowContentResize';
 
 const getRelativePath = (indexPath) => {
   return commonConst.windows()
@@ -68,7 +69,7 @@ export default () => {
   const viewReadyFn = async (window, { pluginSetting, ext }) => {
     if (!view) return;
     const height = pluginSetting && pluginSetting.height;
-    window.setSize(WINDOW_WIDTH, height || WINDOW_PLUGIN_HEIGHT);
+    applyMainWindowContentHeight(window, height || WINDOW_PLUGIN_HEIGHT);
     view.setBounds({
       x: 0,
       y: WINDOW_HEIGHT,

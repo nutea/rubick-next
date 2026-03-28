@@ -33,6 +33,7 @@ import {
   getExportDefaultFilename,
   importPluginBundle,
 } from './pluginBundle';
+import { applyMainWindowContentHeight } from './mainWindowContentResize';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -114,8 +115,10 @@ class API extends DBInstance {
     const { x, y } = screen.getCursorScreenPoint();
     const originWindow = this.getCurrentWindow(window, e);
     if (!originWindow) return;
-    originWindow.setBounds({ x: x - mouseX, y: y - mouseY, width, height });
-    getWinPosition.setPosition(x - mouseX, y - mouseY);
+    const nx = x - mouseX;
+    const ny = y - mouseY;
+    originWindow.setContentBounds({ x: nx, y: ny, width, height });
+    getWinPosition.setPosition(nx, ny);
   }
 
   public loadPlugin({ data: plugin }, window) {
@@ -133,7 +136,7 @@ class API extends DBInstance {
         icon: plugin.logo,
       }).show();
     }
-    window.setSize(window.getSize()[0], 60);
+    applyMainWindowContentHeight(window, 60);
     this.removePlugin(null, window);
     // 模板文件
     if (!plugin.main) {
@@ -204,17 +207,7 @@ class API extends DBInstance {
   public setExpendHeight({ data: height }, window: BrowserWindow, e) {
     const originWindow = this.getCurrentWindow(window, e);
     if (!originWindow) return;
-    const targetHeight = height;
-    originWindow.setSize(originWindow.getSize()[0], targetHeight);
-    const screenPoint = screen.getCursorScreenPoint();
-    const display = screen.getDisplayNearestPoint(screenPoint);
-    const position =
-      originWindow.getPosition()[1] + targetHeight > display.bounds.height
-        ? height - 60
-        : 0;
-    originWindow.webContents.executeJavaScript(
-      `window.setPosition && typeof window.setPosition === "function" && window.setPosition(${position})`
-    );
+    applyMainWindowContentHeight(originWindow, Number(height));
   }
 
   public setSubInput({ data }, window, e) {
@@ -382,7 +375,7 @@ class API extends DBInstance {
           view
         );
         window.webContents.executeJavaScript(`window.initRubick()`);
-        window.setSize(window.getSize()[0], 60);
+        applyMainWindowContentHeight(window, 60);
         this.currentPlugin = null;
       });
   }
