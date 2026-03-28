@@ -48,6 +48,12 @@
           </template>
           {{ $t('feature.market.localPlugin') }}
         </a-menu-item>
+        <a-menu-item key="superPanel">
+          <template #icon>
+            <PushpinOutlined style="font-size: 16px" />
+          </template>
+          {{ $t('feature.market.superPanelSettings') }}
+        </a-menu-item>
         <a-sub-menu class="user-info">
           <template #icon>
             <a-avatar :size="32">
@@ -89,6 +95,7 @@
           'worker',
           'system',
           'localPlugin',
+          'superPanel',
         ].includes(active[0])
           ? 'container'
           : 'more'
@@ -115,6 +122,7 @@ import {
   HeartOutlined,
   BugOutlined,
   ApiOutlined,
+  PushpinOutlined,
 } from '@ant-design/icons-vue';
 import { useStore } from 'vuex';
 import localConfig from '@/confOp';
@@ -130,9 +138,14 @@ const changeMenu = (key: any) => {
 };
 
 window.rubick.onPluginEnter(({ code }: { code: string }) => {
-  code = code === '已安装插件' ? 'installed' : code;
-  changeMenu(code);
-  store.commit('commonUpdate', { active: [code] });
+  const routeAliases: Record<string, string> = {
+    已安装插件: 'installed',
+    超级面板: 'superPanel',
+    超级面板设置: 'superPanel',
+    超级面板快捷键: 'superPanel',
+  };
+  const key = routeAliases[code] || code;
+  changeMenu(key);
 });
 
 window.rubick.setSubInput((e: any) => {

@@ -31,5 +31,12 @@ export default function pluginClickEvent({
       ? 'http://localhost:8081/#/'
       : `file://${__static}/feature/index.html`;
   }
+  if (plugin.name === 'rubick-system-super-panel') {
+    pluginDist.indexPath = `file://${path.join(
+      __static,
+      'rubick-system-super-panel',
+      plugin.main || 'index.html'
+    )}`;
+  }
   openPlugin(pluginDist, option);
 }

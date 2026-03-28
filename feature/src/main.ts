@@ -47,9 +47,9 @@ ConfigProvider.config({
 });
 
 window.rubick.changeTheme = () => {
-  const config: any = localConfig.getConfig();
+  const next: any = localConfig.getConfig();
   ConfigProvider.config({
-    theme: config.perf.custom || {},
+    theme: next.perf.custom || {},
   });
 };
 

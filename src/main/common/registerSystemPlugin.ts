@@ -3,6 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import { PLUGIN_INSTALL_DIR } from '@/common/constans/main';
 
+declare const __static: string;
+
+function systemPluginDiskRoot(plugin: { name: string }): string {
+  if (plugin.name === 'rubick-system-super-panel') {
+    return path.join(__static, 'rubick-system-super-panel');
+  }
+  return path.resolve(PLUGIN_INSTALL_DIR, 'node_modules', plugin.name);
+}
+
 export default () => {
   // 读取所有插件
   const totalPlugins = global.LOCAL_PLUGINS.getLocalPlugins();
@@ -12,11 +21,7 @@ export default () => {
   systemPlugins = systemPlugins
     .map((plugin) => {
       try {
-        const pluginPath = path.resolve(
-          PLUGIN_INSTALL_DIR,
-          'node_modules',
-          plugin.name
-        );
+        const pluginPath = systemPluginDiskRoot(plugin);
         return {
           ...plugin,
           indexPath: path.join(pluginPath, './', plugin.entry),

@@ -83,6 +83,14 @@ getPluginInfo({
   remote.getGlobal('LOCAL_PLUGINS').addPlugin(res);
 });
 
+getPluginInfo({
+  pluginName: 'rubick-system-super-panel',
+  // eslint-disable-next-line no-undef
+  pluginPath: `${__static}/rubick-system-super-panel/package.json`,
+}).then((res) => {
+  remote.getGlobal('LOCAL_PLUGINS').addPlugin(res);
+});
+
 watch(
   [options, pluginHistory, currentPlugin],
   () => {

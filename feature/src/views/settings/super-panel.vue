@@ -50,7 +50,8 @@ const localPlugins = computed(() =>
   store.state.localPlugins.filter(
     (plugin) =>
       plugin.name !== 'rubick-system-feature' &&
-      plugin.name !== 'rubick-system-super-panel'
+      plugin.name !== 'rubick-system-super-panel' &&
+      plugin.name !== 'rubick-superx'
   )
 );
 

@@ -231,9 +231,15 @@ const dataPlugins = computed(() => {
   if (!pluginsData) return [];
   return pluginsData.data.map((item) => {
     let plugin = null;
-    if (['rubick-system-feature'].includes(item.name)) {
+    if (item.name === 'rubick-system-feature') {
       plugin = {
         pluginName: '主程序',
+        isdownload: true,
+        logo: require('../../assets/logo.png'),
+      };
+    } else if (item.name === 'rubick-system-super-panel') {
+      plugin = {
+        pluginName: '超级面板',
         isdownload: true,
         logo: require('../../assets/logo.png'),
       };

@@ -28,6 +28,11 @@ import getWinPosition from './getWinPosition';
 import path from 'path';
 import commonConst from '@/common/utils/commonConst';
 import { copyFilesToWindowsClipboard } from './windowsClipboard';
+import {
+  exportPluginBundle,
+  getExportDefaultFilename,
+  importPluginBundle,
+} from './pluginBundle';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -141,6 +146,12 @@ class API extends DBInstance {
       plugin.indexPath = commonConst.dev()
         ? 'http://localhost:8081/#/'
         : `file://${__static}/feature/index.html`;
+    } else if (plugin.name === 'rubick-system-super-panel') {
+      plugin.indexPath = `file://${path.join(
+        __static,
+        'rubick-system-super-panel',
+        plugin.main || 'index.html'
+      )}`;
     } else if (!plugin.indexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', plugin.name);
       plugin.indexPath = `file://${path.join(
@@ -435,6 +446,43 @@ class API extends DBInstance {
         plugin,
       })})`
     );
+  }
+
+  public async pluginExportBundle(arg, window) {
+    const pluginName = arg?.data?.pluginName;
+    if (!pluginName || typeof pluginName !== 'string') {
+      return { ok: false, error: 'NO_PLUGIN_NAME' };
+    }
+    const resolved = getExportDefaultFilename(pluginName);
+    if (!resolved.ok) {
+      return { ok: false, error: resolved.error };
+    }
+    const { canceled, filePath } = await dialog.showSaveDialog(window, {
+      title: 'Rubick',
+      defaultPath: resolved.filename,
+      filters: [{ name: 'ZIP', extensions: ['zip'] }],
+    });
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+    return exportPluginBundle(filePath, pluginName);
+  }
+
+  public async pluginImportBundle(_arg, window) {
+    const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+      title: 'Rubick',
+      filters: [{ name: 'Rubick plugin bundle', extensions: ['zip'] }],
+      properties: ['openFile'],
+    });
+    if (canceled || !filePaths?.[0]) {
+      return { canceled: true };
+    }
+    const result = await importPluginBundle(filePaths[0]);
+    if (result.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global as any).LOCAL_PLUGINS?.reloadPluginsFromDisk?.();
+    }
+    return result;
   }
 }
 

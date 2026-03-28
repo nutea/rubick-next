@@ -12,6 +12,8 @@ export default {
         developTool: 'Develop Tools',
         systemTool: 'System Tools',
         localPlugin: 'Custom Plugins',
+        superPanelSettings: 'Super Panel',
+
         finder: {
           must: 'Necessary',
           recommended: 'Recommended',
@@ -21,6 +23,32 @@ export default {
       },
       installed: {
         title: 'Installed',
+        export: 'Export offline bundle',
+        import: 'Import offline bundle',
+        exportSuccess:
+          'Exported "{name}" v{version} to a zip. You can import it offline.',
+        importSuccess:
+          'Imported {count} plugin(s). No network or npm is required.',
+        importSkippedNotNewer:
+          'Skipped "{name}": bundle version {imported} is not newer than installed {installed}.',
+        importSkipped: 'Skipped missing or broken folders: {names}',
+        exportFail: 'Export failed',
+        importFail: 'Import failed',
+        exportErrors: {
+          NO_PLUGIN_NAME: 'No plugin selected',
+          NO_PLUGINS:
+            'Nothing to export (built-in plugins are not included)',
+          PLUGIN_NOT_FOUND: 'Plugin not found',
+          NO_PLUGIN_FILES:
+            'Plugin folders are missing. Reinstall from the market first.',
+          UNKNOWN: 'Export failed',
+        },
+        importErrors: {
+          INVALID_BUNDLE:
+            'Invalid bundle (use a zip exported by Rubick)',
+          NOTHING_IMPORTED: 'No plugin folders found inside the bundle',
+          UNKNOWN: 'Import failed',
+        },
         tips1: 'There are no plug-ins.',
         tips2: 'Go to the plugin market and choose the plugin to install!',
         developer: 'Developer',
@@ -105,6 +133,23 @@ export default {
         database: {
           title: 'Data Synchronization',
         },
+      },
+      superPanelShortcut: {
+        tipTitle: 'Note',
+        tipDesc:
+          'Super panel is a system plugin. After changing the trigger, restart Rubick for it to take effect. Mouse triggers use the same global input hook as the main app.',
+        triggerType: 'Trigger',
+        modeKeyboard: 'Keyboard shortcut',
+        modeMouseMiddle: 'Middle mouse button',
+        modeLongLeft: 'Long-press left button',
+        modeLongRight: 'Long-press right button',
+        modeLongMiddle: 'Long-press middle button',
+        hotkeyLabel: 'Keyboard shortcut',
+        captureHint: 'Click here, then press a key combination…',
+        required: 'Set a keyboard combo or choose a mouse trigger.',
+        save: 'Save',
+        saveOk: 'Saved',
+        saveDevHint: 'Save inside the Rubick plugin environment (ignore in dev).',
       },
       dev: {
         title: 'Developer',

@@ -12,6 +12,7 @@ export default {
         developTool: '开发者',
         systemTool: '系统',
         localPlugin: '自定义插件',
+        superPanelSettings: '超级面板',
 
         finder: {
           must: '必备',
@@ -22,6 +23,28 @@ export default {
       },
       installed: {
         title: '已安装',
+        export: '导出离线包',
+        import: '导入离线包',
+        exportSuccess:
+          '已导出「{name}」版本 {version} 为 zip 离线包，可在无网络环境导入。',
+        importSuccess: '已导入 {count} 个插件（纯离线拷贝，无需访问 npm）。',
+        importSkippedNotNewer:
+          '「{name}」包内版本 {imported} 不高于当前已安装 {installed}，已跳过覆盖。',
+        importSkipped: '以下插件在包内缺失目录，已跳过：{names}',
+        exportFail: '导出失败',
+        importFail: '导入失败',
+        exportErrors: {
+          NO_PLUGIN_NAME: '未选择插件',
+          NO_PLUGINS: '没有可导出的插件（系统内置插件不会导出）',
+          PLUGIN_NOT_FOUND: '未找到该插件',
+          NO_PLUGIN_FILES: '本地插件目录不存在，请先在插件市场安装或重装插件',
+          UNKNOWN: '导出失败',
+        },
+        importErrors: {
+          INVALID_BUNDLE: '不是有效的 Rubick 离线插件包（需由本应用导出的 zip）',
+          NOTHING_IMPORTED: '包内没有可导入的插件目录',
+          UNKNOWN: '导入失败',
+        },
         tips1: '暂无任何插件',
         tips2: '去插件市场选择安装合适的插件吧！',
         developer: '开发者',
@@ -104,6 +127,23 @@ export default {
         database: {
           title: '多端数据同步',
         },
+      },
+      superPanelShortcut: {
+        tipTitle: '温馨提示',
+        tipDesc:
+          '超级面板是系统插件，触发方式修改成功后，请重新启动 rubick 后生效。',
+        triggerType: '触发方式',
+        modeKeyboard: '键盘组合',
+        modeMouseMiddle: '鼠标中键',
+        modeLongLeft: '长按鼠标左键',
+        modeLongRight: '长按鼠标右键',
+        modeLongMiddle: '长按鼠标中键',
+        hotkeyLabel: '键盘快捷键',
+        captureHint: '点击此处后按下组合键…',
+        required: '请设置键盘组合或选择鼠标触发方式',
+        save: '保存设置',
+        saveOk: '保存成功',
+        saveDevHint: '请在 Rubick 插件环境内保存（开发时可忽略）',
       },
       dev: {
         title: '开发者',

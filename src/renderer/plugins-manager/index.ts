@@ -71,7 +71,12 @@ const createPluginManager = (): any => {
     state.pluginLoading = true;
     state.currentPlugin = plugin;
     // 自带的插件不需要检测更新
-    if (plugin.name === 'rubick-system-feature') return;
+    if (
+      plugin.name === 'rubick-system-feature' ||
+      plugin.name === 'rubick-system-super-panel'
+    ) {
+      return;
+    }
     await pluginInstance.upgrade(plugin.name);
     state.pluginLoading = false;
   };

@@ -7,7 +7,13 @@ module.exports = {
     resolve: {
       alias: {
         '@': path.join(__dirname, './src'),
+        // Electron / asar 场景下与 fs 一致，避免 webpack 无法解析 original-fs
+        'original-fs': 'fs',
       },
+    },
+    // 原生 .node 模块，不应打进 renderer bundle（运行时由 Node require）
+    externals: {
+      'extract-file-icon': 'commonjs extract-file-icon',
     },
   },
   pages: {

@@ -37,6 +37,11 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('../views/market/components/local-plugin.vue'),
   },
   {
+    path: '/superPanel',
+    name: 'superPanel',
+    component: () => import('../views/super-panel-market/index.vue'),
+  },
+  {
     path: '/finder',
     name: 'finder',
     component: () => import('../views/market/components/finder.vue'),

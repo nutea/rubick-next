@@ -43,4 +43,12 @@ window.market = {
   dbImport(target) {
     ipcSend('dbImport', { target });
   },
+
+  exportPluginsBundle(payload) {
+    return ipcSendSync('pluginExportBundle', payload || {});
+  },
+
+  importPluginsBundle() {
+    return ipcSendSync('pluginImportBundle', {});
+  },
 };

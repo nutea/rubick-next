@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve --port 8081",
-    "build": "vue-cli-service build",
+    "serve": "node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js serve --port 8081",
+    "build": "node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js build",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {

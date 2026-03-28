@@ -22,10 +22,16 @@ const getPreloadPath = (plugin, pluginIndexPath) => {
     if (name === 'rubick-system-feature') {
       return path.resolve(__static, `../feature/public/preload.js`);
     }
+    if (name === 'rubick-system-super-panel') {
+      return path.join(__static, 'rubick-system-super-panel', preload || 'preload.js');
+    }
     if (tplPath) {
       return path.resolve(getRelativePath(indexPath), `./`, preload);
     }
     return path.resolve(getRelativePath(pluginIndexPath), `../`, preload);
+  }
+  if (name === 'rubick-system-super-panel') {
+    return path.join(__static, 'rubick-system-super-panel', preload || 'preload.js');
   }
   if (tplPath) {
     return path.resolve(getRelativePath(indexPath), `./`, preload);
@@ -122,6 +128,13 @@ export default () => {
       pluginIndexPath = commonConst.dev()
         ? 'http://localhost:8081/#/'
         : `file://${__static}/feature/index.html`;
+    }
+    if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
+      pluginIndexPath = `file://${path.join(
+        __static,
+        'rubick-system-super-panel',
+        main
+      )}`;
     }
     if (!pluginIndexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', name);

@@ -1,6 +1,13 @@
 <template>
   <div class="installed">
-    <div class="view-title">{{ $t('feature.installed.title') }}</div>
+    <div class="view-header">
+      <div class="view-title">{{ $t('feature.installed.title') }}</div>
+      <div class="view-actions">
+        <a-button size="small" :loading="importing" @click="importBundle">
+          {{ $t('feature.installed.import') }}
+        </a-button>
+      </div>
+    </div>
     <div class="view-container">
       <div v-if="!localPlugins.length">
         <a-result
@@ -48,7 +55,15 @@
                 {{ pluginDetail.description }}
               </div>
             </div>
-            <div class="right">
+            <div class="right plugin-actions">
+              <a-button
+                size="small"
+                shape="round"
+                :loading="exporting"
+                @click="exportBundle"
+              >
+                {{ $t('feature.installed.export') }}
+              </a-button>
               <a-button
                 type="primary"
                 size="small"
@@ -118,10 +133,11 @@ import {
   DownOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
 
 import emptyJson from '@/assets/lottie/empty.json';
 
-const { ipcRenderer } = window.require('electron');
+const { t } = useI18n();
 
 const remote = window.require('@electron/remote');
 const fs = window.require('fs');
@@ -135,10 +151,74 @@ const router = useRouter();
 
 const localPlugins = computed(() =>
   store.state.localPlugins.filter(
-    (plugin) => plugin.name !== 'rubick-system-feature'
+    (plugin) =>
+      plugin.name !== 'rubick-system-feature' &&
+      plugin.name !== 'rubick-system-super-panel'
   )
 );
 const updateLocalPlugin = () => store.dispatch('updateLocalPlugin');
+
+const exporting = ref(false);
+const importing = ref(false);
+
+const exportBundle = async () => {
+  const name = pluginDetail.value?.name;
+  if (!name) return;
+  exporting.value = true;
+  try {
+    const res = await window.market.exportPluginsBundle({ pluginName: name });
+    if (res?.canceled) return;
+    if (!res?.ok) {
+      const errKey = `feature.installed.exportErrors.${res.error || 'UNKNOWN'}`;
+      const errTxt = t(errKey);
+      message.error(errTxt !== errKey ? errTxt : res?.error || t('feature.installed.exportFail'));
+      return;
+    }
+    message.success(
+      t('feature.installed.exportSuccess', {
+        name: pluginDetail.value.pluginName || name,
+        version: pluginDetail.value.version || '-',
+      })
+    );
+  } finally {
+    exporting.value = false;
+  }
+};
+
+const importBundle = async () => {
+  importing.value = true;
+  try {
+    const res = await window.market.importPluginsBundle();
+    if (res?.canceled) return;
+    if (!res?.ok) {
+      const errKey = `feature.installed.importErrors.${res.error || 'UNKNOWN'}`;
+      const errTxt = t(errKey);
+      message.error(errTxt !== errKey ? errTxt : res?.error || t('feature.installed.importFail'));
+      return;
+    }
+    const n = res.imported?.length || 0;
+    if (n > 0) {
+      message.success(t('feature.installed.importSuccess', { count: n }));
+    }
+    if (res.skippedNotNewer?.length) {
+      res.skippedNotNewer.forEach((row) => {
+        message.warning(
+          t('feature.installed.importSkippedNotNewer', {
+            name: row.name,
+            imported: row.importedVersion,
+            installed: row.installedVersion,
+          })
+        );
+      });
+    }
+    if (res.skipped?.length) {
+      message.warning(t('feature.installed.importSkipped', { names: res.skipped.join(', ') }));
+    }
+    await updateLocalPlugin();
+  } finally {
+    importing.value = false;
+  }
+};
 const startUnDownload = (name) => store.dispatch('startUnDownload', name);
 const errorUnDownload = (name) => store.dispatch('errorUnDownload', name);
 
@@ -233,11 +313,17 @@ const deletePlugin = async (plugin) => {
   const timer = setTimeout(() => {
     errorUnDownload(plugin.name);
     message.error('卸载超时，请重试！');
-  }, 20000);
-  await window.market.deletePlugin(plugin);
-  removePluginToSuperPanel({ name: plugin.name });
-  updateLocalPlugin();
-  clearTimeout(timer);
+  }, 60000);
+  try {
+    await window.market.deletePlugin(plugin);
+    removePluginToSuperPanel({ name: plugin.name });
+    await updateLocalPlugin();
+  } catch (e) {
+    errorUnDownload(plugin.name);
+    message.error('卸载失败，请重试或手动删除插件目录');
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 const gotoFinder = () => {
@@ -252,10 +338,22 @@ const gotoFinder = () => {
   width: 100%;
   overflow: hidden;
   height: calc(~'100vh - 34px');
+  .view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .view-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+  }
   .view-title {
     font-size: 16px;
     font-weight: 500;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     color: var(--color-text-primary);
   }
   .view-container {
@@ -338,6 +436,12 @@ const gotoFinder = () => {
       border-bottom: 1px solid #eee;
       padding-bottom: 12px;
       margin-bottom: 12px;
+      .plugin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
       .title {
         font-size: 16px;
         display: flex;
