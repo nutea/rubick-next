@@ -142,8 +142,15 @@ const keydownEvent = (e, key: string) => {
 const checkNeedInit = (e) => {
   const { ctrlKey, metaKey } = e;
 
+  // 输入已空时继续按 Backspace：仅在有插件上下文或剪贴板内容时才关闭，
+  // 否则会反复 changeSelect({})，触发 currentPlugin 引用变化与 setExpendHeight，导致窗口高度异常变化。
   if (e.target.value === '' && e.keyCode === 8) {
-    closeTag();
+    const hasPluginContext =
+      props.currentPlugin?.name || props.currentPlugin?.cmd;
+    const hasClipboard = !!props.clipboardFile?.length;
+    if (hasPluginContext || hasClipboard) {
+      closeTag();
+    }
   }
   // 手动粘贴
   if ((ctrlKey || metaKey) && e.key === 'v') {
