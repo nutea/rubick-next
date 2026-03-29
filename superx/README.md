@@ -1,6 +1,6 @@
 # rubick-superx-source（超级面板 · 可读源码）
 
-本目录为 `public/rubick-system-super-panel` 的 **Vue 3 + TypeScript** 还原实现，便于阅读与修改；与当前线上包行为对齐（快捷键、剪贴板、面板 UI、有道翻译预加载、主进程入口等）。
+本目录为 `public/superx` 的 **Vue 3 + TypeScript** 还原实现，便于阅读与修改；与当前线上包行为对齐（快捷键、剪贴板、面板 UI、有道翻译预加载、主进程入口等）。
 
 ## 目录结构
 
@@ -27,13 +27,13 @@
    - **`modules/**/robotjs` 等预编译原生模块**：同样是平台相关二进制/打包结果，通常随上游发布包提供，不适合放进 `superx` 当手写代码。
 
 3. **部署目录里的「快照」与 superx 的关系**
-   - **`public/rubick-system-super-panel/main.js`、`panel-window.js`、`panel-preload.js`**：与 **`node-src/*.ts` 编译结果** 等价；public 下的是给 Rubick 直接加载的已编译文件，**源文件在 `node-src/`**。
+   - **`public/superx/main.js`、`panel-window.js`、`panel-preload.js`**：与 **`node-src/*.ts` 编译结果** 等价；public 下的是给 Rubick 直接加载的已编译文件，**源文件在 `node-src/`**。
    - **`public/.../package.json`**：与 **`superx/deploy/package.json`** 应对齐；之前只放在 public 是为了运行，现已把清单纳入 **`deploy/`**，避免「只有部署目录里有、仓库里没有单一事实来源」。
 
 4. **小资源（可选）**
    - **`favicon.ico`、`img/`**：若存在，属于静态资源；面板里 Logo 也可用外链或构建时从 `public` 拷贝，未强制放进 superx。
 
-**结论：** superx 收的是 **你能改、该版本控制的逻辑**（Vue/TS）；**依赖安装结果、编译产物、无源码的二进制** 仍落在 `public/rubick-system-super-panel`（或构建流水线里），这是刻意拆分，不是遗漏。
+**结论：** superx 收的是 **你能改、该版本控制的逻辑**（Vue/TS）；**依赖安装结果、编译产物、无源码的二进制** 仍落在 `public/superx`（或构建流水线里），这是刻意拆分，不是遗漏。
 
 ## 安装与构建
 
@@ -46,7 +46,7 @@ npm run build:web    # → dist/
 npm run build:node   # → dist-node/
 ```
 
-### 一键发布到 `public/rubick-system-super-panel`
+### 一键发布到 `public/superx`
 
 ```bash
 cd superx

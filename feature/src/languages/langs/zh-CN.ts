@@ -131,7 +131,7 @@ export default {
       superPanelShortcut: {
         tipTitle: '温馨提示',
         tipDesc:
-          '超级面板是系统插件，触发方式修改成功后，请重新启动 rubick 后生效。',
+          '超级面板是系统插件。保存触发方式后会立即尝试重新注册快捷键/鼠标监听；若未生效可重启 Rubick。',
         triggerType: '触发方式',
         modeKeyboard: '键盘组合',
         modeMouseMiddle: '鼠标中键',

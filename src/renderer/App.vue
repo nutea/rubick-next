@@ -87,7 +87,7 @@ getPluginInfo({
 getPluginInfo({
   pluginName: 'rubick-system-super-panel',
   // eslint-disable-next-line no-undef
-  pluginPath: `${__static}/rubick-system-super-panel/package.json`,
+  pluginPath: `${__static}/superx/package.json`,
 }).then((res) => {
   remote.getGlobal('LOCAL_PLUGINS').addPlugin(res);
 });

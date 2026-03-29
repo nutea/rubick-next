@@ -1,5 +1,5 @@
 /**
- * 构建 superx，并将产物写入仓库内 public/rubick-system-super-panel。
+ * 构建 superx，并将产物写入仓库内 public/superx。
  * 保留目标目录下的 node_modules 与 modules（除非 deploy/modules 存在内容则覆盖 modules）。
  */
 const fs = require('fs');
@@ -10,7 +10,7 @@ const SUPERX_ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(SUPERX_ROOT, 'dist');
 const DIST_NODE = path.join(SUPERX_ROOT, 'dist-node');
 const DEPLOY = path.join(SUPERX_ROOT, 'deploy');
-const TARGET = path.join(SUPERX_ROOT, '..', 'public', 'rubick-system-super-panel');
+const TARGET = path.join(SUPERX_ROOT, '..', 'public', 'superx');
 
 function run(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, {
@@ -109,6 +109,14 @@ if (deployModulesHasFiles()) {
   console.log(
     '[superx:release] keep existing target/modules (deploy/modules empty or missing).'
   );
+}
+
+const npmrcSrc = path.join(DEPLOY, '.npmrc');
+if (fs.existsSync(npmrcSrc)) {
+  console.log('[superx:release] copy deploy/.npmrc → public/superx/.npmrc…');
+  copyFile(npmrcSrc, path.join(TARGET, '.npmrc'));
+} else {
+  console.warn('[superx:release] deploy/.npmrc 不存在，跳过复制');
 }
 
 console.log('[superx:release] npm install --omit=dev in target…');

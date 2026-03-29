@@ -7,7 +7,7 @@ declare const __static: string;
 
 function systemPluginDiskRoot(plugin: { name: string }): string {
   if (plugin.name === 'rubick-system-super-panel') {
-    return path.join(__static, 'rubick-system-super-panel');
+    return path.join(__static, 'superx');
   }
   return path.resolve(PLUGIN_INSTALL_DIR, 'node_modules', plugin.name);
 }

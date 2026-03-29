@@ -10,7 +10,7 @@ declare const __static: string;
 const configPath = path.join(baseDir, './rubick-local-plugin.json');
 const BUILTIN_SUPER_PANEL_PKG = path.join(
   __static,
-  'rubick-system-super-panel',
+  'superx',
   'package.json'
 );
 

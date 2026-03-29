@@ -134,7 +134,8 @@ const { perf } = localConfig.getConfig();
 
 const changeMenu = (key: any) => {
   store.commit('commonUpdate', { active: [key] });
-  router.push(key);
+  // Vue Router 4：无前导 / 的字符串会按相对路径解析，统一用绝对 path
+  router.push({ path: `/${key}` });
 };
 
 window.rubick.onPluginEnter(({ code }: { code: string }) => {
@@ -162,10 +163,10 @@ window.rubick.setSubInput((e: any) => {
   ) {
     if (e.text) {
       store.commit('setSearchValue', e.text);
-      router.push('result');
+      router.push({ path: '/result' });
     } else {
       store.commit('commonUpdate', { active: ['finder'] });
-      router.push('finder');
+      router.push({ path: '/finder' });
     }
   }
 }, '搜索插件');

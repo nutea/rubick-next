@@ -137,7 +137,7 @@ export default {
       superPanelShortcut: {
         tipTitle: 'Note',
         tipDesc:
-          'Super panel is a system plugin. After changing the trigger, restart Rubick for it to take effect. Mouse triggers use the same global input hook as the main app.',
+          'Super panel is a system plugin. Saving applies the new trigger immediately (shortcut / mouse hook re-registered). Restart Rubick if it does not take effect.',
         triggerType: 'Trigger',
         modeKeyboard: 'Keyboard shortcut',
         modeMouseMiddle: 'Middle mouse button',

@@ -34,7 +34,7 @@ export default function pluginClickEvent({
   if (plugin.name === 'rubick-system-super-panel') {
     pluginDist.indexPath = `file://${path.join(
       __static,
-      'rubick-system-super-panel',
+      'superx',
       plugin.main || 'index.html'
     )}`;
   }

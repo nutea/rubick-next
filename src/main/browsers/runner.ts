@@ -24,7 +24,7 @@ const getPreloadPath = (plugin, pluginIndexPath) => {
       return path.resolve(__static, `../feature/public/preload.js`);
     }
     if (name === 'rubick-system-super-panel') {
-      return path.join(__static, 'rubick-system-super-panel', preload || 'preload.js');
+      return path.join(__static, 'superx', preload || 'preload.js');
     }
     if (tplPath) {
       return path.resolve(getRelativePath(indexPath), `./`, preload);
@@ -32,7 +32,7 @@ const getPreloadPath = (plugin, pluginIndexPath) => {
     return path.resolve(getRelativePath(pluginIndexPath), `../`, preload);
   }
   if (name === 'rubick-system-super-panel') {
-    return path.join(__static, 'rubick-system-super-panel', preload || 'preload.js');
+    return path.join(__static, 'superx', preload || 'preload.js');
   }
   if (tplPath) {
     return path.resolve(getRelativePath(indexPath), `./`, preload);
@@ -133,7 +133,7 @@ export default () => {
     if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
       pluginIndexPath = `file://${path.join(
         __static,
-        'rubick-system-super-panel',
+        'superx',
         main
       )}`;
     }

@@ -33,6 +33,10 @@ module.exports = {
         'npm',
         'electron-screenshots',
         '@electron/remote',
+        /** superx/main.js、panel-window.js 在 app.asar/superx 下运行；electron-builder 会排除任意路径下的 node_modules，故依赖必须出现在应用根 node_modules */
+        '@nut-tree/nut-js',
+        'rubick-active-win',
+        'execa',
       ],
       // Use this to change the entry point of your app's render process. default src/[main|index].[js|ts]
       builderOptions: {

@@ -61,7 +61,28 @@ const sanitizeInputFiles = (input: unknown): string[] => {
 const runnerInstance = runner();
 const detachInstance = detach();
 
+/** 与超级面板插件 node main、feature 设置页 dbStorage._id 一致 */
+const SUPER_PANEL_HOTKEY_STORE_ID = 'rubick-system-super-panel-store';
+
 class API extends DBInstance {
+  public async dbPut(arg: any) {
+    const result = await super.dbPut(arg);
+    const doc = arg?.data?.data;
+    if (doc && doc._id === SUPER_PANEL_HOTKEY_STORE_ID) {
+      const g = globalThis as typeof globalThis & {
+        __superPanelReregister?: () => void;
+      };
+      if (typeof g.__superPanelReregister === 'function') {
+        try {
+          g.__superPanelReregister();
+        } catch (err) {
+          console.error('[rubick-system-super-panel] hot reload failed:', err);
+        }
+      }
+    }
+    return result;
+  }
+
   init(mainWindow: BrowserWindow) {
     // 响应 preload.js 事件
     ipcMain.on('msg-trigger', async (event, arg) => {
@@ -152,7 +173,7 @@ class API extends DBInstance {
     } else if (plugin.name === 'rubick-system-super-panel') {
       plugin.indexPath = `file://${path.join(
         __static,
-        'rubick-system-super-panel',
+        'superx',
         plugin.main || 'index.html'
       )}`;
     } else if (!plugin.indexPath) {

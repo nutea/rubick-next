@@ -4,7 +4,7 @@
       type="info"
       show-icon
       message="温馨提示"
-      description="超级面板是系统插件，触发方式修改成功后，请重新启动 rubick 后生效。"
+      description="超级面板是系统插件。保存后会立即重新注册触发方式；若未生效请重启 Rubick。"
     />
     <div class="form-wrap">
       <a-form
@@ -37,10 +37,17 @@
           <a-input
             :value="form.superPanelHotKey"
             read-only
+            autocomplete="off"
             class="shortcut-input"
             placeholder="点击此处后按下组合键…"
             @focus="onShortcutFocus"
             @blur="onShortcutBlur"
+            @keydown.capture="onShortcutInputBlock"
+            @paste.prevent
+            @drop.prevent
+            @compositionstart.prevent
+            @compositionupdate.prevent
+            @compositionend.prevent
           />
         </a-form-item>
         <a-form-item :wrapper-col="{ offset: 10, span: 14 }">
@@ -95,6 +102,12 @@ function onTriggerTypeChange(v: string) {
 
 const capturing = ref(false);
 
+function onShortcutInputBlock(e: KeyboardEvent) {
+  if (e.key === 'Tab') return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 function keyFromEvent(e: KeyboardEvent): string | null {
   if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return null;
   if (e.key === ' ') return 'Space';
@@ -125,6 +138,13 @@ function keyFromEvent(e: KeyboardEvent): string | null {
 
 function onKeyDownCapture(e: KeyboardEvent) {
   if (triggerSelect.value !== 'keyboard' || !capturing.value) return;
+
+  if (e.key === 'Tab') {
+    capturing.value = false;
+    window.removeEventListener('keydown', onKeyDownCapture, true);
+    return;
+  }
+
   e.preventDefault();
   e.stopPropagation();
 
@@ -189,5 +209,7 @@ function onSave() {
 .shortcut-input :deep(.ant-input) {
   cursor: pointer;
   font-family: ui-monospace, monospace;
+  user-select: none;
+  caret-color: transparent;
 }
 </style>

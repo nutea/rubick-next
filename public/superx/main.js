@@ -74,6 +74,8 @@ const SP_MOUSE = {
 /** libuiohook MOUSE_BUTTON1..3 */
 const BTN = { LEFT: 1, RIGHT: 2, MIDDLE: 3 };
 const LONG_PRESS_MS = 450;
+/** 首次注册延迟，避免与 Rubick 其它 globalShortcut 抢注册冲突；热更新时为 0 */
+const INITIAL_KEYBOARD_REGISTER_MS = 1000;
 function isMouseTrigger(s) {
     return Object.values(SP_MOUSE).includes(s);
 }
@@ -102,6 +104,7 @@ function createPlugin() {
     let mouseUpHandler = null;
     let longPressTimer = null;
     let longPressButton = null;
+    let keyboardRegisterTimer = null;
     function clearMouseRegistration(uIOhook) {
         if (longPressTimer) {
             clearTimeout(longPressTimer);
@@ -122,8 +125,6 @@ function createPlugin() {
             const { clipboard, screen, globalShortcut, API } = ctx;
             const panelInstance = (0, panel_window_1.default)(ctx);
             panelInstance.init();
-            const dbStore = (await API.dbGet({ data: { id: STORE_ID } })) || {};
-            const superPanelHotKey = dbStore.value || 'Ctrl+W';
             const showSuperPanel = async () => {
                 var _a;
                 const { x, y } = screen.getCursorScreenPoint();
@@ -152,7 +153,14 @@ function createPlugin() {
                 win.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: true });
                 win.show();
             };
-            const register = () => {
+            let isFirstRegister = true;
+            const register = async () => {
+                if (keyboardRegisterTimer) {
+                    clearTimeout(keyboardRegisterTimer);
+                    keyboardRegisterTimer = null;
+                }
+                const dbStore = (await API.dbGet({ data: { id: STORE_ID } })) || {};
+                const superPanelHotKey = dbStore.value || 'Ctrl+W';
                 if (lastRegisteredKey && !isMouseTrigger(lastRegisteredKey)) {
                     try {
                         globalShortcut.unregister(lastRegisteredKey);
@@ -222,7 +230,10 @@ function createPlugin() {
                     uIOhook.on('mouseup', mouseUpHandler);
                     return;
                 }
-                setTimeout(() => {
+                const delayMs = isFirstRegister ? INITIAL_KEYBOARD_REGISTER_MS : 0;
+                isFirstRegister = false;
+                keyboardRegisterTimer = setTimeout(() => {
+                    keyboardRegisterTimer = null;
                     try {
                         globalShortcut.register(superPanelHotKey, () => {
                             void showSuperPanel();
@@ -231,9 +242,14 @@ function createPlugin() {
                     catch (err) {
                         console.warn('[rubick-system-super-panel] globalShortcut.register failed:', err);
                     }
-                }, 1000);
+                }, delayMs);
             };
-            register();
+            const scheduleRegister = () => {
+                void register();
+            };
+            globalThis.__superPanelReregister =
+                scheduleRegister;
+            await register();
         },
     };
 }

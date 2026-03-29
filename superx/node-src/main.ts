@@ -44,6 +44,9 @@ const BTN = { LEFT: 1, RIGHT: 2, MIDDLE: 3 } as const;
 
 const LONG_PRESS_MS = 450;
 
+/** 首次注册延迟，避免与 Rubick 其它 globalShortcut 抢注册冲突；热更新时为 0 */
+const INITIAL_KEYBOARD_REGISTER_MS = 1000;
+
 function isMouseTrigger(s: string): boolean {
   return Object.values(SP_MOUSE).includes(s as (typeof SP_MOUSE)[keyof typeof SP_MOUSE]);
 }
@@ -76,6 +79,7 @@ function createPlugin() {
   let mouseUpHandler: ((e: any) => void) | null = null;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressButton: number | null = null;
+  let keyboardRegisterTimer: ReturnType<typeof setTimeout> | null = null;
 
   function clearMouseRegistration(uIOhook: { removeListener: (ev: string, fn: unknown) => void }) {
     if (longPressTimer) {
@@ -99,9 +103,6 @@ function createPlugin() {
 
       const panelInstance = createPanelWindow(ctx);
       panelInstance.init();
-
-      const dbStore = (await API.dbGet({ data: { id: STORE_ID } })) || {};
-      const superPanelHotKey: string = dbStore.value || 'Ctrl+W';
 
       const showSuperPanel = async () => {
         const { x, y } = screen.getCursorScreenPoint();
@@ -132,7 +133,17 @@ function createPlugin() {
         win.show();
       };
 
-      const register = () => {
+      let isFirstRegister = true;
+
+      const register = async () => {
+        if (keyboardRegisterTimer) {
+          clearTimeout(keyboardRegisterTimer);
+          keyboardRegisterTimer = null;
+        }
+
+        const dbStore = (await API.dbGet({ data: { id: STORE_ID } })) || {};
+        const superPanelHotKey: string = dbStore.value || 'Ctrl+W';
+
         if (lastRegisteredKey && !isMouseTrigger(lastRegisteredKey)) {
           try {
             globalShortcut.unregister(lastRegisteredKey);
@@ -207,7 +218,11 @@ function createPlugin() {
           return;
         }
 
-        setTimeout(() => {
+        const delayMs = isFirstRegister ? INITIAL_KEYBOARD_REGISTER_MS : 0;
+        isFirstRegister = false;
+
+        keyboardRegisterTimer = setTimeout(() => {
+          keyboardRegisterTimer = null;
           try {
             globalShortcut.register(superPanelHotKey, () => {
               void showSuperPanel();
@@ -215,10 +230,16 @@ function createPlugin() {
           } catch (err) {
             console.warn('[rubick-system-super-panel] globalShortcut.register failed:', err);
           }
-        }, 1000);
+        }, delayMs);
       };
 
-      register();
+      const scheduleRegister = () => {
+        void register();
+      };
+
+      (globalThis as typeof globalThis & { __superPanelReregister?: () => void }).__superPanelReregister =
+        scheduleRegister;
+      await register();
     },
   };
 }
