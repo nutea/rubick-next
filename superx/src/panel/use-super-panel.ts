@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { getChildProcess, getElectron, getOs, getPath } from './electron';
 import { rubickDb } from './db';
 import { openPlugin } from './open-plugin';
@@ -243,36 +243,46 @@ export function useSuperPanel() {
   }
 
   function onTrigger(_e: unknown, payload: TriggerSuperPanelPayload) {
-    state.matchPlugins = [];
-    state.translate = null;
+    try {
+      state.matchPlugins = [];
+      state.translate = null;
 
-    const { text, fileUrl, optionPlugin = [] } = payload;
-    const ext = pathMod.extname(fileUrl || '');
-    state.fileUrl = (fileUrl ?? '') as string;
+      const { text, fileUrl, optionPlugin = [] } = payload;
+      const ext = pathMod.extname(fileUrl || '');
+      state.fileUrl = (fileUrl ?? '') as string;
 
-    if (fileUrl === null) {
-      state.matchPlugins = [...commonPlugins];
-      state.fileUrl = getDesktopPath();
-      return;
-    }
+      if (fileUrl === null) {
+        state.matchPlugins = [...commonPlugins];
+        state.fileUrl = getDesktopPath();
+        return;
+      }
 
-    if (!fileUrl && text) {
-      collectTextPlugins(text, optionPlugin);
-      runTranslate(text);
-      return;
-    }
+      if (!fileUrl && text) {
+        collectTextPlugins(text, optionPlugin);
+        runTranslate(text);
+        return;
+      }
 
-    if (fileUrl && isExplorerLikeWindow(String(fileUrl))) {
-      state.matchPlugins = [...commonPlugins];
-      resolveCurrentFolder((folder) => {
-        state.fileUrl = folder;
+      if (fileUrl && isExplorerLikeWindow(String(fileUrl))) {
+        state.matchPlugins = [...commonPlugins];
+        resolveCurrentFolder((folder) => {
+          state.fileUrl = folder;
+        });
+        return;
+      }
+
+      state.matchPlugins = [...selectedPlugins];
+      state.fileUrl = String(fileUrl);
+      collectFilePlugins(String(fileUrl), ext, optionPlugin);
+    } finally {
+      // 等 Vue 把本次 payload 刷进 DOM 并上报高度后再让主进程 show，避免先闪旧内容、再与 setSize 同步抖动
+      nextTick(() => {
+        reportHeight();
+        setTimeout(() => {
+          ipcRenderer.send('superPanel-content-applied');
+        }, 48);
       });
-      return;
     }
-
-    state.matchPlugins = [...selectedPlugins];
-    state.fileUrl = String(fileUrl);
-    collectFilePlugins(String(fileUrl), ext, optionPlugin);
   }
 
   function togglePin() {

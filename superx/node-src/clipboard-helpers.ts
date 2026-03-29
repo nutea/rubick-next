@@ -86,33 +86,72 @@ export function getFilePathFromClipboard(clipboard: ClipboardApi): FileEntry[] {
   return filePath;
 }
 
+/** 用于对比「模拟复制前后」以及「与面板上次处理时」的剪贴板状态 */
+export interface ClipboardSnap {
+  text: string;
+  pathStr: string;
+  hasImage: boolean;
+}
+
+export function snapshotClipboard(clipboard: ClipboardApi): ClipboardSnap {
+  const text = clipboard.readText('clipboard') || '';
+  const raw = getFilePathFromClipboard(clipboard)[0];
+  const pathStr = typeof raw === 'string' ? raw : '';
+  const im = clipboard.readImage('clipboard');
+  const hasImage = !!(im && typeof im.isEmpty === 'function' && !im.isEmpty());
+  return { text, pathStr, hasImage };
+}
+
+export function clipboardSnapsEqual(a: ClipboardSnap, b: ClipboardSnap): boolean {
+  return a.text === b.text && a.pathStr === b.pathStr && a.hasImage === b.hasImage;
+}
+
+function snapUnchanged(a: ClipboardSnap, b: ClipboardSnap): boolean {
+  return clipboardSnapsEqual(a, b);
+}
+
+/** 从当前剪贴板解析为面板用的 text / fileUrl（路径优先） */
+export function readClipboardPayload(clipboard: ClipboardApi): { text: string; fileUrl: string } {
+  const text = clipboard.readText('clipboard') || '';
+  const raw = getFilePathFromClipboard(clipboard)[0];
+  let fileUrl = '';
+  if (typeof raw === 'string') {
+    fileUrl = raw;
+  }
+  return {
+    text: fileUrl ? '' : text,
+    fileUrl,
+  };
+}
+
 export async function getSelectedContent(
   clipboard: ClipboardApi,
   simulateCopy: () => Promise<void>
 ): Promise<{ text: string; fileUrl: string }> {
-  clipboard.clear();
+  const before = snapshotClipboard(clipboard);
   await simulateCopy();
   return new Promise((resolve) => {
     setTimeout(() => {
-      const text = clipboard.readText('clipboard') || '';
-      const raw = getFilePathFromClipboard(clipboard)[0];
-      let fileUrl = '';
-      if (typeof raw === 'string') {
-        fileUrl = raw;
+      const after = snapshotClipboard(clipboard);
+      if (snapUnchanged(before, after)) {
+        resolve({ text: '', fileUrl: '' });
+        return;
       }
-      resolve({
-        text: fileUrl ? '' : text,
-        fileUrl,
-      });
+      resolve(readClipboardPayload(clipboard));
     }, 50);
   });
 }
 
+/**
+ * Electron `screen.getCursorScreenPoint()` 返回的已是 DIP，与 `BrowserWindow.setPosition` / `getBounds`
+ * 所用坐标系一致。勿对 Windows 再调用 `screen.screenToDipPoint`：其入参应为物理像素，误传 DIP 会在
+ * 高 DPI（如 125%～200%）下二次换算，导致窗口相对鼠标严重偏移（例如看似顶-left 对在指针旁）。
+ */
 export function getPos(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  screen: any,
+  _screen: any,
   point: { x: number; y: number },
-  isMacOS: boolean
+  _isMacOS: boolean
 ): { x: number; y: number } {
-  return isMacOS ? point : screen.screenToDipPoint({ x: point.x, y: point.y });
+  return point;
 }

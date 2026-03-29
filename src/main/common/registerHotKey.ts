@@ -10,6 +10,7 @@ import {
 import screenCapture from '@/core/screen-capture';
 import localConfig from '@/main/common/initLocalConfig';
 import winPosition from './getWinPosition';
+import { syncMainWindowContentAnchorFromWindow } from './mainWindowContentResize';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 const registerHotKey = (mainWindow: BrowserWindow): void => {
@@ -74,6 +75,7 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       visibleOnFullScreen: true,
     });
     mainWindow.setPosition(wx, wy);
+    syncMainWindowContentAnchorFromWindow(mainWindow);
     mainWindow.show();
   }
 

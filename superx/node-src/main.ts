@@ -5,7 +5,14 @@ import { keyboard, Key } from '@nut-tree/nut-js';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import activeWin from 'rubick-active-win';
 import createPanelWindow from './panel-window';
-import { getPos, getSelectedContent } from './clipboard-helpers';
+import type { ClipboardSnap } from './clipboard-helpers';
+import {
+  getPos,
+  getSelectedContent,
+  snapshotClipboard,
+  clipboardSnapsEqual,
+  readClipboardPayload,
+} from './clipboard-helpers';
 
 keyboard.config.autoDelayMs = 10;
 
@@ -47,6 +54,9 @@ const LONG_PRESS_MS = 450;
 /** 首次注册延迟，避免与 Rubick 其它 globalShortcut 抢注册冲突；热更新时为 0 */
 const INITIAL_KEYBOARD_REGISTER_MS = 1000;
 
+/** 窗口顶边略低于光标，避免无边框窗顶缘与指针重合触发系统调整大小 */
+const SUPER_PANEL_TOP_CURSOR_GAP_PX = 12;
+
 function isMouseTrigger(s: string): boolean {
   return Object.values(SP_MOUSE).includes(s as (typeof SP_MOUSE)[keyof typeof SP_MOUSE]);
 }
@@ -72,6 +82,9 @@ function tryLoadUiohook(): any {
 type RubickCtx = any;
 
 function createPlugin() {
+  /** 上次呼出面板时记录的剪贴板快照；与当前不一致且无选区复制时，仍用当前剪贴板处理一次 */
+  let lastPanelClipboardSnap: ClipboardSnap | null = null;
+
   let lastRegisteredKey: string | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mouseDownHandler: ((e: any) => void) | null = null;
@@ -99,14 +112,25 @@ function createPlugin() {
 
   return {
     async onReady(ctx: RubickCtx) {
-      const { clipboard, screen, globalShortcut, API } = ctx;
+      const { clipboard, screen, globalShortcut, API, ipcMain } = ctx;
 
       const panelInstance = createPanelWindow(ctx);
       panelInstance.init();
 
       const showSuperPanel = async () => {
         const { x, y } = screen.getCursorScreenPoint();
-        const copyResult = await getSelectedContent(clipboard, simulateCopy);
+        let copyResult = await getSelectedContent(clipboard, simulateCopy);
+        const snapNow = snapshotClipboard(clipboard);
+
+        if (!copyResult.text && !copyResult.fileUrl) {
+          if (
+            lastPanelClipboardSnap === null ||
+            !clipboardSnapsEqual(snapNow, lastPanelClipboardSnap)
+          ) {
+            copyResult = readClipboardPayload(clipboard);
+          }
+        }
+
         if (!copyResult.text && !copyResult.fileUrl) {
           const nativeWinInfo = await activeWin({
             screenRecordingPermission: false,
@@ -114,18 +138,56 @@ function createPlugin() {
           copyResult.fileUrl =
             nativeWinInfo?.owner?.path || copyResult.fileUrl;
         }
+
+        lastPanelClipboardSnap = snapshotClipboard(clipboard);
+
         const win = panelInstance.getWindow();
         if (!win) return;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const localPlugins = (global as any).LOCAL_PLUGINS.getLocalPlugins();
 
-        win.webContents.send('trigger-super-panel', {
-          ...copyResult,
-          optionPlugin: localPlugins,
+        const cursor = getPos(screen, { x, y }, isMacOS);
+
+        const placePanelAtCursor = () => {
+          if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) return;
+          const bounds = win.getBounds();
+          let left = Math.round(cursor.x - bounds.width / 2);
+          let top = Math.round(cursor.y + SUPER_PANEL_TOP_CURSOR_GAP_PX);
+          try {
+            const disp = screen.getDisplayNearestPoint({ x: cursor.x, y: cursor.y });
+            const wa = disp.workArea;
+            left = Math.max(wa.x, Math.min(left, wa.x + wa.width - bounds.width));
+            top = Math.max(wa.y, Math.min(top, wa.y + wa.height - bounds.height));
+          } catch {
+            /* ignore clamp if display API fails */
+          }
+          win.setPosition(left, top);
+          panelInstance.setPanelPositionAnchor(left, top);
+        };
+
+        await new Promise<void>((resolve) => {
+          const ms = 800;
+          const timer = setTimeout(() => {
+            ipcMain.removeListener('superPanel-content-applied', onApplied);
+            resolve();
+          }, ms);
+          const onApplied = (event: { sender: { id: number } }) => {
+            if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) return;
+            if (event.sender.id !== win.webContents.id) return;
+            clearTimeout(timer);
+            ipcMain.removeListener('superPanel-content-applied', onApplied);
+            resolve();
+          };
+          ipcMain.on('superPanel-content-applied', onApplied);
+          win.webContents.send('trigger-super-panel', {
+            ...copyResult,
+            optionPlugin: localPlugins,
+          });
         });
-        const pos = getPos(screen, { x, y }, isMacOS);
-        win.setPosition(parseInt(String(pos.x), 10), parseInt(String(pos.y), 10));
+
+        placePanelAtCursor();
+
         win.setAlwaysOnTop(true);
         win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
         win.focus();

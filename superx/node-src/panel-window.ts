@@ -9,6 +9,18 @@ export default function createPanelWindow(ctx: any) {
 
   let win: InstanceType<typeof BrowserWindow> | undefined;
   let pinned = false;
+  let ipcHandlersAttached = false;
+  /** 主进程 placePanelAtCursor 算出的意图坐标；Win 高 DPI 下 getBounds 与 setBounds 舍入不一致，勿用 b.x/b.y 做二次缩放锚点 */
+  let panelPositionAnchor: { x: number; y: number } | null = null;
+
+  function needsNewWindow(): boolean {
+    if (win == null) return true;
+    try {
+      return typeof win.isDestroyed === 'function' && win.isDestroyed();
+    } catch {
+      return true;
+    }
+  }
 
   const createWindow = () => {
     win = new BrowserWindow({
@@ -30,22 +42,37 @@ export default function createPanelWindow(ctx: any) {
     win.loadURL(`file://${path.join(__dirname, 'main.html')}`);
     win.on('closed', () => {
       win = undefined;
+      panelPositionAnchor = null;
     });
     win.on('blur', () => {
       if (!pinned) win?.hide();
     });
   };
 
-  const init = () => {
-    if (win !== null && win !== undefined) return;
-
+  /** 窗口被关闭/销毁后再次调用即可重建，供 getWindow / init 使用 */
+  const ensurePanelWindow = () => {
+    if (!needsNewWindow()) return;
     createWindow();
+  };
+
+  const attachIpcOnce = () => {
+    if (ipcHandlersAttached) return;
+    ipcHandlersAttached = true;
 
     ipcMain.on('superPanel-hidden', () => {
       win?.hide();
     });
     ipcMain.on('superPanel-setSize', (_e: unknown, height: number) => {
-      win?.setSize(240, height);
+      if (!win || typeof height !== 'number' || !Number.isFinite(height)) return;
+      const h = Math.max(50, Math.round(height));
+      const ax = panelPositionAnchor?.x;
+      const ay = panelPositionAnchor?.y;
+      if (ax != null && ay != null) {
+        win.setBounds({ x: ax, y: ay, width: 240, height: h }, false);
+        return;
+      }
+      const b = win.getBounds();
+      win.setBounds({ x: b.x, y: b.y, width: 240, height: h }, false);
     });
     ipcMain.on('superPanel-openPlugin', (_e: unknown, args: unknown) => {
       mainWindow.webContents.send('superPanel-openPlugin', args);
@@ -70,7 +97,19 @@ export default function createPanelWindow(ctx: any) {
     });
   };
 
-  const getWindow = () => win;
+  const init = () => {
+    attachIpcOnce();
+    ensurePanelWindow();
+  };
 
-  return { init, getWindow };
+  const getWindow = () => {
+    ensurePanelWindow();
+    return win;
+  };
+
+  const setPanelPositionAnchor = (x: number, y: number) => {
+    panelPositionAnchor = { x: Math.round(x), y: Math.round(y) };
+  };
+
+  return { init, getWindow, setPanelPositionAnchor };
 }
