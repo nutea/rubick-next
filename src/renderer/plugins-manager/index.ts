@@ -112,6 +112,7 @@ const createPluginManager = (): any => {
     ipcRenderer.send('msg-trigger', {
       type: 'removePlugin',
     });
+    window.captureSearchSnapshotForNextDetach?.();
     window.initRubick();
 
     if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {

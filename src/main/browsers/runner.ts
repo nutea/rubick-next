@@ -89,7 +89,12 @@ export default () => {
   };
 
   const init = (plugin, window: BrowserWindow) => {
-    if (view === null || view === undefined || view.inDetach) {
+    if (
+      view == null ||
+      view.inDetach ||
+      !view.webContents ||
+      view.webContents.isDestroyed()
+    ) {
       createView(plugin, window);
       // if (viewInstance.getView(plugin.name) && !commonConst.dev()) {
       //   view = viewInstance.getView(plugin.name).view;

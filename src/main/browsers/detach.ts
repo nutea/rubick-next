@@ -3,6 +3,7 @@ import localConfig from '../common/initLocalConfig';
 import commonConst from '@/common/utils/commonConst';
 import path from 'path';
 import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
+import { executePluginSubInputChangeHook } from '@/main/common/pluginSubInputHook';
 
 export default () => {
   let win: BrowserWindow | undefined;
@@ -149,6 +150,12 @@ export default () => {
       createWin.webContents.executeJavaScript(
         `window.initDetach(${JSON.stringify(pluginInfo)})`
       );
+      const subVal = String(
+        (pluginInfo as { subInput?: { value?: string } }).subInput?.value ?? ''
+      );
+      if (subVal) {
+        executePluginSubInputChangeHook(view.webContents, subVal);
+      }
       win = createWin;
       createWin.show();
     });

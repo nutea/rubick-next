@@ -41,6 +41,7 @@ import {
   flipPluginAutoDetachSync,
   flipPluginDetachAlwaysShowSearchSync,
 } from './pluginRubickConfig';
+import { executePluginSubInputChangeHook } from './pluginSubInputHook';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -67,20 +68,6 @@ const sanitizeInputFiles = (input: unknown): string[] => {
 
 const runnerInstance = runner();
 const detachInstance = detach();
-
-/** 与 runner.executeHooks 中 SubInputChange 一致，用于仅存在分离窗时 runner.getView() 为空 */
-function executePluginSubInputChangeHook(
-  wc: Electron.WebContents | undefined | null,
-  text: string
-): void {
-  if (!wc || wc.isDestroyed()) return;
-  const payload = JSON.stringify({ text });
-  void wc.executeJavaScript(
-    `if (window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onSubInputChange === 'function') {
-      try { window.rubick.hooks.onSubInputChange(${payload}); } catch (e) {}
-    }`
-  );
-}
 
 /** 与超级面板插件 node main、feature 设置页 dbStorage._id 一致 */
 const SUPER_PANEL_HOTKEY_STORE_ID = 'rubick-system-super-panel-store';
@@ -250,14 +237,16 @@ class API extends DBInstance {
       window.show();
       return;
     }
-    window.webContents.executeJavaScript(
-      `window.loadPlugin(${JSON.stringify(plugin)})`
+    /** 与 preload 内联脚本同一 tick：先快照再 loadPlugin，避免仅走主进程打开时读不到启动关键词 */
+    void window.webContents.executeJavaScript(
+      `if (window.captureSearchSnapshotForNextDetach) window.captureSearchSnapshotForNextDetach();
+void window.loadPlugin(${JSON.stringify(plugin)});`
     );
     this.openPlugin({ data: plugin }, window);
   }
 
   /**
-   * 单例、未开自动分离、已有手动分离窗时：应改走分离窗而不在主窗口再开插件。
+   * 单例且已存在分离窗时：应改走分离窗而不在主窗口再开插件（含已开「自动分离」的情形）。
    * 须在 loadPlugin 的 executeJavaScript 之前调用，否则渲染层会先 currentPlugin + 主进程 runner.init。
    */
   public tryRedirectSingletonDetach(
@@ -296,12 +285,47 @@ class API extends DBInstance {
     }
     if (!existing || !mapKey) return false;
 
-    const uiCfg = readPluginRubickConfigSync(mapKey);
-    const autoDetachOn = uiCfg.autoDetach === true;
-    if (autoDetachOn) return false;
-
-    void this.redirectMainLaunchToSingletonDetach(window, existing);
+    void this.redirectMainLaunchToSingletonDetach(
+      window,
+      existing,
+      p as { ext?: { payload?: unknown } }
+    );
     return true;
+  }
+
+  /**
+   * 主页搜索框为空时，用本次打开插件的 ext.payload 补全（超级面板选中文本 / 文件路径等不经主页搜索框）。
+   */
+  private mergeMainInputWithPluginExt(
+    mainInput: { value?: string; placeholder?: string } | null | undefined,
+    plugin: { ext?: { payload?: unknown } } | null | undefined
+  ): { value: string; placeholder: string } {
+    let value = String(mainInput?.value ?? '');
+    let placeholder = String(mainInput?.placeholder ?? '');
+    if (value) {
+      return { value, placeholder };
+    }
+    const payload = plugin?.ext?.payload;
+    if (typeof payload === 'string') {
+      value = payload;
+    } else if (typeof payload === 'number' && !Number.isNaN(payload)) {
+      value = String(payload);
+    } else if (
+      payload &&
+      typeof payload === 'object' &&
+      'path' in payload &&
+      typeof (payload as { path?: unknown }).path === 'string'
+    ) {
+      value = (payload as { path: string }).path;
+    } else if (
+      payload &&
+      typeof payload === 'object' &&
+      'text' in payload &&
+      typeof (payload as { text?: unknown }).text === 'string'
+    ) {
+      value = (payload as { text: string }).text;
+    }
+    return { value, placeholder };
   }
 
   /**
@@ -330,6 +354,20 @@ class API extends DBInstance {
         body: `插件仅支持 ${plugin.platform.join(',')}`,
         icon: plugin.logo,
       }).show();
+    }
+    /** 超级面板等直开 openPlugin、不经主页 loadPlugin 的 capture；清掉旧快照，避免 getMainInputInfo 抢先返回非空 value 而忽略 ext.payload */
+    const ep = (plugin as { ext?: { payload?: unknown } })?.ext?.payload;
+    if (
+      (typeof ep === 'string' && ep.length > 0) ||
+      (ep &&
+        typeof ep === 'object' &&
+        !Array.isArray(ep) &&
+        'path' in ep &&
+        typeof (ep as { path?: unknown }).path === 'string')
+    ) {
+      void window.webContents.executeJavaScript(
+        `window.clearSearchSnapshotAfterDetach && window.clearSearchSnapshotAfterDetach()`
+      );
     }
     if (this.tryRedirectSingletonDetach({ data: plugin }, window)) {
       return;
@@ -380,18 +418,23 @@ class API extends DBInstance {
   }
 
   /**
-   * 单例插件、未开启自动分离、但已有手动分离窗时：从主页再次打开则把主页搜索内容写入分离窗顶栏并通知插件，清空主页并隐藏主窗口。
+   * 单例插件且已有分离窗时：从主页再次打开则把主页搜索内容写入分离窗顶栏并通知插件，清空主页并隐藏主窗口。
    */
   private redirectMainLaunchToSingletonDetach(
     mainWindow: BrowserWindow,
-    detachWin: BrowserWindow
+    detachWin: BrowserWindow,
+    launchPlugin?: { ext?: { payload?: unknown } }
   ): void {
     void (async () => {
       const info = (await mainWindow.webContents.executeJavaScript(
         `window.getMainInputInfo()`
       )) as { value?: string; placeholder?: string };
-      const value = String(info?.value ?? '');
-      const placeholder = String(info?.placeholder ?? '');
+      const merged = this.mergeMainInputWithPluginExt(info, launchPlugin);
+      const value = merged.value;
+      const placeholder = merged.placeholder;
+      await mainWindow.webContents.executeJavaScript(
+        `window.clearSearchSnapshotAfterDetach && window.clearSearchSnapshotAfterDetach()`
+      );
       if (this.currentPlugin) {
         this.removePlugin(null, mainWindow);
       }
@@ -428,8 +471,9 @@ class API extends DBInstance {
       return;
     }
     const view = runnerInstance.getView();
-    if (!view?.webContents) return;
-    view.webContents.once('dom-ready', () => {
+    if (!view?.webContents || view.webContents.isDestroyed()) return;
+
+    const runDetach = () => {
       if (this.currentPlugin?.name !== name) return;
       const cfg = readPluginRubickConfigSync(name);
       if (!cfg.autoDetach) return;
@@ -438,7 +482,15 @@ class API extends DBInstance {
           this.detachPlugin(null, mainWindow);
         }
       });
-    });
+    };
+
+    const wc = view.webContents;
+    /** 若 dom-ready 早于本监听注册（缓存秒开等），仅用 once 会漏掉，导致自动分离不再触发 */
+    if (wc.isLoading()) {
+      wc.once('dom-ready', runDetach);
+    } else {
+      queueMicrotask(runDetach);
+    }
   }
 
   public getPluginRubickConfig({
@@ -567,8 +619,16 @@ class API extends DBInstance {
     );
   }
 
-  public subInputBlur() {
-    runnerInstance.getView().webContents.focus();
+  public subInputBlur(_arg, window: BrowserWindow) {
+    const v = runnerInstance.getView();
+    if (
+      !v?.webContents ||
+      v.webContents.isDestroyed() ||
+      window.getBrowserView() !== v
+    ) {
+      return;
+    }
+    v.webContents.focus();
   }
 
   public sendSubInputChangeEvent({ data }) {
@@ -689,17 +749,28 @@ class API extends DBInstance {
     return true;
   }
 
-  public sendPluginSomeKeyDownEvent({ data: { modifiers, keyCode } }) {
+  public sendPluginSomeKeyDownEvent(
+    { data: { modifiers, keyCode } },
+    window: BrowserWindow
+  ) {
     const code = DECODE_KEY[keyCode];
-    if (!code || !runnerInstance.getView()) return;
+    const v = runnerInstance.getView();
+    if (
+      !code ||
+      !v?.webContents ||
+      v.webContents.isDestroyed() ||
+      window.getBrowserView() !== v
+    ) {
+      return;
+    }
     if (modifiers.length > 0) {
-      runnerInstance.getView().webContents.sendInputEvent({
+      v.webContents.sendInputEvent({
         type: 'keyDown',
         modifiers,
         keyCode: code,
       });
     } else {
-      runnerInstance.getView().webContents.sendInputEvent({
+      v.webContents.sendInputEvent({
         type: 'keyDown',
         keyCode: code,
       });
@@ -726,10 +797,17 @@ class API extends DBInstance {
     window.webContents
       .executeJavaScript(`window.getMainInputInfo()`)
       .then((res) => {
+        void window.webContents.executeJavaScript(
+          `window.clearSearchSnapshotAfterDetach && window.clearSearchSnapshotAfterDetach()`
+        );
+        const subInput = this.mergeMainInputWithPluginExt(
+          res as { value?: string; placeholder?: string },
+          this.currentPlugin
+        );
         detachInstance.init(
           {
             ...this.currentPlugin,
-            subInput: res,
+            subInput,
             detachAlwaysShowSearch: !!readPluginRubickConfigSync(pluginName)
               .detachAlwaysShowSearch,
           },

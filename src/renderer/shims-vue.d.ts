@@ -26,5 +26,8 @@ interface Window {
   setCurrentPlugin: (plugin: any) => void;
   pluginLoaded: () => void;
   getMainInputInfo: () => any;
+  /** 打开插件前调用，保留启动时主搜索关键词供分离窗读取 */
+  captureSearchSnapshotForNextDetach?: () => void;
+  clearSearchSnapshotAfterDetach?: () => void;
   searchFocus: (args: any, strict?: boolean) => any;
 }
