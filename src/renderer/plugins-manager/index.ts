@@ -79,15 +79,42 @@ const createPluginManager = (): any => {
   };
 
   const openPlugin = async (plugin, option) => {
-    ipcRenderer.send('msg-trigger', {
-      type: 'removePlugin',
-    });
-    window.initRubick();
     if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       if (state.currentPlugin && state.currentPlugin.name === plugin.name) {
         window.rubick.showMainWindow();
         return;
       }
+      const pluginPayload = JSON.parse(
+        JSON.stringify({
+          ...plugin,
+          ext: plugin.ext || {
+            code: plugin.feature.code,
+            type: plugin.cmd.type || 'text',
+            payload: null,
+          },
+        })
+      );
+      /** invoke：sendSync + async msg-trigger 会在 await 微任务之后才设 returnValue，重定向恒为假 */
+      const redirected = await ipcRenderer.invoke(
+        'rubick:try-redirect-singleton-detach',
+        pluginPayload
+      );
+      if (redirected) {
+        changePluginHistory({
+          ...plugin,
+          ...option,
+          originName: plugin.name,
+        });
+        return;
+      }
+    }
+
+    ipcRenderer.send('msg-trigger', {
+      type: 'removePlugin',
+    });
+    window.initRubick();
+
+    if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       await loadPlugin(plugin);
       window.rubick.openPlugin(
         JSON.parse(

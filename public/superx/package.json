@@ -3,6 +3,9 @@
   "pluginName": "超级面板",
   "version": "3.0.0",
   "description": "Ctrl + W 唤起超级面板（快捷键请在插件市场「超级面板」中设置）",
+  "pluginSetting": {
+    "single": true
+  },
   "main": "main.html",
   "entry": "main.js",
   "logo": "https://pic1.zhimg.com/80/v2-c4b9ea27fde09f7e985a5fc77d922680_720w.png",

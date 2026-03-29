@@ -1,7 +1,7 @@
 <template>
   <div :class="[process.platform, 'detach']">
     <div class="info">
-      <img :src="plugInfo.logo"/>
+      <img :src="plugInfo.logo" />
       <input
         autofocus
         @input="changeValue"
@@ -13,6 +13,13 @@
     </div>
     <div class="handle-container">
       <div class="handle">
+        <div class="plugin-menu-btn" @click.stop="openPluginMenu" title="菜单">
+          <span class="plugin-menu-icon">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+        </div>
         <div class="devtool" @click="openDevTool" title="开发者工具"></div>
       </div>
       <div class="window-handle" v-if="process.platform !== 'darwin'">
@@ -29,18 +36,42 @@ import throttle from 'lodash.throttle';
 import { ref } from 'vue';
 
 const { ipcRenderer } = window.require('electron');
+const remote = window.require('@electron/remote');
+const { Menu, dialog, getCurrentWindow } = remote;
 
 const process = window.require('process');
 const showInput = ref(false);
+const detachAlwaysShowSearch = ref(false);
 
 const storeInfo = localStorage.getItem('rubick-system-detach') || '{}';
 const plugInfo = ref({});
 
+function ensureSubInputStubWhenAlwaysShow() {
+  if (detachAlwaysShowSearch.value && !plugInfo.value.subInput) {
+    plugInfo.value.subInput = { value: '', placeholder: '' };
+  }
+}
+
+function updateShowInputFromState() {
+  if (detachAlwaysShowSearch.value) {
+    ensureSubInputStubWhenAlwaysShow();
+    showInput.value = true;
+    return;
+  }
+  const si = plugInfo.value.subInput;
+  showInput.value = !!(si && (!!si.value || !!si.placeholder));
+}
+
 window.initDetach = (pluginInfo) => {
   plugInfo.value = pluginInfo;
+  detachAlwaysShowSearch.value = !!pluginInfo.detachAlwaysShowSearch;
+  if (detachAlwaysShowSearch.value && !plugInfo.value.subInput) {
+    plugInfo.value.subInput = { value: '', placeholder: '' };
+  }
   showInput.value =
-    pluginInfo.subInput &&
-    (!!pluginInfo.subInput.value || !!pluginInfo.subInput.placeholder);
+    detachAlwaysShowSearch.value ||
+    (pluginInfo.subInput &&
+      (!!pluginInfo.subInput.value || !!pluginInfo.subInput.placeholder));
   localStorage.setItem('rubick-system-detach', JSON.stringify(pluginInfo));
 };
 
@@ -63,6 +94,89 @@ const openDevTool = () => {
   ipcRenderer.send('msg-trigger', { type: 'openPluginDevTools' });
 };
 
+const zoomPlugin = (action) => {
+  void ipcRenderer.invoke('rubick:detach-adjust-plugin-zoom', {
+    action,
+    winId: getCurrentWindow().id,
+  });
+};
+
+const openPluginMenu = async () => {
+  const name = plugInfo.value.name;
+  const canFileConfig = name && name !== 'rubick-system-super-panel';
+  const rubickCfg = canFileConfig
+    ? await ipcRenderer.invoke('rubick:get-plugin-rubick-config', name)
+    : { autoDetach: false, detachAlwaysShowSearch: false };
+
+  const items = [
+    {
+      label: '关于插件应用',
+      click: () => {
+        const p = plugInfo.value;
+        const lines = [
+          p.pluginName || p.name,
+          p.version ? `版本：${p.version}` : '',
+          p.description || '',
+        ].filter(Boolean);
+        dialog.showMessageBoxSync(getCurrentWindow(), {
+          type: 'info',
+          title: '关于插件应用',
+          message: lines[0] || p.name || '',
+          detail: lines.slice(1).join('\n') || undefined,
+          buttons: ['确定'],
+          noLink: true,
+        });
+      },
+    },
+  ];
+
+  if (canFileConfig) {
+    items.push({
+      label: '插件应用设置',
+      submenu: [
+        {
+          label: '自动分离为独立窗口',
+          type: 'checkbox',
+          checked: !!rubickCfg.autoDetach,
+          click() {
+            void ipcRenderer.invoke('rubick:flip-plugin-auto-detach', name);
+          },
+        },
+        {
+          label: '独立窗口显示搜索框',
+          type: 'checkbox',
+          checked: !!rubickCfg.detachAlwaysShowSearch,
+          click() {
+            void ipcRenderer
+              .invoke('rubick:flip-plugin-detach-always-show-search', name)
+              .then((res) => {
+                detachAlwaysShowSearch.value = !!res?.detachAlwaysShowSearch;
+                if (detachAlwaysShowSearch.value && !plugInfo.value.subInput) {
+                  plugInfo.value.subInput = {
+                    value: '',
+                    placeholder: '',
+                  };
+                }
+                updateShowInputFromState();
+              });
+          },
+        },
+      ],
+    });
+  }
+
+  items.push({
+    label: '缩放比例',
+    submenu: [
+      { label: '放大', click: () => zoomPlugin('in') },
+      { label: '缩小', click: () => zoomPlugin('out') },
+      { label: '重置为 100%', click: () => zoomPlugin('reset') },
+    ],
+  });
+
+  Menu.buildFromTemplate(items).popup({ window: getCurrentWindow() });
+};
+
 const minimize = () => {
   ipcRenderer.send('detach:service', { type: 'minimize' });
 };
@@ -77,13 +191,23 @@ const close = () => {
 
 Object.assign(window, {
   setSubInputValue: ({ value }) => {
+    if (!plugInfo.value.subInput) plugInfo.value.subInput = {};
     plugInfo.value.subInput.value = value;
+    updateShowInputFromState();
   },
-  setSubInput: (placeholder) => {
-    plugInfo.value.subInput.placeholder = placeholder;
+  setSubInput: (payload) => {
+    const placeholder =
+      payload != null && typeof payload === 'object' && 'placeholder' in payload
+        ? payload.placeholder
+        : payload;
+    if (!plugInfo.value.subInput) plugInfo.value.subInput = {};
+    plugInfo.value.subInput.placeholder =
+      placeholder != null ? String(placeholder) : '';
+    updateShowInputFromState();
   },
   removeSubInput: () => {
     plugInfo.value.subInput = null;
+    updateShowInputFromState();
   },
 });
 
@@ -98,7 +222,7 @@ window.leaveFullScreenTrigger = () => {
 };
 
 window.maximizeTrigger = () => {
-  const btnMaximize = document.querySelector('.maximize')
+  const btnMaximize = document.querySelector('.maximize');
   if (!btnMaximize || btnMaximize.classList.contains('unmaximize')) return;
   btnMaximize.classList.add('unmaximize');
 };
@@ -116,24 +240,26 @@ if (process.platform === 'darwin') {
       return;
     }
     if (e.metaKey && (e.code === 'KeyW' || e.code === 'KeyQ')) {
-      window.handle.close()
+      window.handle.close();
     }
-  }
+  };
 } else {
   window.onkeydown = (e) => {
     if (e.ctrlKey && e.code === 'KeyW') {
-      window.handle.close()
-      return
+      window.handle.close();
+      return;
     }
-  }
+  };
 }
 </script>
 
 <style>
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, "PingFang SC", "Helvetica Neue", "Microsoft Yahei", sans-serif;
+  font-family: system-ui, 'PingFang SC', 'Helvetica Neue', 'Microsoft Yahei',
+    sans-serif;
   user-select: none;
   overflow: hidden;
 }
@@ -213,8 +339,33 @@ html, body {
   background-color: #dee2e6;
 }
 
+.handle .plugin-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plugin-menu-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 18px;
+  height: 12px;
+}
+
+.plugin-menu-icon i {
+  display: block;
+  height: 2px;
+  background: #444;
+  border-radius: 1px;
+}
+
+.detach.dark .plugin-menu-icon i {
+  background: #ccc;
+}
+
 .handle .devtool {
-  background: center no-repeat url("./assets/tool.svg")
+  background: center no-repeat url('./assets/tool.svg');
 }
 
 .handle-container {
@@ -239,24 +390,23 @@ html, body {
 }
 
 .window-handle .minimize {
-  background: center / 20px no-repeat url("./assets/minimize.svg");
+  background: center / 20px no-repeat url('./assets/minimize.svg');
 }
 
 .window-handle .maximize {
-  background: center / 20px no-repeat url("./assets/maximize.svg");
+  background: center / 20px no-repeat url('./assets/maximize.svg');
 }
 
 .window-handle .unmaximize {
-  background: center / 20px no-repeat url("./assets/unmaximize.svg");
+  background: center / 20px no-repeat url('./assets/unmaximize.svg');
 }
 
 .window-handle .close {
-  background: center / 20px no-repeat url("./assets/close.svg");
+  background: center / 20px no-repeat url('./assets/close.svg');
 }
 
 .window-handle .close:hover {
   background-color: #e53935 !important;
-  background-image: url("./assets/close-hover.svg") !important;
+  background-image: url('./assets/close-hover.svg') !important;
 }
-
 </style>

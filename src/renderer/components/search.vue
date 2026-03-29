@@ -57,7 +57,7 @@ import { MoreOutlined } from '@ant-design/icons-vue';
 
 const remote = window.require('@electron/remote');
 import localConfig from '../confOp';
-const { Menu } = remote;
+const { Menu, dialog, getCurrentWindow } = remote;
 
 const config: any = ref(localConfig.getConfig());
 
@@ -175,8 +175,8 @@ const closeTag = () => {
   });
 };
 
-const showSeparate = () => {
-  let pluginMenu: any = [
+const showSeparate = async () => {
+  let pluginMenu: any[] = [
     {
       label: config.value.perf.common.hideOnBlur ? '钉住' : '自动隐藏',
       click: changeHideOnBlur,
@@ -203,32 +203,96 @@ const showSeparate = () => {
     },
   ];
   if (props.currentPlugin && props.currentPlugin.logo) {
-    pluginMenu = pluginMenu.concat([
+    const separateKey = config.value.perf.shortCut.separate || 'Ctrl+D';
+    const name = props.currentPlugin.name;
+    const canFileConfig = name && name !== 'rubick-system-super-panel';
+    const rubickCfg = canFileConfig
+      ? await ipcRenderer.invoke('rubick:get-plugin-rubick-config', name)
+      : { autoDetach: false, detachAlwaysShowSearch: false };
+    const autoDetachOn = !!rubickCfg.autoDetach;
+    const detachAlwaysShowSearchOn = !!rubickCfg.detachAlwaysShowSearch;
+
+    const pluginBlock: any[] = [
+      {
+        label: '分离为独立窗口',
+        accelerator: separateKey,
+        click: newWindow,
+      },
+      { type: 'separator' },
+      {
+        label: '关于插件应用',
+        click: () => {
+          const p = props.currentPlugin;
+          const lines = [
+            p.pluginName || p.name,
+            p.version ? `版本：${p.version}` : '',
+            p.description || '',
+          ].filter(Boolean);
+          dialog.showMessageBoxSync(getCurrentWindow(), {
+            type: 'info',
+            title: '关于插件应用',
+            message: lines[0] || p.name,
+            detail: lines.slice(1).join('\n') || undefined,
+            buttons: ['确定'],
+            noLink: true,
+          });
+        },
+      },
+    ];
+    const settingsSubmenu: any[] = [];
+    if (canFileConfig) {
+      settingsSubmenu.push({
+        label: '自动分离为独立窗口',
+        type: 'checkbox',
+        checked: autoDetachOn,
+        click() {
+          void ipcRenderer.invoke('rubick:flip-plugin-auto-detach', name);
+        },
+      });
+      settingsSubmenu.push({
+        label: '独立窗口显示搜索框',
+        type: 'checkbox',
+        checked: detachAlwaysShowSearchOn,
+        click() {
+          void ipcRenderer.invoke(
+            'rubick:flip-plugin-detach-always-show-search',
+            name
+          );
+        },
+      });
+    }
+    if (canFileConfig && settingsSubmenu.length) {
+      pluginBlock.push({
+        label: '插件应用设置',
+        submenu: settingsSubmenu,
+      });
+    }
+    pluginBlock.push(
+      { type: 'separator' },
+      {
+        label: '退出到后台',
+        accelerator: 'Escape',
+        click: () => {
+          ipcRenderer.send('msg-trigger', { type: 'hideMainWindow' });
+        },
+      },
+      {
+        label: '结束运行',
+        click: () => {
+          ipcRenderer.send('msg-trigger', { type: 'removePlugin' });
+        },
+      },
+      { type: 'separator' },
       {
         label: '开发者工具',
         click: () => {
           ipcRenderer.send('msg-trigger', { type: 'openPluginDevTools' });
-          // todo
         },
-      },
-      {
-        label: '当前插件信息',
-        submenu: [
-          {
-            label: '简介',
-          },
-          {
-            label: '功能',
-          },
-        ],
-      },
-      {
-        label: '分离窗口',
-        click: newWindow,
-      },
-    ]);
+      }
+    );
+    pluginMenu = pluginMenu.concat(pluginBlock);
   }
-  let menu = Menu.buildFromTemplate(pluginMenu);
+  const menu = Menu.buildFromTemplate(pluginMenu);
   menu.popup();
 };
 

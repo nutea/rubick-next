@@ -8,6 +8,7 @@ import {
   clipboard,
   screen,
   shell,
+  IpcMainEvent,
 } from 'electron';
 import fs from 'fs';
 import { screenCapture } from '@/core';
@@ -34,6 +35,12 @@ import {
   importPluginBundle,
 } from './pluginBundle';
 import { applyMainWindowContentHeight } from './mainWindowContentResize';
+import {
+  readPluginRubickConfigSync,
+  writePluginRubickConfigSync,
+  flipPluginAutoDetachSync,
+  flipPluginDetachAlwaysShowSearchSync,
+} from './pluginRubickConfig';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -61,6 +68,20 @@ const sanitizeInputFiles = (input: unknown): string[] => {
 const runnerInstance = runner();
 const detachInstance = detach();
 
+/** 与 runner.executeHooks 中 SubInputChange 一致，用于仅存在分离窗时 runner.getView() 为空 */
+function executePluginSubInputChangeHook(
+  wc: Electron.WebContents | undefined | null,
+  text: string
+): void {
+  if (!wc || wc.isDestroyed()) return;
+  const payload = JSON.stringify({ text });
+  void wc.executeJavaScript(
+    `if (window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onSubInputChange === 'function') {
+      try { window.rubick.hooks.onSubInputChange(${payload}); } catch (e) {}
+    }`
+  );
+}
+
 /** 与超级面板插件 node main、feature 设置页 dbStorage._id 一致 */
 const SUPER_PANEL_HOTKEY_STORE_ID = 'rubick-system-super-panel-store';
 
@@ -84,6 +105,84 @@ class API extends DBInstance {
   }
 
   init(mainWindow: BrowserWindow) {
+    const rubickIpcChannels = [
+      'rubick:get-plugin-rubick-config',
+      'rubick:set-plugin-rubick-config',
+      'rubick:flip-plugin-auto-detach',
+      'rubick:flip-plugin-detach-always-show-search',
+      'rubick:detach-adjust-plugin-zoom',
+    ] as const;
+    for (const ch of rubickIpcChannels) {
+      try {
+        ipcMain.removeHandler(ch);
+      } catch {
+        /* 首次启动 */
+      }
+    }
+    ipcMain.handle('rubick:get-plugin-rubick-config', (_e, pluginName: unknown) => {
+      const name = typeof pluginName === 'string' ? pluginName : '';
+      if (!name)
+        return { autoDetach: false, detachAlwaysShowSearch: false };
+      const cfg = readPluginRubickConfigSync(name);
+      return {
+        autoDetach: !!cfg.autoDetach,
+        detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
+      };
+    });
+    ipcMain.handle('rubick:set-plugin-rubick-config', (_e, payload: unknown) => {
+      const p = payload as {
+        name?: string;
+        pluginName?: string;
+        autoDetach?: boolean;
+        detachAlwaysShowSearch?: boolean;
+      };
+      const id =
+        typeof p?.name === 'string'
+          ? p.name
+          : typeof p?.pluginName === 'string'
+            ? p.pluginName
+            : '';
+      if (!id) return false;
+      const patch: Record<string, boolean> = {};
+      if (typeof p.autoDetach === 'boolean') patch.autoDetach = p.autoDetach;
+      if (typeof p.detachAlwaysShowSearch === 'boolean')
+        patch.detachAlwaysShowSearch = p.detachAlwaysShowSearch;
+      if (!Object.keys(patch).length) return false;
+      return writePluginRubickConfigSync(id, patch);
+    });
+    ipcMain.handle('rubick:flip-plugin-auto-detach', (_e, pluginName: unknown) => {
+      const name = typeof pluginName === 'string' ? pluginName : '';
+      if (!name) return { autoDetach: false };
+      return { autoDetach: flipPluginAutoDetachSync(name) };
+    });
+    ipcMain.handle(
+      'rubick:flip-plugin-detach-always-show-search',
+      (_e, pluginName: unknown) => {
+        const name = typeof pluginName === 'string' ? pluginName : '';
+        if (!name) return { detachAlwaysShowSearch: false };
+        return {
+          detachAlwaysShowSearch:
+            flipPluginDetachAlwaysShowSearchSync(name),
+        };
+      }
+    );
+    ipcMain.handle('rubick:detach-adjust-plugin-zoom', (_e, payload: unknown) => {
+      const p = payload as { action?: string; winId?: number };
+      if (typeof p?.winId !== 'number') return false;
+      return this.detachAdjustPluginZoom(
+        { data: { action: p.action }, winId: p.winId },
+        mainWindow,
+        undefined
+      );
+    });
+    try {
+      ipcMain.removeHandler('rubick:try-redirect-singleton-detach');
+    } catch {
+      /* 首次启动 */
+    }
+    ipcMain.handle('rubick:try-redirect-singleton-detach', (_e, pluginPayload: unknown) =>
+      this.tryRedirectSingletonDetach({ data: pluginPayload }, mainWindow)
+    );
     // 响应 preload.js 事件
     ipcMain.on('msg-trigger', async (event, arg) => {
       const window = arg.winId ? BrowserWindow.fromId(arg.winId) : mainWindow;
@@ -113,7 +212,8 @@ class API extends DBInstance {
 
   public getCurrentWindow = (window, e) => {
     let originWindow = BrowserWindow.fromWebContents(e.sender);
-    if (originWindow !== window) originWindow = detachInstance.getWindow();
+    if (originWindow !== window)
+      originWindow = detachInstance.getWindow() ?? null;
     return originWindow;
   };
 
@@ -143,10 +243,84 @@ class API extends DBInstance {
   }
 
   public loadPlugin({ data: plugin }, window) {
+    if (this.tryRedirectSingletonDetach({ data: plugin }, window)) {
+      return;
+    }
+    if (this.isSingletonAlreadyInMainWindow(plugin)) {
+      window.show();
+      return;
+    }
     window.webContents.executeJavaScript(
       `window.loadPlugin(${JSON.stringify(plugin)})`
     );
     this.openPlugin({ data: plugin }, window);
+  }
+
+  /**
+   * 单例、未开自动分离、已有手动分离窗时：应改走分离窗而不在主窗口再开插件。
+   * 须在 loadPlugin 的 executeJavaScript 之前调用，否则渲染层会先 currentPlugin + 主进程 runner.init。
+   */
+  public tryRedirectSingletonDetach(
+    { data: plugin }: { data?: unknown },
+    window: BrowserWindow
+  ): boolean {
+    const p = plugin as {
+      name?: string;
+      originName?: string;
+      platform?: string[];
+      pluginSetting?: { single?: boolean };
+    };
+    const candidates = Array.from(
+      new Set(
+        [p?.originName, p?.name].filter(
+          (x): x is string => typeof x === 'string' && x.length > 0
+        )
+      )
+    );
+    if (!candidates.length) return false;
+    if (p.platform && !p.platform.includes(process.platform)) {
+      return false;
+    }
+    const singleton = p.pluginSetting?.single !== false;
+    if (!singleton) return false;
+
+    let existing: BrowserWindow | undefined;
+    let mapKey: string | undefined;
+    for (const c of candidates) {
+      const w = detachInstance.getExistingDetachWindow(c);
+      if (w && !w.isDestroyed()) {
+        existing = w;
+        mapKey = c;
+        break;
+      }
+    }
+    if (!existing || !mapKey) return false;
+
+    const uiCfg = readPluginRubickConfigSync(mapKey);
+    const autoDetachOn = uiCfg.autoDetach === true;
+    if (autoDetachOn) return false;
+
+    void this.redirectMainLaunchToSingletonDetach(window, existing);
+    return true;
+  }
+
+  /**
+   * 单例插件已在主窗口运行时返回 true，防止 removePlugin + init 破坏当前实例。
+   */
+  private isSingletonAlreadyInMainWindow(plugin: {
+    name?: string;
+    originName?: string;
+    pluginSetting?: { single?: boolean };
+  }): boolean {
+    if (plugin.pluginSetting?.single === false) return false;
+    if (!this.currentPlugin) return false;
+    const currentName =
+      this.currentPlugin.originName || this.currentPlugin.name;
+    if (!currentName) return false;
+    const incoming = [plugin.originName, plugin.name].filter(
+      (x): x is string => typeof x === 'string' && x.length > 0
+    );
+    return incoming.some((n) => n === currentName);
   }
 
   public openPlugin({ data: plugin }, window) {
@@ -157,8 +331,16 @@ class API extends DBInstance {
         icon: plugin.logo,
       }).show();
     }
+    if (this.tryRedirectSingletonDetach({ data: plugin }, window)) {
+      return;
+    }
+    if (this.isSingletonAlreadyInMainWindow(plugin)) {
+      window.show();
+      return;
+    }
     applyMainWindowContentHeight(window, 60);
     this.removePlugin(null, window);
+
     // 模板文件
     if (!plugin.main) {
       plugin.tplPath = common.dev()
@@ -194,6 +376,137 @@ class API extends DBInstance {
         this.__EscapeKeyDown(event, input, window)
       );
     }
+    this.scheduleAutoDetachIfEnabled(plugin, window);
+  }
+
+  /**
+   * 单例插件、未开启自动分离、但已有手动分离窗时：从主页再次打开则把主页搜索内容写入分离窗顶栏并通知插件，清空主页并隐藏主窗口。
+   */
+  private redirectMainLaunchToSingletonDetach(
+    mainWindow: BrowserWindow,
+    detachWin: BrowserWindow
+  ): void {
+    void (async () => {
+      const info = (await mainWindow.webContents.executeJavaScript(
+        `window.getMainInputInfo()`
+      )) as { value?: string; placeholder?: string };
+      const value = String(info?.value ?? '');
+      const placeholder = String(info?.placeholder ?? '');
+      if (this.currentPlugin) {
+        this.removePlugin(null, mainWindow);
+      }
+      const payload = JSON.stringify({ value, placeholder });
+      await detachWin.webContents.executeJavaScript(
+        `(() => {
+          var p = ${payload};
+          if (typeof window.setSubInputValue === 'function') {
+            window.setSubInputValue({ value: p.value });
+          }
+          if (typeof window.setSubInput === 'function') {
+            window.setSubInput({ placeholder: p.placeholder });
+          }
+        })()`
+      );
+      const bv = detachWin.getBrowserView();
+      executePluginSubInputChangeHook(bv?.webContents ?? null, value);
+      await mainWindow.webContents.executeJavaScript(`window.initRubick()`);
+      applyMainWindowContentHeight(mainWindow, 60);
+      mainWindow.hide();
+      detachWin.show();
+      if (detachWin.isMinimized()) detachWin.restore();
+      detachWin.focus();
+    })();
+  }
+
+  /** 读取合并配置 rubick-plugin-ui-settings.json，开启 autoDetach 时在首屏 dom-ready 后自动分离 */
+  private scheduleAutoDetachIfEnabled(
+    plugin: { name?: string },
+    mainWindow: BrowserWindow
+  ) {
+    const name = plugin?.name;
+    if (!name || name === 'rubick-system-super-panel') {
+      return;
+    }
+    const view = runnerInstance.getView();
+    if (!view?.webContents) return;
+    view.webContents.once('dom-ready', () => {
+      if (this.currentPlugin?.name !== name) return;
+      const cfg = readPluginRubickConfigSync(name);
+      if (!cfg.autoDetach) return;
+      queueMicrotask(() => {
+        if (this.currentPlugin?.name === name) {
+          this.detachPlugin(null, mainWindow);
+        }
+      });
+    });
+  }
+
+  public getPluginRubickConfig({
+    data,
+  }: {
+    data?: { name?: string; pluginName?: string };
+  }) {
+    const id =
+      typeof data?.name === 'string'
+        ? data.name
+        : typeof data?.pluginName === 'string'
+          ? data.pluginName
+          : '';
+    if (!id) return { autoDetach: false, detachAlwaysShowSearch: false };
+    const cfg = readPluginRubickConfigSync(id);
+    return {
+      autoDetach: !!cfg.autoDetach,
+      detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
+    };
+  }
+
+  public setPluginRubickConfig({
+    data,
+  }: {
+    data?: {
+      name?: string;
+      pluginName?: string;
+      autoDetach?: boolean;
+      detachAlwaysShowSearch?: boolean;
+    };
+  }) {
+    const id =
+      typeof data?.name === 'string'
+        ? data.name
+        : typeof data?.pluginName === 'string'
+          ? data.pluginName
+          : '';
+    const { autoDetach, detachAlwaysShowSearch } = data || {};
+    if (!id) return false;
+    const patch: Record<string, boolean> = {};
+    if (typeof autoDetach === 'boolean') patch.autoDetach = autoDetach;
+    if (typeof detachAlwaysShowSearch === 'boolean')
+      patch.detachAlwaysShowSearch = detachAlwaysShowSearch;
+    if (!Object.keys(patch).length) return false;
+    return writePluginRubickConfigSync(id, patch);
+  }
+
+  /** 分离窗口内调整插件 BrowserView 缩放（通过 detach 壳 webContents 发 IPC，需带 winId） */
+  public detachAdjustPluginZoom(
+    arg: { data?: { action?: string }; winId?: number },
+    _mainWindow: BrowserWindow,
+    event?: IpcMainEvent
+  ) {
+    const { data, winId } = arg;
+    const w = winId
+      ? BrowserWindow.fromId(winId)
+      : event && BrowserWindow.fromWebContents(event.sender);
+    if (!w || w.isDestroyed()) return false;
+    const bv = w.getBrowserView();
+    if (!bv || bv.webContents.isDestroyed()) return false;
+    const wc = bv.webContents;
+    const cur = wc.getZoomFactor();
+    const act = data?.action;
+    if (act === 'in') wc.setZoomFactor(Math.min(3, Math.round((cur + 0.1) * 100) / 100));
+    else if (act === 'out')
+      wc.setZoomFactor(Math.max(0.5, Math.round((cur - 0.1) * 100) / 100));
+    else if (act === 'reset') wc.setZoomFactor(1);
+    return true;
   }
 
   public removePlugin(e, window) {
@@ -201,8 +514,25 @@ class API extends DBInstance {
     this.currentPlugin = null;
   }
 
-  public openPluginDevTools() {
-    runnerInstance.getView().webContents.openDevTools({ mode: 'detach' });
+  public openPluginDevTools(
+    _arg: unknown,
+    _window: BrowserWindow,
+    event?: IpcMainEvent
+  ) {
+    if (event) {
+      const w = BrowserWindow.fromWebContents(event.sender);
+      if (w && !w.isDestroyed()) {
+        const bv = w.getBrowserView();
+        if (bv && !bv.webContents.isDestroyed()) {
+          bv.webContents.openDevTools({ mode: 'detach' });
+          return;
+        }
+      }
+    }
+    const v = runnerInstance.getView();
+    if (v && !v.webContents.isDestroyed()) {
+      v.webContents.openDevTools({ mode: 'detach' });
+    }
   }
 
   public hideMainWindow(arg, window) {
@@ -378,6 +708,19 @@ class API extends DBInstance {
 
   public detachPlugin(e, window) {
     if (!this.currentPlugin) return;
+    const pluginName = this.currentPlugin.name;
+    /** pluginSetting.single 默认为 true（单例）；仅当为 false 时可开多个独立窗口 */
+    const allowMultipleDetachWindows =
+      this.currentPlugin.pluginSetting?.single === false;
+    if (!allowMultipleDetachWindows && pluginName) {
+      const existing = detachInstance.getExistingDetachWindow(pluginName);
+      if (existing && !existing.isDestroyed()) {
+        if (existing.isMinimized()) existing.restore();
+        existing.show();
+        existing.focus();
+        return;
+      }
+    }
     const view = window.getBrowserView();
     window.setBrowserView(null);
     window.webContents
@@ -387,9 +730,12 @@ class API extends DBInstance {
           {
             ...this.currentPlugin,
             subInput: res,
+            detachAlwaysShowSearch: !!readPluginRubickConfigSync(pluginName)
+              .detachAlwaysShowSearch,
           },
           window.getBounds(),
-          view
+          view,
+          allowMultipleDetachWindows
         );
         window.webContents.executeJavaScript(`window.initRubick()`);
         applyMainWindowContentHeight(window, 60);

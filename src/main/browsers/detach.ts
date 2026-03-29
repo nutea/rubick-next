@@ -3,16 +3,34 @@ import localConfig from '../common/initLocalConfig';
 import commonConst from '@/common/utils/commonConst';
 import path from 'path';
 import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
-import mainInstance from '@/main';
-export default () => {
-  let win: any;
 
-  const init = async (pluginInfo, viewInfo, view) => {
-    ipcMain.on('detach:service', async (event, arg: { type: string }) => {
-      const data = await operation[arg.type]();
-      event.returnValue = data;
-    });
-    const createWin = await createWindow(pluginInfo, viewInfo, view);
+export default () => {
+  let win: BrowserWindow | undefined;
+
+  /** pluginSetting.single 非 false 时同一插件仅保留一个分离窗；key 为插件 `name` */
+  const singleDetachWindowByPlugin = new Map<string, BrowserWindow>();
+
+  const getExistingDetachWindow = (pluginName: string): BrowserWindow | undefined => {
+    const w = singleDetachWindowByPlugin.get(pluginName);
+    if (!w || w.isDestroyed()) {
+      if (w) singleDetachWindowByPlugin.delete(pluginName);
+      return undefined;
+    }
+    return w;
+  };
+
+  const init = async (
+    pluginInfo: { name?: string },
+    viewInfo: Electron.Rectangle,
+    view: Electron.BrowserView,
+    allowMultipleDetachWindows?: boolean
+  ) => {
+    const createWin = await createWindow(
+      pluginInfo,
+      viewInfo,
+      view,
+      !!allowMultipleDetachWindows
+    );
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('@electron/remote/main').enable(createWin.webContents);
   };
@@ -30,7 +48,13 @@ export default () => {
     });
   };
 
-  const createWindow = async (pluginInfo, viewInfo, view) => {
+  const createWindow = async (
+    pluginInfo: { name?: string; pluginName?: string },
+    viewInfo: Electron.Rectangle,
+    view: Electron.BrowserView,
+    allowMultipleDetachWindows: boolean
+  ) => {
+    const pluginKey = pluginInfo.name || '';
     const createWin = new BrowserWindow({
       height: viewInfo.height,
       minHeight: WINDOW_MIN_HEIGHT,
@@ -57,12 +81,15 @@ export default () => {
         spellcheck: false,
       },
     });
+
+    if (!allowMultipleDetachWindows && pluginKey) {
+      singleDetachWindowByPlugin.set(pluginKey, createWin);
+    }
+
     const detachFileUrl = `file://${path.join(
       __static,
       './detach/index.html'
     )}`;
-    // 勿与主窗口 WEBPACK_DEV_SERVER_URL 绑定：electron:serve 时 8082 往往未启动（需单独 cd detach && npm run serve）。
-    // 需要调试分离窗壳时设置环境变量 DETACH_DEV_SERVER_URL，例如 http://localhost:8082
     const detachDevUrl = process.env.DETACH_DEV_SERVER_URL;
     if (detachDevUrl) {
       const onFail = (
@@ -96,7 +123,13 @@ export default () => {
     });
     createWin.on('closed', () => {
       view.webContents?.destroy();
-      win = undefined;
+      if (!allowMultipleDetachWindows && pluginKey) {
+        const cur = singleDetachWindowByPlugin.get(pluginKey);
+        if (cur === createWin) {
+          singleDetachWindowByPlugin.delete(pluginKey);
+        }
+      }
+      if (win === createWin) win = undefined;
     });
     createWin.on('focus', () => {
       win = createWin;
@@ -122,12 +155,10 @@ export default () => {
 
     createWin.on('resize', () => layoutDetachPluginView(createWin));
 
-    // 最大化设置
     createWin.on('maximize', () => {
       createWin.webContents.executeJavaScript('window.maximizeTrigger()');
       layoutDetachPluginView(createWin);
     });
-    // 最小化
     createWin.on('unmaximize', () => {
       createWin.webContents.executeJavaScript('window.unmaximizeTrigger()');
       layoutDetachPluginView(createWin);
@@ -157,13 +188,13 @@ export default () => {
       if (input.type !== 'keyDown') return;
       if (!(input.meta || input.control || input.shift || input.alt)) {
         if (input.key === 'Escape') {
-          operation.endFullScreen();
+          if (createWin.isFullScreen()) createWin.setFullScreen(false);
         }
         return;
       }
     });
 
-    const executeHooks = (hook, data) => {
+    const executeHooks = (hook: string, data: unknown) => {
       if (!view) return;
       const evalJs = `console.log(window.rubick);if(window.rubick && window.rubick.hooks && typeof window.rubick.hooks.on${hook} === 'function' ) {
           try {
@@ -178,24 +209,33 @@ export default () => {
 
   const getWindow = () => win;
 
-  const operation = {
-    minimize: () => {
-      win.focus();
-      win.minimize();
-    },
-    maximize: () => {
-      win.isMaximized() ? win.unmaximize() : win.maximize();
-    },
-    close: () => {
-      win.close();
-    },
-    endFullScreen: () => {
-      win.isFullScreen() && win.setFullScreen(false);
-    },
-  };
+  /** 分离窗壳页发 IPC，按 sender 定位窗口，多开时互不影响 */
+  ipcMain.removeAllListeners('detach:service');
+  ipcMain.on('detach:service', async (event, arg: { type: string }) => {
+    const w = BrowserWindow.fromWebContents(event.sender);
+    if (!w || w.isDestroyed()) return;
+    switch (arg.type) {
+      case 'minimize':
+        w.focus();
+        w.minimize();
+        break;
+      case 'maximize':
+        w.isMaximized() ? w.unmaximize() : w.maximize();
+        break;
+      case 'close':
+        w.close();
+        break;
+      case 'endFullScreen':
+        if (w.isFullScreen()) w.setFullScreen(false);
+        break;
+      default:
+        break;
+    }
+  });
 
   return {
     init,
     getWindow,
+    getExistingDetachWindow,
   };
 };

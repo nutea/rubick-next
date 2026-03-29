@@ -1,5 +1,8 @@
 {
   "name": "rubick-system-feature",
+  "pluginSetting": {
+    "single": true
+  },
   "pluginName": "系统菜单",
   "description": "系统菜单",
   "main": "index.html",
