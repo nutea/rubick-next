@@ -171,11 +171,7 @@ class API extends DBInstance {
         ? 'http://localhost:8081/#/'
         : `file://${__static}/feature/index.html`;
     } else if (plugin.name === 'rubick-system-super-panel') {
-      plugin.indexPath = `file://${path.join(
-        __static,
-        'superx',
-        plugin.main || 'index.html'
-      )}`;
+      plugin.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
     } else if (!plugin.indexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', plugin.name);
       plugin.indexPath = `file://${path.join(

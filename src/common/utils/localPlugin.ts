@@ -26,9 +26,17 @@ function ensureBuiltinSuperPanelInList(): void {
       }
     }
     const plugins = global.LOCAL_PLUGINS.getLocalPlugins();
-    if (plugins.some((p) => p.name === 'rubick-system-super-panel')) return;
     const info = JSON.parse(fs.readFileSync(BUILTIN_SUPER_PANEL_PKG, 'utf-8'));
-    global.LOCAL_PLUGINS.addPlugin({ ...info, isDev: false });
+    const payload = { ...info, isDev: false };
+    const idx = plugins.findIndex((p) => p.name === 'rubick-system-super-panel');
+    if (idx === -1) {
+      global.LOCAL_PLUGINS.addPlugin(payload);
+    } else {
+      const next = [...plugins];
+      next[idx] = { ...next[idx], ...payload };
+      global.LOCAL_PLUGINS.PLUGINS = next;
+      fs.writeFileSync(configPath, JSON.stringify(next));
+    }
   } catch (e) {
     console.warn('[rubick] ensureBuiltinSuperPanelInList', e);
   }

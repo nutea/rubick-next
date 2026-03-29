@@ -38,7 +38,7 @@ async function simulateCopy(): Promise<void> {
 
 const STORE_ID = 'rubick-system-super-panel-store';
 
-/** 与 feature 超级面板设置页约定一致 */
+/** 与插件市场「超级面板」设置页写入的 dbStorage 键一致 */
 const SP_MOUSE = {
   MIDDLE: 'rubick:sp:mouse-middle',
   LONG_LEFT: 'rubick:sp:long-left',

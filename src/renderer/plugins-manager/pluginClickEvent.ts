@@ -32,11 +32,7 @@ export default function pluginClickEvent({
       : `file://${__static}/feature/index.html`;
   }
   if (plugin.name === 'rubick-system-super-panel') {
-    pluginDist.indexPath = `file://${path.join(
-      __static,
-      'superx',
-      plugin.main || 'index.html'
-    )}`;
+    pluginDist.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
   }
   openPlugin(pluginDist, option);
 }

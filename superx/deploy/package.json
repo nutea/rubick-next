@@ -2,18 +2,12 @@
   "name": "rubick-system-super-panel",
   "pluginName": "超级面板",
   "version": "3.0.0",
-  "description": "Ctrl + W 唤起超级面板",
-  "main": "index.html",
+  "description": "Ctrl + W 唤起超级面板（快捷键请在插件市场「超级面板」中设置）",
+  "main": "main.html",
   "entry": "main.js",
   "logo": "https://pic1.zhimg.com/80/v2-c4b9ea27fde09f7e985a5fc77d922680_720w.png",
   "pluginType": "system",
-  "features": [
-    {
-      "code": "setting",
-      "explain": "设置超级面板",
-      "cmds": ["设置超级面板", "超级面板"]
-    }
-  ],
+  "features": [],
   "author": "muwoo",
   "license": "ISC",
   "homepage": "https://github.com/rubickCenter/rubick-system-super-panel#readme",

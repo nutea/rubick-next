@@ -4,7 +4,6 @@
   "version": "2.0.12",
   "description": "可读源码：超级面板插件（Vue 3 + TypeScript），构建产物可同步到 public/superx",
   "scripts": {
-    "dev:settings": "vite --open /index.html",
     "dev:panel": "vite --open /main.html",
     "typecheck": "vue-tsc --noEmit",
     "build:web": "vite build",
