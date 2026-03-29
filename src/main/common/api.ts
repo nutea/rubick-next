@@ -33,11 +33,7 @@ import {
   getExportDefaultFilename,
   importPluginBundle,
 } from './pluginBundle';
-import {
-  applyMainWindowContentHeight,
-  setMainWindowContentPositionAnchor,
-  syncMainWindowContentAnchorFromWindow,
-} from './mainWindowContentResize';
+import { applyMainWindowContentHeight } from './mainWindowContentResize';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -143,7 +139,6 @@ class API extends DBInstance {
     const nx = x - mouseX;
     const ny = y - mouseY;
     originWindow.setContentBounds({ x: nx, y: ny, width, height });
-    setMainWindowContentPositionAnchor(originWindow, nx, ny);
     getWinPosition.setPosition(nx, ny);
   }
 
@@ -162,8 +157,6 @@ class API extends DBInstance {
         icon: plugin.logo,
       }).show();
     }
-    // 与搜索框变高、超级面板同理：先对齐内容区锚点再 60→插件高，避免高 DPI 下连续 setContentBounds 左上角漂移
-    syncMainWindowContentAnchorFromWindow(window);
     applyMainWindowContentHeight(window, 60);
     this.removePlugin(null, window);
     // 模板文件

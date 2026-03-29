@@ -4,31 +4,8 @@ import { WINDOW_WIDTH } from '@/common/constans/common';
 const lastAppliedContentHeight = new WeakMap<BrowserWindow, number>();
 
 /**
- * 主窗口内容区左上角「意图」坐标（与超级面板 panelPositionAnchor 同理）。
- * Win 高 DPI 下仅用 getContentBounds 再 setContentBounds 改高，x/y 会舍入漂移，逐字变高时向左上角蹭。
- */
-const contentPositionAnchor = new WeakMap<BrowserWindow, { x: number; y: number }>();
-
-/** 拖拽移动主窗口时由 api.windowMoving 写入 */
-export function setMainWindowContentPositionAnchor(
-  win: BrowserWindow,
-  x: number,
-  y: number
-): void {
-  contentPositionAnchor.set(win, { x: Math.round(x), y: Math.round(y) });
-}
-
-/**
- * 快捷键弹出等场景下先 setPosition 后，用当前内容区同步一次锚点（只读一次 getContentBounds）。
- */
-export function syncMainWindowContentAnchorFromWindow(win: BrowserWindow): void {
-  if (!win || win.isDestroyed()) return;
-  const b = win.getContentBounds();
-  contentPositionAnchor.set(win, { x: Math.round(b.x), y: Math.round(b.y) });
-}
-
-/**
- * 主窗口（useContentSize）仅改内容高度：固定锚点 x/y，避免 setContentBounds 与 DPI 舍入互相踩。
+ * 主窗口（useContentSize）内容区统一改高度：高 DPI 下锚定左上角并迭代修正，避免 setSize 导致位移。
+ * 供 setExpendHeight、openPlugin、插件 viewReadyFn 共用，避免与 setContentBounds 混用产生二次跳动。
  */
 export function applyMainWindowContentHeight(
   win: BrowserWindow,
@@ -40,24 +17,22 @@ export function applyMainWindowContentHeight(
   const last = lastAppliedContentHeight.get(win);
   if (last === h) return;
 
-  let ax: number;
-  let ay: number;
-  const anchor = contentPositionAnchor.get(win);
-  if (anchor) {
-    ax = anchor.x;
-    ay = anchor.y;
-  } else {
-    const b = win.getContentBounds();
-    ax = Math.round(b.x);
-    ay = Math.round(b.y);
-    contentPositionAnchor.set(win, { x: ax, y: ay });
+  const anchor = win.getContentBounds();
+  let x = anchor.x;
+  let y = anchor.y;
+  for (let i = 0; i < 5; i++) {
+    win.setContentBounds({
+      x,
+      y,
+      width: WINDOW_WIDTH,
+      height: h,
+    });
+    const cur = win.getContentBounds();
+    const dx = anchor.x - cur.x;
+    const dy = anchor.y - cur.y;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) break;
+    x += dx;
+    y += dy;
   }
-
-  win.setContentBounds({
-    x: ax,
-    y: ay,
-    width: WINDOW_WIDTH,
-    height: h,
-  });
   lastAppliedContentHeight.set(win, h);
 }
