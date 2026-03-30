@@ -136,6 +136,7 @@ import { message } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 import emptyJson from '@/assets/lottie/empty.json';
+import { buildPluginLaunchPayload } from '@/utils/pluginLaunchPayload';
 
 const { t } = useI18n();
 
@@ -244,7 +245,7 @@ const superPanelPlugins = ref(
 const handleMenuClick = (key, item, cmd) => {
   if(key === 'open') {
     openPlugin({
-      code: item.code,
+      feature: item,
       cmd,
     });
   } else if (key === 'add') {
@@ -255,15 +256,12 @@ const handleMenuClick = (key, item, cmd) => {
 };
 
 const addCmdToSuperPanel = ({ cmd, code }) => {
-  const plugin = {
-    ...toRaw(pluginDetail.value),
+  const plugin = buildPluginLaunchPayload({
+    pluginDetail: pluginDetail.value,
+    feature: { code },
     cmd,
-    ext: {
-      code,
-      type: 'text',
-      payload: null,
-    },
-  };
+  });
+  if (!plugin) return;
   superPanelPlugins.value.data.push(plugin);
   const { rev } = window.rubick.db.put(JSON.parse(JSON.stringify(superPanelPlugins.value)));
   superPanelPlugins.value._rev = rev;
@@ -292,18 +290,16 @@ const hasAdded = (cmd) => {
   return added;
 };
 
-const openPlugin = ({ cmd, code }) => {
+const openPlugin = ({ cmd, feature }) => {
+  const payload = buildPluginLaunchPayload({
+    pluginDetail: pluginDetail.value,
+    feature,
+    cmd,
+  });
+  if (!payload) return;
   window.rubick.openPlugin(
     JSON.parse(
-      JSON.stringify({
-        ...pluginDetail.value,
-        cmd,
-        ext: {
-          code,
-          type: 'text',
-          payload: null,
-        },
-      })
+      JSON.stringify(payload)
     )
   );
 };

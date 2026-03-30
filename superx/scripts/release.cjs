@@ -88,6 +88,11 @@ for (const p of removePaths) {
 
 console.log('[superx:release] copy deploy/package.json → target…');
 copyFile(path.join(DEPLOY, 'package.json'), path.join(TARGET, 'package.json'));
+const logoSrc = path.join(DEPLOY, 'plugin-logo.png');
+if (fs.existsSync(logoSrc)) {
+  console.log('[superx:release] copy deploy/plugin-logo.png → target…');
+  copyFile(logoSrc, path.join(TARGET, 'plugin-logo.png'));
+}
 
 console.log('[superx:release] copy dist/ → target…');
 copyDirContents(DIST, TARGET);

@@ -49,6 +49,77 @@ function nmPackagePath(nmRoot: string, packageName: string): string {
   return path.join(nmRoot, ...packageName.split('/'));
 }
 
+function pluginRootDir(pluginName: string): string {
+  return nmPackagePath(path.join(baseDir, 'node_modules'), pluginName);
+}
+
+function isHttpUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^https?:\/\//i.test(v.trim());
+}
+
+function isFileUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^file:\/\//i.test(v.trim());
+}
+
+function normalizeSlashes(v: string): string {
+  return v.replace(/\\/g, '/');
+}
+
+function fileUrlToPathSafe(v: string): string | null {
+  try {
+    return decodeURIComponent(v.replace(/^file:\/\//i, ''));
+  } catch {
+    return null;
+  }
+}
+
+function toExportRelativeLogo(
+  pluginName: string,
+  logo: unknown
+): string | undefined {
+  if (typeof logo !== 'string' || !logo.trim()) return undefined;
+  const s = logo.trim();
+  if (isHttpUrl(s) || /^data:/i.test(s)) return s;
+  const root = path.resolve(pluginRootDir(pluginName));
+  let candidate: string = s;
+  if (isFileUrl(s)) {
+    const p = fileUrlToPathSafe(s);
+    if (!p) return s;
+    candidate = p;
+  }
+  const abs = path.isAbsolute(candidate)
+    ? path.resolve(candidate)
+    : path.resolve(path.join(root, candidate));
+  const rel = path.relative(root, abs);
+  if (!rel.startsWith('..') && !path.isAbsolute(rel)) {
+    return normalizeSlashes(rel);
+  }
+  return s;
+}
+
+function toImportAbsoluteLogo(
+  pluginName: string,
+  logo: unknown
+): string | undefined {
+  if (typeof logo !== 'string' || !logo.trim()) return undefined;
+  const s = logo.trim();
+  if (
+    isHttpUrl(s) ||
+    /^data:/i.test(s) ||
+    path.isAbsolute(s) ||
+    isFileUrl(s)
+  ) {
+    return s;
+  }
+  const root = path.resolve(pluginRootDir(pluginName));
+  const abs = path.resolve(path.join(root, s));
+  const rel = path.relative(root, abs);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    return s;
+  }
+  return abs;
+}
+
 /**
  * 从扁平 node_modules 收集入口插件及其 npm 依赖闭包（含 optionalDependencies，不含 devDependencies）
  */
@@ -227,12 +298,17 @@ export async function exportPluginBundle(
       rubickVersion = '';
     }
 
+    const pluginForManifest: LocalPluginRecord = {
+      ...plugin,
+      logo: toExportRelativeLogo(plugin.name, plugin.logo) ?? plugin.logo,
+    };
+
     const manifest = {
       format: 'rubick-plugins-bundle',
       version: 1,
       exportedAt: new Date().toISOString(),
       rubickVersion,
-      plugins: [plugin],
+      plugins: [pluginForManifest],
       bundledPackageNames: closure,
     };
 
@@ -256,16 +332,18 @@ function mergePluginMetadata(
   saved: LocalPluginRecord,
   pkgJson: Record<string, unknown>
 ): LocalPluginRecord {
+  const name = (pkgJson.name as string) || saved.name;
+  const mergedLogo = saved.logo ?? pkgJson.logo;
   return {
     ...saved,
     ...pkgJson,
-    name: (pkgJson.name as string) || saved.name,
+    name,
     version: (pkgJson.version as string) || (saved.version as string),
     description: pkgJson.description ?? saved.description,
     author: pkgJson.author ?? saved.author,
     main: pkgJson.main ?? saved.main,
     pluginName: (pkgJson.pluginName as string) || (saved.pluginName as string),
-    logo: pkgJson.logo ?? saved.logo,
+    logo: toImportAbsoluteLogo(name, mergedLogo) ?? mergedLogo,
     features: saved.features ?? pkgJson.features,
     pluginType:
       (saved.pluginType as string) || (pkgJson.pluginType as string) || 'ui',

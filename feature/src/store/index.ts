@@ -1,6 +1,14 @@
 import { createStore } from 'vuex';
 import request from '@/assets/request';
 
+const getTotalPluginsSafe = async (): Promise<Market.Plugin[]> => {
+  try {
+    return await request.getTotalPlugins();
+  } catch {
+    return [];
+  }
+};
+
 const isDownload = (item: Market.Plugin, targets: any[]) => {
   let isDownload = false;
   targets.some((plugin) => {
@@ -45,7 +53,7 @@ export default createStore({
       await dispatch('init');
     },
     async init({ commit }) {
-      const tPlugins = await request.getTotalPlugins();
+      const tPlugins = await getTotalPluginsSafe();
       const lTPlugins = window.rubick.db.get(LOCAL_PLUGIN_JSON);
       const totalPlugins = tPlugins.concat(JSON.parse(lTPlugins?.data || '[]'));
 
@@ -121,7 +129,7 @@ export default createStore({
 
     async updateLocalPlugin({ commit }) {
       const localPlugins = window.market.getLocalPlugins();
-      const totalPlugins = await request.getTotalPlugins();
+      const totalPlugins = await getTotalPluginsSafe();
 
       totalPlugins.forEach((origin: Market.Plugin) => {
         origin.isdownload = isDownload(origin, localPlugins);

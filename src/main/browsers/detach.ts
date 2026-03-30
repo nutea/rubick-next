@@ -4,6 +4,7 @@ import commonConst from '@/common/utils/commonConst';
 import path from 'path';
 import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
 import { executePluginSubInputChangeHook } from '@/main/common/pluginSubInputHook';
+import { resolveDetachWindowIcon } from '@/main/common/detachWindowIcon';
 
 export default () => {
   let win: BrowserWindow | undefined;
@@ -21,7 +22,7 @@ export default () => {
   };
 
   const init = async (
-    pluginInfo: { name?: string },
+    pluginInfo: { name?: string; logo?: string },
     viewInfo: Electron.Rectangle,
     view: Electron.BrowserView,
     allowMultipleDetachWindows?: boolean
@@ -50,12 +51,16 @@ export default () => {
   };
 
   const createWindow = async (
-    pluginInfo: { name?: string; pluginName?: string },
+    pluginInfo: { name?: string; pluginName?: string; logo?: string },
     viewInfo: Electron.Rectangle,
     view: Electron.BrowserView,
     allowMultipleDetachWindows: boolean
   ) => {
     const pluginKey = pluginInfo.name || '';
+    const winIcon = await resolveDetachWindowIcon(
+      pluginInfo.logo,
+      pluginInfo.name
+    );
     const createWin = new BrowserWindow({
       height: viewInfo.height,
       minHeight: WINDOW_MIN_HEIGHT,
@@ -71,6 +76,7 @@ export default () => {
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c28' : '#fff',
       x: viewInfo.x,
       y: viewInfo.y,
+      ...(winIcon ? { icon: winIcon } : {}),
       webPreferences: {
         webSecurity: false,
         backgroundThrottling: false,

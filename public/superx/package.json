@@ -8,7 +8,7 @@
   },
   "main": "main.html",
   "entry": "main.js",
-  "logo": "https://pic1.zhimg.com/80/v2-c4b9ea27fde09f7e985a5fc77d922680_720w.png",
+  "logo": "./plugin-logo.png",
   "pluginType": "system",
   "features": [],
   "author": "muwoo",

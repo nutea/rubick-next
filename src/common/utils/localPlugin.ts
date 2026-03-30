@@ -1,5 +1,7 @@
 import path from 'path';
 import fs from 'fs';
+import http from 'http';
+import https from 'https';
 import { PluginHandler } from '@/core';
 import { PLUGIN_INSTALL_DIR as baseDir } from '@/common/constans/main';
 import API from '@/main/common/api';
@@ -33,7 +35,7 @@ function ensureBuiltinSuperPanelInList(): void {
       global.LOCAL_PLUGINS.addPlugin(payload);
     } else {
       const next = [...plugins];
-      next[idx] = { ...next[idx], ...payload };
+      next[idx] = normalizePluginLogoLocalPath({ ...next[idx], ...payload });
       global.LOCAL_PLUGINS.PLUGINS = next;
       fs.writeFileSync(configPath, JSON.stringify(next));
     }
@@ -44,6 +46,146 @@ function ensureBuiltinSuperPanelInList(): void {
 
 function pluginNmDir(pluginName: string): string {
   return path.join(baseDir, 'node_modules', ...pluginName.split('/'));
+}
+
+function pluginDiskRoot(pluginName: string): string {
+  if (pluginName === 'rubick-system-feature') {
+    return path.join(__static, 'feature');
+  }
+  if (pluginName === 'rubick-system-super-panel') {
+    return path.join(__static, 'superx');
+  }
+  return pluginNmDir(pluginName);
+}
+
+function isHttpUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^https?:\/\//i.test(v.trim());
+}
+
+function isFileUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^file:\/\//i.test(v.trim());
+}
+
+function isDataUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^data:/i.test(v.trim());
+}
+
+function fileUrlToPathSafe(v: string): string | null {
+  try {
+    return decodeURIComponent(v.replace(/^file:\/\//i, ''));
+  } catch {
+    return null;
+  }
+}
+
+function toPluginScopedAbsolutePath(
+  pluginName: string,
+  maybePath: string
+): string | null {
+  const pluginRoot = pluginDiskRoot(pluginName);
+  const base = path.resolve(pluginRoot);
+  const candidate = path.resolve(
+    path.isAbsolute(maybePath) ? maybePath : path.join(pluginRoot, maybePath)
+  );
+  const rel = path.relative(base, candidate);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    return null;
+  }
+  return candidate;
+}
+
+function downloadToFile(
+  url: string,
+  dest: string,
+  redirects = 0
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https://') ? https : http;
+    const req = client.get(url, (res) => {
+      const status = res.statusCode || 0;
+      const location = res.headers.location;
+      if (
+        status >= 300 &&
+        status < 400 &&
+        location &&
+        redirects < 5
+      ) {
+        const next = new URL(location, url).toString();
+        res.resume();
+        resolve(downloadToFile(next, dest, redirects + 1));
+        return;
+      }
+      if (status < 200 || status >= 300) {
+        res.resume();
+        reject(new Error(`HTTP_${status}`));
+        return;
+      }
+      const ws = fs.createWriteStream(dest);
+      res.pipe(ws);
+      ws.on('finish', () => resolve());
+      ws.on('error', reject);
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => {
+      req.destroy(new Error('REQUEST_TIMEOUT'));
+    });
+  });
+}
+
+async function normalizeInstalledPluginLogo(
+  plugin: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const pluginName = String(plugin.name || '');
+  const logo = plugin.logo;
+  if (!pluginName || typeof logo !== 'string' || !logo.trim()) return plugin;
+  const s = logo.trim();
+
+  if (isDataUrl(s)) return plugin;
+
+  if (isHttpUrl(s)) {
+    try {
+      const pluginRoot = pluginNmDir(pluginName);
+      fs.mkdirSync(pluginRoot, { recursive: true });
+      const parsed = new URL(s);
+      const ext = path.extname(parsed.pathname || '').slice(0, 16) || '.png';
+      const filePath = path.join(pluginRoot, `.rubick-logo${ext}`);
+      await downloadToFile(s, filePath);
+      return { ...plugin, logo: filePath };
+    } catch {
+      return plugin;
+    }
+  }
+
+  if (isFileUrl(s)) {
+    const p = fileUrlToPathSafe(s);
+    if (!p) return plugin;
+    const abs = toPluginScopedAbsolutePath(pluginName, p);
+    return abs ? { ...plugin, logo: abs } : plugin;
+  }
+
+  const abs = toPluginScopedAbsolutePath(pluginName, s);
+  return abs ? { ...plugin, logo: abs } : plugin;
+}
+
+function normalizePluginLogoLocalPath(
+  plugin: Record<string, unknown>
+): Record<string, unknown> {
+  const pluginName = String(plugin.name || '');
+  const logo = plugin.logo;
+  if (!pluginName || typeof logo !== 'string' || !logo.trim()) return plugin;
+  const s = logo.trim();
+
+  if (isDataUrl(s) || isHttpUrl(s)) return plugin;
+
+  if (isFileUrl(s)) {
+    const p = fileUrlToPathSafe(s);
+    if (!p) return plugin;
+    const abs = toPluginScopedAbsolutePath(pluginName, p);
+    return abs ? { ...plugin, logo: abs } : plugin;
+  }
+
+  const abs = toPluginScopedAbsolutePath(pluginName, s);
+  return abs ? { ...plugin, logo: abs } : plugin;
 }
 
 /**
@@ -121,10 +263,11 @@ global.LOCAL_PLUGINS = {
         ...pluginInfo,
       };
     }
+    plugin = await normalizeInstalledPluginLogo(plugin);
     global.LOCAL_PLUGINS.addPlugin(plugin);
     return global.LOCAL_PLUGINS.PLUGINS;
   },
-  refreshPlugin(plugin) {
+  async refreshPlugin(plugin) {
     // 获取 dev 插件信息
     const pluginPath = path.resolve(baseDir, 'node_modules', plugin.name);
     const pluginInfo = JSON.parse(
@@ -134,6 +277,7 @@ global.LOCAL_PLUGINS = {
       ...plugin,
       ...pluginInfo,
     };
+    plugin = await normalizeInstalledPluginLogo(plugin);
     // 刷新
     let currentPlugins = global.LOCAL_PLUGINS.getLocalPlugins();
 
@@ -164,6 +308,7 @@ global.LOCAL_PLUGINS = {
     }
   },
   addPlugin(plugin) {
+    plugin = normalizePluginLogoLocalPath(plugin);
     let has = false;
     const currentPlugins = global.LOCAL_PLUGINS.getLocalPlugins();
     currentPlugins.some((p) => {
