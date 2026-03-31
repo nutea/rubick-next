@@ -203,7 +203,7 @@ init();
 }
 </style>
 <style lang="less" scoped>
-@import '~@/assets/common.less';
+@import '@/assets/common.less';
 * {
   margin: 0;
   padding: 0;

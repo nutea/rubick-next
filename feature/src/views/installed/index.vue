@@ -125,7 +125,6 @@
 import { useStore } from 'vuex';
 import { computed, ref, toRaw, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import path from 'path';
 import {
   PushpinOutlined,
   PushpinFilled,
@@ -139,12 +138,6 @@ import emptyJson from '@/assets/lottie/empty.json';
 import { buildPluginLaunchPayload } from '@/utils/pluginLaunchPayload';
 
 const { t } = useI18n();
-
-const remote = window.require('@electron/remote');
-const fs = window.require('fs');
-
-const appPath = remote.app.getPath('userData');
-const baseDir = path.join(appPath, './rubick-plugins');
 
 const store = useStore();
 const route = useRoute();

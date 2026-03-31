@@ -30,7 +30,7 @@
 import { nanoid } from 'nanoid';
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import Index from './index';
+import Index from './index.vue';
 import service from '../../assets/service';
 
 const userInfo = ref(window.rubick.dbStorage.getItem('rubick-user-info'));

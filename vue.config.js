@@ -3,6 +3,9 @@ const path = require('path');
 
 module.exports = {
   // transpileDependencies: ["fix-path"],
+  devServer: {
+    open: false,
+  },
   configureWebpack: {
     resolve: {
       alias: {

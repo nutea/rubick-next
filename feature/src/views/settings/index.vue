@@ -245,9 +245,9 @@ import debounce from 'lodash.debounce';
 import { ref, reactive, watch, toRefs, computed } from 'vue';
 import keycodes from './keycode';
 import Localhost from './localhost.vue';
-import UserInfo from './user-info';
-import LocalStart from './local-start';
-import DataBase from './database';
+import UserInfo from './user-info.vue';
+import LocalStart from './local-start.vue';
+import DataBase from './database.vue';
 import { useI18n } from 'vue-i18n';
 import localConfig from '@/confOp';
 
@@ -470,7 +470,7 @@ const changeLanguage = (value) => {
 </script>
 
 <style lang="less">
-@import '~@/assets/common.less';
+@import '@/assets/common.less';
 
 .settings {
   box-sizing: border-box;

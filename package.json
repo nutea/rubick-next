@@ -7,7 +7,7 @@
     "serve": "vue-cli-service serve",
     "build": "node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js build",
     "lint": "vue-cli-service lint",
-    "feature:dev": "cd feature & npm run serve",
+    "feature:dev": "cd feature & npm run dev",
     "electron:build": "node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js electron:build",
     "electron:build:local": "node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js electron:build --publish never",
     "electron:serve": "vue-cli-service electron:serve",

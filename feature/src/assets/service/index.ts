@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const apiBase =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VUE_APP_API_BASE ||
+  '';
+
 const instance = axios.create({
-  baseURL: process.env.VUE_APP_API_BASE,
+  baseURL: apiBase,
 });
 
 export default {

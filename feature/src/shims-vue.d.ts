@@ -7,6 +7,15 @@ declare module '*.vue' {
 
 declare module 'axios'
 
+interface ImportMetaEnv {
+  readonly VITE_API_BASE?: string;
+  readonly VUE_APP_API_BASE?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 interface Window {
   rubick: any;
   market: any
