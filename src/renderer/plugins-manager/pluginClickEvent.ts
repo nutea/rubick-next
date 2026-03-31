@@ -1,7 +1,8 @@
 import { PLUGIN_INSTALL_DIR as baseDir } from '@/common/constans/renderer';
-import path from 'path';
 import { toRaw } from 'vue';
 import commonConst from '@/common/utils/commonConst';
+
+const path = window.require('path');
 
 export default function pluginClickEvent({
   plugin,

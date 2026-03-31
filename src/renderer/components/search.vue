@@ -52,10 +52,10 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from 'vue';
-import { ipcRenderer } from 'electron';
 import { MoreOutlined } from '@ant-design/icons-vue';
 
 const remote = window.require('@electron/remote');
+const { ipcRenderer } = window.require('electron');
 import localConfig from '../confOp';
 const { Menu, dialog, getCurrentWindow } = remote;
 

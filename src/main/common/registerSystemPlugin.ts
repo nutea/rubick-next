@@ -38,7 +38,9 @@ export default () => {
 
   systemPlugins.forEach((plugin) => {
     if (fs.existsSync(plugin.indexPath)) {
-      const pluginModule = __non_webpack_require__(plugin.indexPath)();
+      // Electron-vite runtime uses native Node require, no webpack helper.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pluginModule = require(plugin.indexPath)();
       // @ts-ignore
       hooks.onReady.push(pluginModule.onReady);
     }

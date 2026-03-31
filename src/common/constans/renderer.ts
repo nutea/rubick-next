@@ -1,5 +1,5 @@
-import { app } from '@electron/remote';
-import path from 'path';
+const { app } = window.require('@electron/remote');
+const path = window.require('path');
 
 const appPath = app.getPath('userData');
 

@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+const { ipcRenderer } = window.require('electron');
 
 /** 超过该平方距离后才视为拖动，避免点击/输入时 mousedown 立刻触发 windowMoving 导致窗口跳动 */
 const DRAG_THRESHOLD_SQ = 9;

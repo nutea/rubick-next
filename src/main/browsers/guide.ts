@@ -57,9 +57,9 @@ export default () => {
         spellcheck: false,
       },
     });
-    if (process.env.WEBPACK_DEV_SERVER_URL) {
+    if (process.env.GUIDE_DEV_SERVER_URL) {
       // Load the url of the dev server if in development mode
-      win.loadURL('http://localhost:8084');
+      win.loadURL(process.env.GUIDE_DEV_SERVER_URL);
     } else {
       win.loadURL(`file://${path.join(__static, './guide/index.html')}`);
     }

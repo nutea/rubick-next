@@ -38,7 +38,6 @@ import Search from './components/search.vue';
 import getWindowHeight from '../common/utils/getWindowHeight';
 import createPluginManager from './plugins-manager';
 import useDrag from '../common/utils/dragWindow';
-import { getGlobal } from '@electron/remote';
 import { PLUGIN_HISTORY } from '@/common/constans/renderer';
 import { message } from 'ant-design-vue';
 import debounce from 'lodash.debounce';
@@ -148,7 +147,7 @@ const choosePlugin = (plugin) => {
     const currentChoose = options.value[currentSelect.value];
     currentChoose.click();
   } else {
-    const localPlugins = getGlobal('LOCAL_PLUGINS').getLocalPlugins();
+    const localPlugins = remote.getGlobal('LOCAL_PLUGINS').getLocalPlugins();
     const currentChoose = plugin || pluginHistory.value[currentSelect.value];
     let hasRemove = true;
     if (currentChoose.pluginType === 'app') {

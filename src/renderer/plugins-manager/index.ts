@@ -1,11 +1,7 @@
 import { reactive, toRefs, ref } from 'vue';
-import { nativeImage, ipcRenderer } from 'electron';
-import { getGlobal } from '@electron/remote';
 import appSearch from '@/core/app-search';
 import { PluginHandler } from '@/core';
-import path from 'path';
 import commonConst from '@/common/utils/commonConst';
-import { exec } from 'child_process';
 import searchManager from './search';
 import optionsManager from './options';
 import {
@@ -13,6 +9,11 @@ import {
   PLUGIN_HISTORY,
 } from '@/common/constans/renderer';
 import { message } from 'ant-design-vue';
+
+const { nativeImage, ipcRenderer } = window.require('electron');
+const { getGlobal } = window.require('@electron/remote');
+const path = window.require('path');
+const { exec } = window.require('child_process');
 
 const createPluginManager = (): any => {
   const pluginInstance = new PluginHandler({

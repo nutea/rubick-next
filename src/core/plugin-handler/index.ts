@@ -2,13 +2,17 @@ import {
   AdapterHandlerOptions,
   AdapterInfo,
 } from '@/core/plugin-handler/types';
-import fs from 'fs-extra';
-import path from 'path';
-import fixPath from 'fix-path';
-
-import spawn from 'cross-spawn';
-import { ipcRenderer } from 'electron';
 import axios from 'axios';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const fs = nodeRequire('fs-extra');
+const fixPath = nodeRequire('fix-path');
+const path = nodeRequire('path');
+const { ipcRenderer } = nodeRequire('electron');
+const spawn = nodeRequire('cross-spawn');
 
 fixPath();
 

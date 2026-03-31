@@ -1,9 +1,14 @@
 import commonConst from './commonConst';
-import { clipboard } from 'electron';
 import plist from 'plist';
-import fs from 'fs';
-import path from 'path';
-import ofs from 'original-fs';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const { clipboard } = nodeRequire('electron');
+const fs = nodeRequire('fs');
+const path = nodeRequire('path');
+const ofs = nodeRequire('original-fs');
 
 export default function getCopyFiles(): Array<any> | null {
   let fileInfo;

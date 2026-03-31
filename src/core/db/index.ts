@@ -1,8 +1,12 @@
-import path from 'path';
-import fs from 'fs';
 import PouchDB from 'pouchdb';
 import { DBError, Doc, DocRes } from './types';
-import WebDavOP from './webdav';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const path = nodeRequire('path');
+const fs = nodeRequire('fs');
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const replicationStream = require('pouchdb-replication-stream/dist/pouchdb.replication-stream.min.js');
@@ -188,6 +192,8 @@ export default class DB {
     username: string;
     password: string;
   }): Promise<void> {
+    // Avoid bundling node-only webdav stack into initial renderer chunk.
+    const WebDavOP = nodeRequire('./' + 'webdav').default;
     const webdavClient = new WebDavOP(config);
     webdavClient.createWriteStream(this.pouchDB);
   }
@@ -197,6 +203,7 @@ export default class DB {
     username: string;
     password: string;
   }): Promise<void> {
+    const WebDavOP = nodeRequire('./' + 'webdav').default;
     const webdavClient = new WebDavOP(config);
     await this.pouchDB.destroy();
     const syncDb = new DB(this.dbpath);

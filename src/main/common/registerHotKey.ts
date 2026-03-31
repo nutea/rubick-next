@@ -25,9 +25,13 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
   };
 
   const setTheme = async () => {
-    mainWindow.webContents.executeJavaScript(`window.rubick.changeTheme()`);
+    mainWindow.webContents.executeJavaScript(
+      `window.rubick && typeof window.rubick.changeTheme === "function" && window.rubick.changeTheme()`
+    );
     mainWindow.getBrowserViews().forEach((view: BrowserView) => {
-      view.webContents.executeJavaScript(`window.rubick.changeTheme()`);
+      view.webContents.executeJavaScript(
+        `window.rubick && typeof window.rubick.changeTheme === "function" && window.rubick.changeTheme()`
+      );
     });
   };
 

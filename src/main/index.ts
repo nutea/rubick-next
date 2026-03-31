@@ -2,7 +2,6 @@
 import electron, {
   app,
   globalShortcut,
-  protocol,
   BrowserWindow,
 } from 'electron';
 import { main, guide } from './browsers';
@@ -29,9 +28,6 @@ class App {
   private systemPlugins: any;
 
   constructor() {
-    protocol.registerSchemesAsPrivileged([
-      { scheme: 'app', privileges: { secure: true, standard: true } },
-    ]);
     this.windowCreator = main();
     const gotTheLock = app.requestSingleInstanceLock();
     if (!gotTheLock) {
@@ -100,9 +96,10 @@ class App {
         if (win.isMinimized()) {
           win.restore();
         }
+        // 第二实例被拒绝后，确保主窗口可见，避免仅 focus 但窗口仍隐藏
+        win.show();
         win.focus();
         if (files.length > 0) {
-          win.show();
           putFileToRubick(win.webContents, files);
         }
       }

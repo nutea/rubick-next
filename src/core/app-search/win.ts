@@ -1,7 +1,11 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { shell } from 'electron';
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const fs = nodeRequire('fs');
+const path = nodeRequire('path');
+const os = nodeRequire('os');
+const { shell } = nodeRequire('electron');
 
 const filePath = path.resolve(
   'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs'
