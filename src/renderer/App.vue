@@ -32,7 +32,6 @@
 
 <script setup lang="ts">
 import { watch, ref, toRaw } from 'vue';
-import { exec } from 'child_process';
 import Result from './components/result.vue';
 import Search from './components/search.vue';
 import getWindowHeight from '../common/utils/getWindowHeight';
@@ -45,6 +44,7 @@ import localConfig from './confOp';
 
 const { onMouseDown } = useDrag();
 const remote = window.require('@electron/remote');
+const { exec } = window.require('child_process');
 
 const {
   initPlugins,
