@@ -6,6 +6,10 @@ import execa from 'execa';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function createPanelWindow(ctx: any) {
   const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
+  const shouldOpenPanelDevtools =
+    process.env.NODE_ENV !== 'production' ||
+    Boolean(process.env.VITE_DEV_SERVER_URL) ||
+    Boolean(process.env.ELECTRON_RENDERER_URL);
 
   let win: InstanceType<typeof BrowserWindow> | undefined;
   let pinned = false;
@@ -40,6 +44,13 @@ export default function createPanelWindow(ctx: any) {
       },
     });
     win.loadURL(`file://${path.join(__dirname, 'main.html')}`);
+    if (shouldOpenPanelDevtools) {
+      win.webContents.once('did-finish-load', () => {
+        if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) return;
+        if (win.webContents.isDevToolsOpened()) return;
+        win.webContents.openDevTools({ mode: 'detach' });
+      });
+    }
     win.on('closed', () => {
       win = undefined;
       panelPositionAnchor = null;
@@ -88,9 +99,23 @@ export default function createPanelWindow(ctx: any) {
       const data = nativeImage.createFromPath(filePath).toDataURL();
       event.returnValue = data;
     });
-    ipcMain.on('get-path', async (event: { returnValue?: unknown }) => {
-      const data = await execa(path.join(__dirname, './modules/cdwhere.exe'));
-      event.returnValue = data;
+    ipcMain.on('get-path', (event: { returnValue?: unknown }) => {
+      try {
+        const cp = require('child_process');
+        const out = cp.execFileSync(path.join(__dirname, './modules/cdwhere.exe'), {
+          encoding: 'utf8',
+        });
+        event.returnValue = { stdout: out };
+      } catch {
+        event.returnValue = { stdout: '' };
+      }
+    });
+    ipcMain.handle('get-path-async', async () => {
+      try {
+        return await execa(path.join(__dirname, './modules/cdwhere.exe'));
+      } catch {
+        return { stdout: '' };
+      }
     });
     ipcMain.on('trigger-pin', (_event: unknown, pin: boolean) => {
       pinned = pin;

@@ -95,7 +95,6 @@
           'worker',
           'system',
           'localPlugin',
-          'superPanel',
         ].includes(active[0])
           ? 'container'
           : 'more'

@@ -8,9 +8,12 @@
     "build": "electron-vite build",
     "lint": "eslint --ext .js,.ts,.vue src",
     "feature:dev": "cd feature & npm run dev",
+    "electron:serve": "electron-vite dev",
+    "superx:build": "cd superx & npm run release",
+    "detach:build": "cd detach & npm run build",
+    "feature:build": "cd feature & npm run build",
     "electron:build": "electron-vite build && electron-builder --config electron-builder.yml",
     "electron:build:local": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
-    "electron:serve": "electron-vite dev",
     "release": "electron-vite build && electron-builder --config electron-builder.yml",
     "postinstall": "electron-builder install-app-deps && node scripts/install-public-superx.js",
     "postuninstall": "electron-builder install-app-deps"

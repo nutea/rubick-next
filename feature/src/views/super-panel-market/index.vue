@@ -1,86 +1,118 @@
 <template>
-  <div class="super-panel-shortcut">
-    <div class="super-panel-shortcut__header">
-      <h3 class="super-panel-shortcut__title">
-        {{ $t('feature.market.superPanelSettings') }}
-      </h3>
-    </div>
-    <div class="super-panel-shortcut__body">
-      <a-alert
-        type="info"
-        show-icon
-        :message="$t('feature.superPanelShortcut.tipTitle')"
-        :description="$t('feature.superPanelShortcut.tipDesc')"
-        class="tip-alert"
-      />
-      <a-form
-        class="shortcut-form"
-        :model="form"
-        :label-col="{ span: 10 }"
-        :wrapper-col="{ span: 14 }"
-        name="superPanelHotkey"
-        autocomplete="off"
-        @finish="onSave"
-      >
-        <a-form-item
-          :label="$t('feature.superPanelShortcut.triggerType')"
-          name="triggerType"
-        >
-          <a-select
-            v-model:value="triggerSelect"
-            class="trigger-select"
-            @change="onTriggerTypeChange"
-          >
-            <a-select-option value="keyboard">
-              {{ $t('feature.superPanelShortcut.modeKeyboard') }}
-            </a-select-option>
-            <a-select-option :value="SP_MOUSE.MIDDLE">
-              {{ $t('feature.superPanelShortcut.modeMouseMiddle') }}
-            </a-select-option>
-            <a-select-option :value="SP_MOUSE.LONG_LEFT">
-              {{ $t('feature.superPanelShortcut.modeLongLeft') }}
-            </a-select-option>
-            <a-select-option :value="SP_MOUSE.LONG_RIGHT">
-              {{ $t('feature.superPanelShortcut.modeLongRight') }}
-            </a-select-option>
-            <a-select-option :value="SP_MOUSE.LONG_MIDDLE">
-              {{ $t('feature.superPanelShortcut.modeLongMiddle') }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item
-          v-show="triggerSelect === 'keyboard'"
-          :label="$t('feature.superPanelShortcut.hotkeyLabel')"
-          name="superPanelHotKey"
-          :rules="[
-            {
-              required: true,
-              message: $t('feature.superPanelShortcut.required'),
-            },
-          ]"
-        >
-          <a-input
-            :value="form.superPanelHotKey"
-            read-only
-            autocomplete="off"
-            class="shortcut-input"
-            :placeholder="$t('feature.superPanelShortcut.captureHint')"
-            @focus="onShortcutFocus"
-            @blur="onShortcutBlur"
-            @keydown.capture="onShortcutInputBlock"
-            @paste.prevent
-            @drop.prevent
-            @compositionstart.prevent
-            @compositionupdate.prevent
-            @compositionend.prevent
+  <div class="super-panel-settings">
+    <div class="view-title">{{ $t('feature.market.superPanelSettings') }}</div>
+    <div class="view-container">
+      <a-menu v-model:selectedKeys="activeTab" mode="horizontal">
+        <a-menu-item key="shortcut">
+          {{ $t('feature.superPanelShortcut.tabShortcut') }}
+        </a-menu-item>
+        <a-menu-item key="translate">
+          {{ $t('feature.superPanelShortcut.tabTranslate') }}
+        </a-menu-item>
+      </a-menu>
+      <div class="settings-detail">
+        <template v-if="activeTab[0] === 'shortcut'">
+          <a-alert
+            type="info"
+            show-icon
+            :message="$t('feature.superPanelShortcut.tipTitle')"
+            :description="$t('feature.superPanelShortcut.tipDesc')"
+            class="tip-alert"
           />
-        </a-form-item>
-        <a-form-item :wrapper-col="{ offset: 10, span: 14 }">
-          <a-button type="primary" html-type="submit">
-            {{ $t('feature.superPanelShortcut.save') }}
-          </a-button>
-        </a-form-item>
-      </a-form>
+          <a-form
+            class="shortcut-form"
+            :model="form"
+            :label-col="{ span: 10 }"
+            :wrapper-col="{ span: 14 }"
+            name="superPanelHotkey"
+            autocomplete="off"
+            @finish="onSave"
+          >
+            <a-form-item
+              :label="$t('feature.superPanelShortcut.triggerType')"
+              name="triggerType"
+            >
+              <a-select
+                v-model:value="triggerSelect"
+                class="trigger-select"
+                @change="onTriggerTypeChange"
+              >
+                <a-select-option value="keyboard">
+                  {{ $t('feature.superPanelShortcut.modeKeyboard') }}
+                </a-select-option>
+                <a-select-option :value="SP_MOUSE.MIDDLE">
+                  {{ $t('feature.superPanelShortcut.modeMouseMiddle') }}
+                </a-select-option>
+                <a-select-option :value="SP_MOUSE.LONG_LEFT">
+                  {{ $t('feature.superPanelShortcut.modeLongLeft') }}
+                </a-select-option>
+                <a-select-option :value="SP_MOUSE.LONG_RIGHT">
+                  {{ $t('feature.superPanelShortcut.modeLongRight') }}
+                </a-select-option>
+                <a-select-option :value="SP_MOUSE.LONG_MIDDLE">
+                  {{ $t('feature.superPanelShortcut.modeLongMiddle') }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item
+              v-show="triggerSelect === 'keyboard'"
+              :label="$t('feature.superPanelShortcut.hotkeyLabel')"
+              name="superPanelHotKey"
+              :rules="[
+                {
+                  required: true,
+                  message: $t('feature.superPanelShortcut.required'),
+                },
+              ]"
+            >
+              <a-input
+                :value="form.superPanelHotKey"
+                read-only
+                autocomplete="off"
+                class="shortcut-input"
+                :placeholder="$t('feature.superPanelShortcut.captureHint')"
+                @focus="onShortcutFocus"
+                @blur="onShortcutBlur"
+                @keydown.capture="onShortcutInputBlock"
+                @paste.prevent
+                @drop.prevent
+                @compositionstart.prevent
+                @compositionupdate.prevent
+                @compositionend.prevent
+              />
+            </a-form-item>
+            <a-form-item :wrapper-col="{ offset: 10, span: 14 }">
+              <a-button type="primary" html-type="submit">
+                {{ $t('feature.superPanelShortcut.save') }}
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </template>
+
+        <template v-else>
+          <div class="setting-item">
+            <div class="title">{{ $t('feature.superPanelShortcut.translateTitle') }}</div>
+            <div class="settings-item-li">
+              <div class="label">
+                {{ $t('feature.superPanelShortcut.autoTranslateLabel') }}
+              </div>
+              <a-switch
+                v-model:checked="translateForm.autoTranslate"
+                :checked-children="$t('feature.superPanelShortcut.on')"
+                :un-checked-children="$t('feature.superPanelShortcut.off')"
+              />
+            </div>
+            <div class="settings-item-li desc">
+              {{ $t('feature.superPanelShortcut.autoTranslateDesc') }}
+            </div>
+            <div class="settings-item-li action">
+              <a-button type="primary" @click="onSaveTranslate">
+                {{ $t('feature.superPanelShortcut.save') }}
+              </a-button>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -93,6 +125,7 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 
 const SUPER_PANEL_HOTKEY_DB_ID = 'rubick-system-super-panel-store';
+const SUPER_PANEL_PREF_DB_ID = 'rubick-system-super-panel-preferences';
 
 /** 与主进程 main.js / superx 约定一致 */
 const SP_MOUSE = {
@@ -108,6 +141,9 @@ function getRubick() {
 
 const initialRaw =
   getRubick()?.dbStorage.getItem(SUPER_PANEL_HOTKEY_DB_ID) || 'Ctrl+W';
+const initialPref =
+  (window as unknown as { rubick?: { db?: { get: (id: string) => { data?: { autoTranslate?: boolean } } | null } } })
+    .rubick?.db?.get(SUPER_PANEL_PREF_DB_ID) || { data: {} };
 
 const lastKeyboardCombo = ref(
   initialRaw.startsWith('rubick:sp:') ? 'Ctrl+W' : initialRaw
@@ -120,6 +156,10 @@ const form = reactive({
 const triggerSelect = ref<string>(
   initialRaw.startsWith('rubick:sp:') ? initialRaw : 'keyboard'
 );
+const activeTab = ref<string[]>(['shortcut']);
+const translateForm = reactive({
+  autoTranslate: initialPref?.data?.autoTranslate !== false,
+});
 
 function onTriggerTypeChange(v: string) {
   if (v === 'keyboard') {
@@ -224,30 +264,63 @@ function onSave() {
   rubick.dbStorage.setItem(SUPER_PANEL_HOTKEY_DB_ID, form.superPanelHotKey);
   message.success(t('feature.superPanelShortcut.saveOk'));
 }
+
+function onSaveTranslate() {
+  const rubick = getRubick() as unknown as {
+    db?: { get: (id: string) => { _id?: string; _rev?: string; data?: unknown } | null; put: (doc: unknown) => unknown };
+  };
+  if (!rubick?.db) {
+    message.warning(t('feature.superPanelShortcut.saveDevHint'));
+    return;
+  }
+  const oldDoc = rubick.db.get(SUPER_PANEL_PREF_DB_ID) || {};
+  rubick.db.put({
+    ...oldDoc,
+    _id: SUPER_PANEL_PREF_DB_ID,
+    data: {
+      ...(oldDoc.data || {}),
+      autoTranslate: !!translateForm.autoTranslate,
+    },
+  });
+  message.success(t('feature.superPanelShortcut.saveOk'));
+}
 </script>
 
 <style lang="less" scoped>
-.super-panel-shortcut {
+.super-panel-settings {
   box-sizing: border-box;
   width: 100%;
   overflow-x: hidden;
+  background: var(--color-body-bg2);
+  min-height: 100%;
 
-  &__header {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--color-border-light);
-    padding-bottom: 16px;
-    margin-bottom: 16px;
-  }
-
-  &__title {
-    margin: 0;
+  .view-title {
+    font-size: 16px;
     font-weight: 500;
+    margin-bottom: 16px;
     color: var(--color-text-primary);
   }
 
-  &__body {
-    padding: 0;
+  .view-container {
+    border-radius: 8px;
+    background: var(--color-body-bg);
+    overflow: hidden;
+  }
+
+  .ant-menu-horizontal {
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .ant-menu {
+    background: var(--color-body-bg) !important;
+    color: var(--color-text-content) !important;
+  }
+
+  .settings-detail {
+    padding: 20px;
+    box-sizing: border-box;
+    background: var(--color-body-bg);
+    color: var(--color-text-content);
   }
 
   .tip-alert {
@@ -270,6 +343,39 @@ function onSave() {
     font-family: ui-monospace, monospace;
     user-select: none;
     caret-color: transparent;
+  }
+
+  .setting-item {
+    margin-bottom: 20px;
+  }
+
+  .title {
+    color: var(--ant-primary-color);
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .settings-item-li {
+    padding-left: 20px;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .settings-item-li .label {
+    color: var(--color-text-content);
+  }
+
+  .settings-item-li.desc {
+    color: var(--color-text-desc);
+    justify-content: flex-start;
+    line-height: 1.6;
+  }
+
+  .settings-item-li.action {
+    justify-content: flex-end;
   }
 }
 </style>

@@ -14,6 +14,15 @@
       </div>
     </div>
 
+    <div v-if="selectedPreview" class="selected-content" :class="`kind-${selectedPreview.kind}`">
+      <div class="selected-header">
+        <span class="selected-title">当前选中内容</span>
+        <span class="selected-type">{{ selectedPreview.typeLabel }}</span>
+      </div>
+      <div class="selected-main ellpise">{{ selectedPreview.title }}</div>
+      <div class="selected-sub ellpise">{{ selectedPreview.subtitle }}</div>
+    </div>
+
     <div v-if="translate || loading" class="translate-content">
       <div v-if="loading" class="spinner">
         <div class="bounce1" />
@@ -86,6 +95,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import {
   HomeOutlined,
   PushpinOutlined,
@@ -104,6 +114,8 @@ const {
   pinned,
   translate,
   loading,
+  selectedText,
+  selectedFileUrl,
   matchPlugins,
   userPlugins,
   togglePin,
@@ -122,6 +134,91 @@ const defaultIconByName: Record<string, typeof CodeOutlined> = {
 function iconFor(item: MatchPluginItem) {
   return defaultIconByName[item.name] || CopyOutlined;
 }
+
+function normalizePath(raw: string): string {
+  return raw.replace(/^file:\/\//, '');
+}
+
+const selectedPreview = computed(() => {
+  const text = selectedText.value.trim();
+  if (text) {
+    return {
+      kind: 'text',
+      typeLabel: '文本',
+      title: text,
+      subtitle: `长度 ${text.length}`,
+    };
+  }
+
+  const rawPath = selectedFileUrl.value.trim();
+  if (!rawPath) return null;
+
+  const fullPath = normalizePath(rawPath);
+  const seg = fullPath.split(/[/\\]/).filter(Boolean);
+  const filename = seg[seg.length - 1] || fullPath;
+  const ext = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
+  const imageSet = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico']);
+  const videoSet = new Set(['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv']);
+  const audioSet = new Set(['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a']);
+  const archiveSet = new Set(['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz']);
+  const codeSet = new Set([
+    'ts',
+    'tsx',
+    'js',
+    'jsx',
+    'vue',
+    'py',
+    'java',
+    'go',
+    'rs',
+    'c',
+    'cpp',
+    'h',
+    'hpp',
+    'json',
+    'yml',
+    'yaml',
+    'md',
+    'xml',
+    'html',
+    'css',
+    'scss',
+    'less',
+  ]);
+  const docSet = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf']);
+
+  let kind = 'file';
+  let typeLabel = ext ? `${ext.toUpperCase()} 文件` : '文件夹';
+  if (!ext) {
+    kind = 'folder';
+    typeLabel = '文件夹';
+  } else if (imageSet.has(ext)) {
+    kind = 'image';
+    typeLabel = '图片';
+  } else if (videoSet.has(ext)) {
+    kind = 'video';
+    typeLabel = '视频';
+  } else if (audioSet.has(ext)) {
+    kind = 'audio';
+    typeLabel = '音频';
+  } else if (archiveSet.has(ext)) {
+    kind = 'archive';
+    typeLabel = '压缩包';
+  } else if (codeSet.has(ext)) {
+    kind = 'code';
+    typeLabel = '代码/配置';
+  } else if (docSet.has(ext)) {
+    kind = 'doc';
+    typeLabel = '文档';
+  }
+
+  return {
+    kind,
+    typeLabel,
+    title: filename,
+    subtitle: fullPath,
+  };
+});
 </script>
 
 <style>
@@ -180,6 +277,95 @@ body {
   color: #ff4ea4;
   box-sizing: border-box;
   background: #f5f5f5;
+}
+.selected-content {
+  margin: 0 10px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  background: #f7f9fc;
+}
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.selected-title {
+  color: #5f6470;
+  font-size: 12px;
+}
+.selected-type {
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 10px;
+  padding: 0 8px;
+  background: #e8f3ff;
+  color: #2563eb;
+}
+.selected-main {
+  font-size: 13px;
+  color: #1f2937;
+  font-weight: 500;
+}
+.selected-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+.kind-text {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+.kind-text .selected-type {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.kind-image {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.kind-image .selected-type {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.kind-video,
+.kind-audio {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+.kind-video .selected-type,
+.kind-audio .selected-type {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.kind-code {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.kind-code .selected-type {
+  background: #d1fae5;
+  color: #047857;
+}
+.kind-doc {
+  background: #fefce8;
+  border-color: #fde68a;
+}
+.kind-doc .selected-type {
+  background: #fef08a;
+  color: #a16207;
+}
+.kind-archive,
+.kind-folder,
+.kind-file {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.kind-archive .selected-type,
+.kind-folder .selected-type,
+.kind-file .selected-type {
+  background: #e2e8f0;
+  color: #334155;
 }
 .source {
   margin-bottom: 4px;

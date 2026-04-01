@@ -129,6 +129,8 @@ export default {
         },
       },
       superPanelShortcut: {
+        tabShortcut: '快捷键',
+        tabTranslate: '翻译',
         tipTitle: '温馨提示',
         tipDesc:
           '超级面板是系统插件。保存触发方式后会立即尝试重新注册快捷键/鼠标监听；若未生效可重启 Rubick。',
@@ -144,6 +146,11 @@ export default {
         save: '保存设置',
         saveOk: '保存成功',
         saveDevHint: '请在 Rubick 插件环境内保存（开发时可忽略）',
+        translateTitle: '翻译设置',
+        autoTranslateLabel: '超级面板自动翻译',
+        autoTranslateDesc: '开启后，选中文本时会在超级面板中自动请求翻译结果。',
+        on: '开',
+        off: '关',
       },
       dev: {
         title: '开发者',

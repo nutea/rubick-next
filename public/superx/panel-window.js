@@ -44,6 +44,9 @@ const execa_1 = __importDefault(require("execa"));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createPanelWindow(ctx) {
     const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
+    const shouldOpenPanelDevtools = process.env.NODE_ENV !== 'production' ||
+        Boolean(process.env.VITE_DEV_SERVER_URL) ||
+        Boolean(process.env.ELECTRON_RENDERER_URL);
     let win;
     let pinned = false;
     let ipcHandlersAttached = false;
@@ -77,6 +80,15 @@ function createPanelWindow(ctx) {
             },
         });
         win.loadURL(`file://${path.join(__dirname, 'main.html')}`);
+        if (shouldOpenPanelDevtools) {
+            win.webContents.once('did-finish-load', () => {
+                if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed()))
+                    return;
+                if (win.webContents.isDevToolsOpened())
+                    return;
+                win.webContents.openDevTools({ mode: 'detach' });
+            });
+        }
         win.on('closed', () => {
             win = undefined;
             panelPositionAnchor = null;
@@ -126,9 +138,25 @@ function createPanelWindow(ctx) {
             const data = nativeImage.createFromPath(filePath).toDataURL();
             event.returnValue = data;
         });
-        ipcMain.on('get-path', async (event) => {
-            const data = await (0, execa_1.default)(path.join(__dirname, './modules/cdwhere.exe'));
-            event.returnValue = data;
+        ipcMain.on('get-path', (event) => {
+            try {
+                const cp = require('child_process');
+                const out = cp.execFileSync(path.join(__dirname, './modules/cdwhere.exe'), {
+                    encoding: 'utf8',
+                });
+                event.returnValue = { stdout: out };
+            }
+            catch {
+                event.returnValue = { stdout: '' };
+            }
+        });
+        ipcMain.handle('get-path-async', async () => {
+            try {
+                return await (0, execa_1.default)(path.join(__dirname, './modules/cdwhere.exe'));
+            }
+            catch {
+                return { stdout: '' };
+            }
         });
         ipcMain.on('trigger-pin', (_event, pin) => {
             pinned = pin;

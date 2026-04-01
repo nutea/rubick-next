@@ -20,6 +20,7 @@ const EXPLORER_LIKE = [
   'FESearchHost.exe',
   'Finder.app',
 ];
+const SUPER_PANEL_PREF_DB_ID = 'rubick-system-super-panel-preferences';
 
 function msgTriggerSync<T>(type: string, data: unknown): T {
   const { ipcRenderer } = getElectron();
@@ -42,6 +43,25 @@ function isExplorerLikeWindow(fileUrl: string): boolean {
   return EXPLORER_LIKE.includes(name);
 }
 
+function normalizeFsPath(p: string): string {
+  return String(p || '')
+    .replace(/^file:\/\//, '')
+    .trim();
+}
+
+/** 选中的是磁盘上的文件夹路径时，与 explorer 壳窗口走同一套「终端打开 / 新建文件 / 复制路径」 */
+function isDirectoryPath(p: string): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs') as typeof import('fs');
+    const s = normalizeFsPath(p);
+    if (!s) return false;
+    return fs.statSync(s).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export function useSuperPanel() {
   const pathMod = getPath();
   const os = getOs();
@@ -54,6 +74,9 @@ export function useSuperPanel() {
     translate: null as TranslateState | null,
     loading: false,
     fileUrl: '',
+    selectedText: '',
+    selectedFileUrl: '',
+    autoTranslate: true,
     matchPlugins: [] as MatchPluginItem[],
     userPlugins: [] as UserPluginItem[],
   });
@@ -107,6 +130,11 @@ export function useSuperPanel() {
   ];
 
   function runTranslate(word: string) {
+    if (!state.autoTranslate) {
+      state.translate = null;
+      state.loading = false;
+      return;
+    }
     const translator = (window as unknown as { translator?: { translate: (w: string) => Promise<string> } }).translator;
     if (!translator) return;
     state.loading = true;
@@ -227,6 +255,15 @@ export function useSuperPanel() {
     }));
   }
 
+  function refreshPreferences() {
+    try {
+      const doc = rubickDb.get(SUPER_PANEL_PREF_DB_ID) as { data?: { autoTranslate?: boolean } } | null;
+      state.autoTranslate = doc?.data?.autoTranslate !== false;
+    } catch {
+      state.autoTranslate = true;
+    }
+  }
+
   function resolveCurrentFolder(cb: (folder: string) => void) {
     if (os.type() === 'Darwin') {
       exec(
@@ -237,8 +274,17 @@ export function useSuperPanel() {
         }
       );
     } else if (os.type() === 'Windows_NT') {
-      const data = ipcRenderer.sendSync('get-path') as { stdout: string };
-      cb(data.stdout);
+      ipcRenderer
+        .invoke('get-path-async')
+        .then((data: { stdout?: string }) => {
+          const folder = String(data?.stdout ?? '').trim();
+          if (folder) cb(folder);
+        })
+        .catch(() => {
+          const data = ipcRenderer.sendSync('get-path') as { stdout?: string };
+          const folder = String(data?.stdout ?? '').trim();
+          if (folder) cb(folder);
+        });
     }
   }
 
@@ -246,8 +292,11 @@ export function useSuperPanel() {
     try {
       state.matchPlugins = [];
       state.translate = null;
+      refreshPreferences();
 
       const { text, fileUrl, optionPlugin = [] } = payload;
+      state.selectedText = String(text ?? '');
+      state.selectedFileUrl = fileUrl == null ? '' : String(fileUrl);
       const ext = pathMod.extname(fileUrl || '');
       state.fileUrl = (fileUrl ?? '') as string;
 
@@ -265,9 +314,22 @@ export function useSuperPanel() {
 
       if (fileUrl && isExplorerLikeWindow(String(fileUrl))) {
         state.matchPlugins = [...commonPlugins];
+        const desktopPath = getDesktopPath();
+        state.fileUrl = desktopPath;
+        state.selectedFileUrl = desktopPath;
         resolveCurrentFolder((folder) => {
           state.fileUrl = folder;
+          state.selectedFileUrl = folder;
+          nextTick(() => reportHeight());
         });
+        return;
+      }
+
+      if (fileUrl && isDirectoryPath(String(fileUrl))) {
+        const folder = normalizeFsPath(String(fileUrl));
+        state.matchPlugins = [...commonPlugins];
+        state.fileUrl = folder;
+        state.selectedFileUrl = folder;
         return;
       }
 
@@ -321,6 +383,8 @@ export function useSuperPanel() {
 
   const translate = computed(() => state.translate);
   const loading = computed(() => state.loading);
+  const selectedText = computed(() => state.selectedText);
+  const selectedFileUrl = computed(() => state.selectedFileUrl);
   const matchPlugins = computed(() => state.matchPlugins);
   const userPlugins = computed(() => state.userPlugins);
 
@@ -334,6 +398,7 @@ export function useSuperPanel() {
 
   onMounted(() => {
     refreshUserPlugins();
+    refreshPreferences();
     const handler = (_e: Electron.IpcRendererEvent, payload: TriggerSuperPanelPayload) =>
       onTrigger(_e, payload);
     ipcRenderer.on('trigger-super-panel', handler);
@@ -358,6 +423,8 @@ export function useSuperPanel() {
     pinned,
     translate,
     loading,
+    selectedText,
+    selectedFileUrl,
     matchPlugins,
     userPlugins,
     togglePin,

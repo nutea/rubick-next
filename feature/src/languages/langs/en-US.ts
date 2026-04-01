@@ -135,6 +135,8 @@ export default {
         },
       },
       superPanelShortcut: {
+        tabShortcut: 'Shortcut',
+        tabTranslate: 'Translate',
         tipTitle: 'Note',
         tipDesc:
           'Super panel is a system plugin. Saving applies the new trigger immediately (shortcut / mouse hook re-registered). Restart Rubick if it does not take effect.',
@@ -150,6 +152,12 @@ export default {
         save: 'Save',
         saveOk: 'Saved',
         saveDevHint: 'Save inside the Rubick plugin environment (ignore in dev).',
+        translateTitle: 'Translation',
+        autoTranslateLabel: 'Auto-translate in super panel',
+        autoTranslateDesc:
+          'When enabled, selected text will be translated automatically in the super panel.',
+        on: 'On',
+        off: 'Off',
       },
       dev: {
         title: 'Developer',
