@@ -15,36 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = createPanelWindow;
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
-const execa_1 = __importDefault(require("execa"));
 /** Rubick 注入的 ctx，与历史 `panel-window.js` 一致 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createPanelWindow(ctx) {
     const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
-    const shouldOpenPanelDevtools = process.env.NODE_ENV !== 'production' ||
+    // 打包后 NODE_ENV 常未设置，不能用 !== 'production'（会误开 DevTools）
+    const shouldOpenPanelDevtools = process.env.NODE_ENV === 'development' ||
         Boolean(process.env.VITE_DEV_SERVER_URL) ||
         Boolean(process.env.ELECTRON_RENDERER_URL);
     let win;
@@ -137,26 +124,6 @@ function createPanelWindow(ctx) {
         ipcMain.on('get-file-base64', (event, filePath) => {
             const data = nativeImage.createFromPath(filePath).toDataURL();
             event.returnValue = data;
-        });
-        ipcMain.on('get-path', (event) => {
-            try {
-                const cp = require('child_process');
-                const out = cp.execFileSync(path.join(__dirname, './modules/cdwhere.exe'), {
-                    encoding: 'utf8',
-                });
-                event.returnValue = { stdout: out };
-            }
-            catch {
-                event.returnValue = { stdout: '' };
-            }
-        });
-        ipcMain.handle('get-path-async', async () => {
-            try {
-                return await (0, execa_1.default)(path.join(__dirname, './modules/cdwhere.exe'));
-            }
-            catch {
-                return { stdout: '' };
-            }
         });
         ipcMain.on('trigger-pin', (_event, pin) => {
             pinned = pin;

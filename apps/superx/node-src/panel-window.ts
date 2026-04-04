@@ -1,13 +1,13 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import execa from 'execa';
 
 /** Rubick 注入的 ctx，与历史 `panel-window.js` 一致 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function createPanelWindow(ctx: any) {
   const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
+  // 打包后 NODE_ENV 常未设置，不能用 !== 'production'（会误开 DevTools）
   const shouldOpenPanelDevtools =
-    process.env.NODE_ENV !== 'production' ||
+    process.env.NODE_ENV === 'development' ||
     Boolean(process.env.VITE_DEV_SERVER_URL) ||
     Boolean(process.env.ELECTRON_RENDERER_URL);
 
@@ -98,24 +98,6 @@ export default function createPanelWindow(ctx: any) {
     ipcMain.on('get-file-base64', (event: { returnValue?: string }, filePath: string) => {
       const data = nativeImage.createFromPath(filePath).toDataURL();
       event.returnValue = data;
-    });
-    ipcMain.on('get-path', (event: { returnValue?: unknown }) => {
-      try {
-        const cp = require('child_process');
-        const out = cp.execFileSync(path.join(__dirname, './modules/cdwhere.exe'), {
-          encoding: 'utf8',
-        });
-        event.returnValue = { stdout: out };
-      } catch {
-        event.returnValue = { stdout: '' };
-      }
-    });
-    ipcMain.handle('get-path-async', async () => {
-      try {
-        return await execa(path.join(__dirname, './modules/cdwhere.exe'));
-      } catch {
-        return { stdout: '' };
-      }
     });
     ipcMain.on('trigger-pin', (_event: unknown, pin: boolean) => {
       pinned = pin;

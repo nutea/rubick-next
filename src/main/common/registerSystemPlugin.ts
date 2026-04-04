@@ -38,11 +38,20 @@ export default () => {
 
   systemPlugins.forEach((plugin) => {
     if (fs.existsSync(plugin.indexPath)) {
-      // Electron-vite runtime uses native Node require, no webpack helper.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pluginModule = require(plugin.indexPath)();
-      // @ts-ignore
-      hooks.onReady.push(pluginModule.onReady);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pluginModule = (require(plugin.indexPath) as any)();
+        // @ts-ignore
+        hooks.onReady.push(async (ctx) => {
+          try {
+            await pluginModule.onReady(ctx);
+          } catch (e) {
+            console.error(`[rubick] system plugin onReady failed [${plugin.name}]:`, e);
+          }
+        });
+      } catch (e) {
+        console.error(`[rubick] failed to load system plugin [${plugin.name}]:`, e);
+      }
     }
   });
 

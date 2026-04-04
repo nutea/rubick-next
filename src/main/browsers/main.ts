@@ -1,4 +1,4 @@
-import { BrowserWindow, protocol, nativeTheme } from 'electron';
+import { app, BrowserWindow, protocol, nativeTheme } from 'electron';
 import path from 'path';
 // import versonHandler from '../common/versionHandler';
 import localConfig from '@/main/common/initLocalConfig';
@@ -46,8 +46,8 @@ export default () => {
       // Load the url of the dev server if in development mode
       win.loadURL(devServerUrl);
     } else {
-      // Load the index.html when not in development
-      win.loadFile(path.join(__dirname, '../renderer/index.html'));
+      // 主进程在 dist/main/chunks 下时 __dirname 多一层，不能用相对 chunks 的 ../renderer
+      win.loadFile(path.join(app.getAppPath(), 'dist', 'renderer', 'index.html'));
     }
     protocol.interceptFileProtocol('image', (req, callback) => {
       const url = req.url.substr(8);

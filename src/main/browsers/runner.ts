@@ -19,18 +19,6 @@ const getRelativePath = (indexPath) => {
 const getPreloadPath = (plugin, pluginIndexPath) => {
   const { name, preload, tplPath, indexPath } = plugin;
   if (!preload) return;
-  if (commonConst.dev()) {
-    if (name === 'rubick-system-feature') {
-      return path.resolve(__static, `../feature/public/preload.js`);
-    }
-    if (name === 'rubick-system-super-panel') {
-      return path.join(__static, 'superx', preload || 'preload.js');
-    }
-    if (tplPath) {
-      return path.resolve(getRelativePath(indexPath), `./`, preload);
-    }
-    return path.resolve(getRelativePath(pluginIndexPath), `../`, preload);
-  }
   if (name === 'rubick-system-super-panel') {
     return path.join(__static, 'superx', preload || 'preload.js');
   }
@@ -131,9 +119,7 @@ export default () => {
     }
     // 再尝试去找
     if (plugin.name === 'rubick-system-feature' && !pluginIndexPath) {
-      pluginIndexPath = commonConst.dev()
-        ? 'http://localhost:8081/#/'
-        : `file://${__static}/feature/index.html`;
+      pluginIndexPath = `file://${__static}/feature/index.html`;
     }
     if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
       pluginIndexPath = `file://${path.join(

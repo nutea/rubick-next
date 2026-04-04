@@ -28,9 +28,7 @@ export default function pluginClickEvent({
   }
   // 插件市场
   if (plugin.name === 'rubick-system-feature') {
-    pluginDist.indexPath = commonConst.dev()
-      ? 'http://localhost:8081/#/'
-      : `file://${__static}/feature/index.html`;
+    pluginDist.indexPath = `file://${__static}/feature/index.html`;
   }
   if (plugin.name === 'rubick-system-super-panel') {
     pluginDist.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;

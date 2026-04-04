@@ -106,7 +106,7 @@ const sort = (options) => {
   for (let i = 0; i < options.length; i++) {
     for (let j = i + 1; j < options.length; j++) {
       if (options[j].zIndex > options[i].zIndex) {
-        let temp = options[i];
+        const temp = options[i];
         options[i] = options[j];
         options[j] = temp;
       }

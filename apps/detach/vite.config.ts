@@ -15,7 +15,7 @@ export default defineConfig(({ command }) => ({
     open: false,
   },
   build: {
-    outDir: path.join(__dirname, '../public/detach'),
+    outDir: path.join(__dirname, '../../public/detach'),
     emptyOutDir: true,
     sourcemap: false,
   },

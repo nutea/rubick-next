@@ -22,7 +22,7 @@ export default defineConfig(({ command }) => ({
     open: false,
   },
   build: {
-    outDir: path.join(__dirname, '../public/feature'),
+    outDir: path.join(__dirname, '../../public/feature'),
     emptyOutDir: true,
     sourcemap: false,
   },

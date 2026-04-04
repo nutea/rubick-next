@@ -301,7 +301,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     plugin: { ext?: { payload?: unknown } } | null | undefined
   ): { value: string; placeholder: string } {
     let value = String(mainInput?.value ?? '');
-    let placeholder = String(mainInput?.placeholder ?? '');
+    const placeholder = String(mainInput?.placeholder ?? '');
     if (value) {
       return { value, placeholder };
     }
@@ -387,9 +387,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     }
     if (plugin.name === 'rubick-system-feature') {
       plugin.logo = plugin.logo || `file://${__static}/logo.png`;
-      plugin.indexPath = commonConst.dev()
-        ? 'http://localhost:8081/#/'
-        : `file://${__static}/feature/index.html`;
+      plugin.indexPath = `file://${__static}/feature/index.html`;
     } else if (plugin.name === 'rubick-system-super-panel') {
       plugin.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
     } else if (!plugin.indexPath) {

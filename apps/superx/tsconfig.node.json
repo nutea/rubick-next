@@ -7,7 +7,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist-node",
+    "outDir": "../../public/superx",
     "rootDir": "node-src",
     "declaration": false,
     "noEmit": false,

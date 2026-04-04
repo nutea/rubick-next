@@ -297,14 +297,14 @@ const showSeparate = async () => {
 };
 
 const changeLang = (lang) => {
-  let cfg = { ...config.value };
+  const cfg = { ...config.value };
   cfg.perf.common.lang = lang;
   localConfig.setConfig(JSON.parse(JSON.stringify(cfg)));
   config.value = cfg;
 };
 
 const changeHideOnBlur = () => {
-  let cfg = { ...config.value };
+  const cfg = { ...config.value };
   cfg.perf.common.hideOnBlur = !cfg.perf.common.hideOnBlur;
   localConfig.setConfig(JSON.parse(JSON.stringify(cfg)));
   config.value = cfg;

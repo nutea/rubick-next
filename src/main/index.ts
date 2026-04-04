@@ -22,6 +22,7 @@ import '../common/utils/localPlugin';
 
 import checkVersion from './common/versionHandler';
 import registerSystemPlugin from './common/registerSystemPlugin';
+import registerCdwhereIpc from './common/registerCdwhereIpc';
 
 class App {
   public windowCreator: { init: () => void; getWindow: () => BrowserWindow };
@@ -59,6 +60,7 @@ class App {
   }
   onReady() {
     const readyFunction = async () => {
+      registerCdwhereIpc();
       checkVersion();
       await localConfig.init();
       const config = await localConfig.getConfig();

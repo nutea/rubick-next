@@ -6,31 +6,20 @@
     "dev": "vite --port 8084",
     "build": "vite build",
     "preview": "vite preview --port 8084",
-    "lint": "eslint src --ext .js,.vue"
+    "lint": "eslint src"
   },
   "dependencies": {
-    "core-js": "^3.8.3",
-    "vue": "^3.2.13"
+    "vue": "catalog:"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.4",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3",
-    "vite": "^5.4.19"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "ecmaVersion": 2020
-    },
-    "rules": {}
+    "@eslint/js": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vue/eslint-config-prettier": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-vue": "catalog:",
+    "less": "catalog:",
+    "prettier": "catalog:",
+    "vite": "catalog:"
   },
   "browserslist": [
     "> 1%",
@@ -39,6 +28,6 @@
     "not ie 11"
   ],
   "volta": {
-    "node": "16.20.2"
+    "node": "22.15.0"
   }
 }

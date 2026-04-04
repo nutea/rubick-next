@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { chmodSync } from 'fs';
+import { chmodSync, existsSync } from 'fs';
 import * as os from 'os';
 import { keyboard, Key } from '@nut-tree/nut-js';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -16,17 +16,25 @@ import {
 
 keyboard.config.autoDelayMs = 10;
 
-try {
-  const bin = path.join(__dirname, './node_modules/rubick-active-win/main');
-  chmodSync(bin, 0o755);
-} catch {
-  try {
-    const bin = path.join(__dirname, '../rubick-active-win/main');
-    chmodSync(bin, 0o755);
-  } catch {
-    /* ignore */
+/** macOS：为可执行文件加执行位；优先仓库根 node_modules（与主应用共用依赖）。 */
+function tryChmodRubickActiveWinMain(): void {
+  const candidates = [
+    path.join(__dirname, '..', '..', 'node_modules', 'rubick-active-win', 'main'),
+    path.join(__dirname, 'node_modules', 'rubick-active-win', 'main'),
+    path.join(__dirname, '..', 'rubick-active-win', 'main'),
+  ];
+  for (const bin of candidates) {
+    try {
+      if (existsSync(bin)) {
+        chmodSync(bin, 0o755);
+        return;
+      }
+    } catch {
+      /* try next */
+    }
   }
 }
+tryChmodRubickActiveWinMain();
 
 const isMacOS = os.type() === 'Darwin';
 const modifier = isMacOS ? Key.LeftSuper : Key.LeftControl;

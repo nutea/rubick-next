@@ -6,44 +6,26 @@
     "dev": "vite --port 8083",
     "build": "vite build",
     "preview": "vite preview --port 8083",
-    "lint": "eslint --ext .js,.ts,.vue src"
+    "lint": "eslint src"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
-    "vue": "^3.0.0",
-    "vue-router": "^4.0.0-0",
-    "vuex": "^4.0.0-0"
+    "vue": "catalog:",
+    "vue-router": "catalog:",
+    "vuex": "catalog:"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^4.18.0",
-    "@typescript-eslint/parser": "^4.18.0",
-    "@vitejs/plugin-vue": "^5.2.4",
-    "@vue/compiler-sfc": "^3.0.0",
-    "@vue/eslint-config-prettier": "^6.0.0",
-    "@vue/eslint-config-typescript": "^7.0.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-prettier": "^3.3.1",
-    "eslint-plugin-vue": "^7.0.0",
-    "prettier": "^2.2.1",
-    "typescript": "~4.1.5",
-    "vite": "^5.4.19"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended",
-      "@vue/typescript/recommended",
-      "@vue/prettier",
-      "@vue/prettier/@typescript-eslint"
-    ],
-    "parserOptions": {
-      "ecmaVersion": 2020
-    },
-    "rules": {}
+    "@eslint/js": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vue/compiler-sfc": "catalog:",
+    "@vue/eslint-config-prettier": "catalog:",
+    "@vue/eslint-config-typescript": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-vue": "catalog:",
+    "less": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vite": "catalog:"
   },
   "browserslist": [
     "> 1%",

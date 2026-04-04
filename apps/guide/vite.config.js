@@ -10,12 +10,19 @@ export default defineConfig(({ command }) => ({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  css: {
+    preprocessorOptions: {
+      less: {
+        javascriptEnabled: true,
+      },
+    },
+  },
   server: {
     port: 8084,
     open: false,
   },
   build: {
-    outDir: path.join(__dirname, '../public/guide'),
+    outDir: path.join(__dirname, '../../public/guide'),
     emptyOutDir: true,
     sourcemap: false,
   },

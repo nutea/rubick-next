@@ -15,7 +15,7 @@ export default defineConfig(({ command }) => ({
     open: false,
   },
   build: {
-    outDir: path.join(__dirname, '../public/tpl'),
+    outDir: path.join(__dirname, '../../public/tpl'),
     emptyOutDir: true,
     sourcemap: false,
   },
