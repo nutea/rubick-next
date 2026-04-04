@@ -1,22 +1,9 @@
 <template>
   <div class="main" id="app">
-    <div class="top-menu">
-      <div class="logo" @click="showMainWindow">
-        <img :src="logoUrl" alt="Rubick" />
-      </div>
-      <div class="menu">
-        <HomeOutlined @click="openInstalled" />
-        <PushpinOutlined
-          title="钉住"
-          :style="{ color: pinned ? '#ff4ea4' : undefined }"
-          @click="togglePin"
-        />
-      </div>
-    </div>
-
+    <div class="panel-caption">超级面板</div>
     <div v-if="selectedPreview" class="selected-content" :class="`kind-${selectedPreview.kind}`">
       <div class="selected-header">
-        <span class="selected-title">当前选中内容</span>
+        <span class="selected-title">当前选中</span>
         <span class="selected-type">{{ selectedPreview.typeLabel }}</span>
       </div>
       <div class="selected-main ellpise">{{ selectedPreview.title }}</div>
@@ -24,36 +11,48 @@
     </div>
 
     <div v-if="translate || loading" class="translate-content">
+      <div class="translate-header">
+        <div class="section-caption">文本翻译</div>
+        <a-button
+          v-if="!loading && showFullTranslationEntry"
+          class="full-translation-btn selected-type"
+          type="link"
+          size="small"
+          @click="fullTranslationVisible = true"
+        >
+          查看全文
+        </a-button>
+      </div>
       <div v-if="loading" class="spinner">
         <div class="bounce1" />
         <div class="bounce2" />
         <div class="bounce3" />
       </div>
       <template v-else-if="translate">
-        <div class="ellpise source">
-          {{ translate.src }}
-          {{ translate.basic?.phonetic ? `[${translate.basic.phonetic}]` : '' }}
-        </div>
-        <div v-if="translate.basic?.explains?.length" class="translate-target">
-          <div
-            v-for="(line, idx) in translate.basic.explains"
-            :key="idx"
-            class="ellpise"
-          >
-            {{ line }}
-          </div>
-        </div>
-        <div v-else-if="translate.translation?.length" class="translate-target">
-          <div
-            v-for="(line, idx) in translate.translation"
-            :key="idx"
-            class="ellpise"
-          >
-            {{ line }}
-          </div>
+        <div class="translate-target">
+          <div class="ellpise">{{ translationPreviewText }}</div>
         </div>
       </template>
     </div>
+    <a-modal
+      v-model:visible="fullTranslationVisible"
+      title="翻译全文"
+      :footer="null"
+      width="500px"
+      wrap-class-name="translation-modal"
+      :body-style="{ padding: '8px 10px 6px' }"
+      centered
+    >
+      <div class="full-translation-body">
+        <div
+          v-for="(line, idx) in fullTranslationLines"
+          :key="idx"
+          class="full-translation-line"
+        >
+          {{ line }}
+        </div>
+      </div>
+    </a-modal>
 
     <div v-if="matchPlugins.length" class="plugins-content">
       <div class="plugin-title">匹配插件</div>
@@ -95,10 +94,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
-  HomeOutlined,
-  PushpinOutlined,
   CodeOutlined,
   FileAddOutlined,
   CopyOutlined,
@@ -106,23 +103,16 @@ import {
 import { useSuperPanel } from './use-super-panel';
 import type { MatchPluginItem } from './types';
 
-/** 构建后可换成本地 logo；开发期用 data URL 占位 */
-const logoUrl =
-  'https://pic1.zhimg.com/80/v2-c4b9ea27fde09f7e985a5fc77d922680_720w.png';
-
 const {
-  pinned,
   translate,
   loading,
   selectedText,
   selectedFileUrl,
   matchPlugins,
   userPlugins,
-  togglePin,
-  showMainWindow,
-  openInstalled,
   runPluginClick,
 } = useSuperPanel();
+const fullTranslationVisible = ref(false);
 
 const defaultIconByName: Record<string, typeof CodeOutlined> = {
   终端打开: CodeOutlined,
@@ -219,6 +209,31 @@ const selectedPreview = computed(() => {
     subtitle: fullPath,
   };
 });
+
+const fullTranslationLines = computed(() => {
+  if (!translate.value) return [] as string[];
+  if (translate.value.basic?.explains?.length) return translate.value.basic.explains;
+  if (translate.value.translation?.length) return translate.value.translation;
+  return [] as string[];
+});
+
+const translationFullText = computed(() => fullTranslationLines.value.join('；'));
+const translationPreviewText = computed(() => fullTranslationLines.value.slice(0, 2).join('；'));
+const showFullTranslationEntry = computed(
+  () => fullTranslationLines.value.length > 2 || translationFullText.value.length > 56
+);
+
+function closeTranslationModal() {
+  fullTranslationVisible.value = false;
+}
+
+onMounted(() => {
+  window.addEventListener('blur', closeTranslationModal);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('blur', closeTranslationModal);
+});
 </script>
 
 <style>
@@ -238,52 +253,28 @@ body {
 .main {
   min-height: 100%;
   box-sizing: border-box;
+  padding: 8px 0 10px;
 }
-.top-menu {
-  padding: 0 10px;
-  width: 100%;
-  height: 46px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.logo {
-  width: 26px;
-  height: 26px;
-  border-radius: 100%;
-  background: #574778;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.logo img {
-  width: 20px;
-}
-.menu {
-  color: #999;
-  width: 46px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 18px;
-}
-.menu :deep(.anticon) {
-  cursor: pointer;
+.panel-caption {
+  padding: 0 10px 8px;
+  font-size: 12px;
+  color: #8b93a1;
+  letter-spacing: 0.3px;
 }
 .translate-content {
-  padding: 4px 10px;
+  margin: 0 10px 10px;
+  padding: 8px 10px;
   font-size: 12px;
   color: #ff4ea4;
   box-sizing: border-box;
-  background: #f5f5f5;
+  background: #f5f7fb;
+  border-radius: 8px;
 }
 .selected-content {
-  margin: 0 10px 8px;
+  margin: 0 10px 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #ebeef5;
-  background: #f7f9fc;
+  background: #f8fafc;
 }
 .selected-header {
   display: flex;
@@ -292,8 +283,9 @@ body {
   margin-bottom: 4px;
 }
 .selected-title {
-  color: #5f6470;
+  color: #4b5563;
   font-size: 12px;
+  font-weight: 500;
 }
 .selected-type {
   font-size: 11px;
@@ -313,53 +305,36 @@ body {
   font-size: 11px;
   color: #6b7280;
 }
-.kind-text {
-  background: #fff7ed;
-  border-color: #fed7aa;
+.section-caption {
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #8b93a1;
+}
+.translate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 .kind-text .selected-type {
   background: #ffedd5;
   color: #c2410c;
 }
-.kind-image {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
 .kind-image .selected-type {
   background: #dbeafe;
   color: #1d4ed8;
-}
-.kind-video,
-.kind-audio {
-  background: #f5f3ff;
-  border-color: #ddd6fe;
 }
 .kind-video .selected-type,
 .kind-audio .selected-type {
   background: #ede9fe;
   color: #6d28d9;
 }
-.kind-code {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-}
 .kind-code .selected-type {
   background: #d1fae5;
   color: #047857;
 }
-.kind-doc {
-  background: #fefce8;
-  border-color: #fde68a;
-}
 .kind-doc .selected-type {
   background: #fef08a;
   color: #a16207;
-}
-.kind-archive,
-.kind-folder,
-.kind-file {
-  background: #f8fafc;
-  border-color: #e2e8f0;
 }
 .kind-archive .selected-type,
 .kind-folder .selected-type,
@@ -371,23 +346,52 @@ body {
   margin-bottom: 4px;
 }
 .translate-target {
-  color: #574778;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+}
+.full-translation-btn {
+  margin-top: -2px;
+  padding: 0 8px !important;
+  height: 20px;
+  line-height: 18px;
+  font-size: 11px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #334155;
+}
+.full-translation-body {
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 2px;
+}
+.full-translation-line {
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 5px;
 }
 .ellpise {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 .plugin-item {
-  height: 80px;
+  height: 82px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   font-size: 12px;
   cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+.plugin-item:hover {
+  background: #f5f7fb;
 }
 .plugin-item img,
 .plugin-default-icon {
@@ -403,15 +407,17 @@ body {
   text-overflow: ellipsis;
   text-align: center;
   display: -webkit-box;
+  line-clamp: 1;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 .plugin-title {
-  font-size: 12px;
+  font-size: 11px;
   width: 100%;
-  padding: 4px 10px;
-  background-color: #fff1f0;
-  color: #574778;
+  padding: 6px 10px;
+  background-color: transparent;
+  color: #8b93a1;
+  letter-spacing: 0.3px;
   box-sizing: border-box;
 }
 .spinner > div {
@@ -438,5 +444,26 @@ body {
   40% {
     transform: scale(1);
   }
+}
+</style>
+
+<style>
+.translation-modal .ant-modal-header {
+  min-height: 36px !important;
+  padding: 8px !important;
+}
+.translation-modal .ant-modal-title {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+}
+.translation-modal .ant-modal-close {
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  top: 0 !important;
+  right: 0 !important;
 }
 </style>

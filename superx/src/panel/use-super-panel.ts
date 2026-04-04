@@ -49,6 +49,13 @@ function normalizeFsPath(p: string): string {
     .trim();
 }
 
+/** 仅保留可见文本：去掉零宽/方向控制/BOM 等不可见字符，再 trim。 */
+function normalizeVisibleText(raw: string): string {
+  return String(raw || '')
+    .replace(/[\u200B-\u200D\uFEFF\u2060\u00AD\u200E\u200F\u202A-\u202E]/g, '')
+    .trim();
+}
+
 /** 选中的是磁盘上的文件夹路径时，与 explorer 壳窗口走同一套「终端打开 / 新建文件 / 复制路径」 */
 function isDirectoryPath(p: string): boolean {
   try {
@@ -130,18 +137,26 @@ export function useSuperPanel() {
   ];
 
   function runTranslate(word: string) {
-    if (!state.autoTranslate) {
+    const visibleWord = normalizeVisibleText(word);
+    if (!state.autoTranslate || !visibleWord) {
       state.translate = null;
       state.loading = false;
       return;
     }
     const translator = (window as unknown as { translator?: { translate: (w: string) => Promise<string> } }).translator;
-    if (!translator) return;
+    if (!translator) {
+      state.translate = null;
+      state.loading = false;
+      return;
+    }
     state.loading = true;
     translator
-      .translate(word)
+      .translate(visibleWord)
       .then((raw) => {
-        state.translate = { ...JSON.parse(raw), src: word };
+        const parsed = JSON.parse(raw) as TranslateState;
+        const hasBasic = !!parsed?.basic?.explains?.filter((line) => String(line || '').trim()).length;
+        const hasTranslation = !!parsed?.translation?.filter((line) => String(line || '').trim()).length;
+        state.translate = hasBasic || hasTranslation ? { ...parsed, src: visibleWord } : null;
       })
       .catch(() => {
         state.translate = null;
