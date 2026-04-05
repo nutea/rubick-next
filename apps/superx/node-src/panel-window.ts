@@ -17,6 +17,16 @@ export default function createPanelWindow(ctx: any) {
   /** 主进程 placePanelAtCursor 算出的意图坐标；Win 高 DPI 下 getBounds 与 setBounds 舍入不一致，勿用 b.x/b.y 做二次缩放锚点 */
   let panelPositionAnchor: { x: number; y: number } | null = null;
 
+  const syncPanelPositionAnchorFromWindow = () => {
+    if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) return;
+    try {
+      const b = win.getBounds();
+      panelPositionAnchor = { x: Math.round(b.x), y: Math.round(b.y) };
+    } catch {
+      /* ignore */
+    }
+  };
+
   function needsNewWindow(): boolean {
     if (win == null) return true;
     try {
@@ -55,6 +65,8 @@ export default function createPanelWindow(ctx: any) {
       win = undefined;
       panelPositionAnchor = null;
     });
+    // 拖动后同步锚点，避免后续 superPanel-setSize 仍按旧坐标 setBounds 导致闪回原位
+    win.on('move', syncPanelPositionAnchorFromWindow);
     win.on('blur', () => {
       if (!pinned) win?.hide();
     });
@@ -101,7 +113,10 @@ export default function createPanelWindow(ctx: any) {
     });
     ipcMain.on('trigger-pin', (_event: unknown, pin: boolean) => {
       pinned = pin;
+      win?.setAlwaysOnTop(true);
+      win?.webContents.send('superPanel-pin-state', pinned);
     });
+    ipcMain.handle('superPanel-get-pin-state', () => pinned);
   };
 
   const init = () => {
@@ -118,5 +133,12 @@ export default function createPanelWindow(ctx: any) {
     panelPositionAnchor = { x: Math.round(x), y: Math.round(y) };
   };
 
-  return { init, getWindow, setPanelPositionAnchor };
+  const isPinned = () => pinned;
+
+  const resetPin = () => {
+    pinned = false;
+    win?.webContents.send('superPanel-pin-state', false);
+  };
+
+  return { init, getWindow, setPanelPositionAnchor, isPinned, resetPin };
 }

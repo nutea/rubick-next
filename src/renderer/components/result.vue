@@ -214,6 +214,22 @@ initMainCmdMenus();
   max-height: calc(~'100vh - 60px');
   overflow: auto;
   background: var(--color-body-bg);
+
+  /* 无结果时空状态插图不被裁切、居中 */
+  .ant-list-empty-text {
+    padding: 20px 16px 28px;
+  }
+  .ant-empty {
+    margin: 0 auto;
+  }
+  .ant-empty-image {
+    height: auto;
+    img {
+      max-height: 140px;
+      width: auto;
+      object-fit: contain;
+    }
+  }
   .history-plugins {
     width: 100%;
     border-top: 1px dashed var(--color-border-light);

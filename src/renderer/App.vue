@@ -99,7 +99,12 @@ const flushExpendHeight = debounce(
         options.value,
         pluginLoading.value || !config.value.perf.common.history
           ? []
-          : pluginHistory.value
+          : pluginHistory.value,
+        {
+          searchValue: searchValue.value,
+          clipboardFileLength: clipboardFile.value?.length ?? 0,
+          historyEnabled: config.value.perf.common.history,
+        }
       )
     );
   },
@@ -108,7 +113,14 @@ const flushExpendHeight = debounce(
 );
 
 watch(
-  [options, pluginHistory, currentPlugin],
+  [
+    options,
+    pluginHistory,
+    currentPlugin,
+    searchValue,
+    clipboardFile,
+    () => config.value.perf.common.history,
+  ],
   () => {
     currentSelect.value = 0;
     flushExpendHeight();

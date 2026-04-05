@@ -152,6 +152,11 @@ function createPlugin() {
         const win = panelInstance.getWindow();
         if (!win) return;
 
+        if (panelInstance.isPinned() && win.isVisible()) {
+          panelInstance.resetPin();
+          win.hide();
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const localPlugins = (global as any).LOCAL_PLUGINS.getLocalPlugins();
 

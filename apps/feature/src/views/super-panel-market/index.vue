@@ -92,15 +92,127 @@
         <template v-else>
           <div class="setting-item">
             <div class="title">{{ $t('feature.superPanelShortcut.translateTitle') }}</div>
+            <a-alert
+              type="info"
+              show-icon
+              :message="$t('feature.superPanelShortcut.translateConfigHint')"
+              class="tip-alert translate-tip"
+            />
+            <div class="profile-toolbar">
+              <div class="profile-toolbar-row">
+                <span class="profile-toolbar-label">{{ $t('feature.superPanelShortcut.profileSelect') }}</span>
+                <a-select
+                  :value="selectedProfileId"
+                  class="profile-select"
+                  :disabled="translateProfiles.length === 0"
+                  :placeholder="$t('feature.superPanelShortcut.translateProfilesEmpty')"
+                  @change="onProfileSelectChange"
+                >
+                  <a-select-option v-for="p in translateProfiles" :key="p.id" :value="p.id">
+                    {{ p.name }}
+                  </a-select-option>
+                </a-select>
+                <a-button @click="onAddProfile">{{ $t('feature.superPanelShortcut.addProfile') }}</a-button>
+                <a-popconfirm
+                  :title="$t('feature.superPanelShortcut.deleteProfileConfirm')"
+                  @confirm="onDeleteProfile"
+                >
+                  <a-button danger :disabled="!selectedProfileId">
+                    {{ $t('feature.superPanelShortcut.deleteProfile') }}
+                  </a-button>
+                </a-popconfirm>
+                <a-button :loading="testLoading" @click="onTestConnection">
+                  {{ $t('feature.superPanelShortcut.testConnection') }}
+                </a-button>
+              </div>
+            </div>
+
+            <div v-if="translateProfiles.length === 0" class="translate-empty">
+              {{ $t('feature.superPanelShortcut.translateProfilesEmpty') }}
+            </div>
+
+            <a-form v-else layout="vertical" class="translate-form">
+              <a-form-item :label="$t('feature.superPanelShortcut.profileName')">
+                <a-input v-model:value="translateForm.profileName" autocomplete="off" />
+              </a-form-item>
+              <a-form-item :label="$t('feature.superPanelShortcut.translateProvider')">
+                <a-select v-model:value="translateForm.translateProvider" class="translate-provider-select">
+                  <a-select-option value="openai_chat">
+                    {{ $t('feature.superPanelShortcut.providerOpenaiChat') }}
+                  </a-select-option>
+                  <a-select-option value="anthropic_messages">
+                    {{ $t('feature.superPanelShortcut.providerAnthropic') }}
+                  </a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <a-form-item :label="$t('feature.superPanelShortcut.llmBaseUrl')">
+                <a-input
+                  v-model:value="translateForm.llmBaseUrl"
+                  :placeholder="
+                    translateForm.translateProvider === 'anthropic_messages'
+                      ? $t('feature.superPanelShortcut.anthropicUrlPh')
+                      : $t('feature.superPanelShortcut.llmBaseUrlPh')
+                  "
+                />
+              </a-form-item>
+              <a-form-item
+                :label="
+                  translateForm.translateProvider === 'anthropic_messages'
+                    ? $t('feature.superPanelShortcut.anthropicApiKey')
+                    : $t('feature.superPanelShortcut.llmApiKey')
+                "
+              >
+                <a-input-password v-model:value="translateForm.llmApiKey" autocomplete="off" />
+              </a-form-item>
+              <a-form-item :label="$t('feature.superPanelShortcut.llmModel')">
+                <a-input v-model:value="translateForm.llmModel" />
+              </a-form-item>
+
+              <template v-if="translateForm.translateProvider === 'anthropic_messages'">
+                <a-form-item :label="$t('feature.superPanelShortcut.anthropicApiVersion')">
+                  <a-input v-model:value="translateForm.anthropicApiVersion" />
+                </a-form-item>
+                <a-form-item :label="$t('feature.superPanelShortcut.anthropicMaxTokens')">
+                  <a-input-number
+                    v-model:value="translateForm.anthropicMaxTokens"
+                    :min="1"
+                    :max="200000"
+                    class="anthropic-max-tokens"
+                  />
+                </a-form-item>
+              </template>
+
+              <a-form-item :label="$t('feature.superPanelShortcut.llmSystemPrompt')">
+                <a-textarea
+                  v-model:value="translateForm.llmSystemPrompt"
+                  :rows="3"
+                  :placeholder="$t('feature.superPanelShortcut.llmSystemPromptPh')"
+                />
+              </a-form-item>
+              <a-form-item :label="$t('feature.superPanelShortcut.llmExtraHeaders')">
+                <a-textarea
+                  v-model:value="translateForm.llmExtraHeaders"
+                  :rows="2"
+                  :placeholder="$t('feature.superPanelShortcut.llmExtraHeadersPh')"
+                />
+              </a-form-item>
+            </a-form>
+
             <div class="settings-item-li">
               <div class="label">
                 {{ $t('feature.superPanelShortcut.autoTranslateLabel') }}
               </div>
-              <a-switch
-                v-model:checked="translateForm.autoTranslate"
-                :checked-children="$t('feature.superPanelShortcut.on')"
-                :un-checked-children="$t('feature.superPanelShortcut.off')"
-              />
+              <a-tooltip :title="translateSwitchDisabled ? $t('feature.superPanelShortcut.switchNeedConfig') : ''">
+                <span class="switch-wrap">
+                  <a-switch
+                    v-model:checked="translateForm.autoTranslate"
+                    :disabled="translateSwitchDisabled"
+                    :checked-children="$t('feature.superPanelShortcut.on')"
+                    :un-checked-children="$t('feature.superPanelShortcut.off')"
+                  />
+                </span>
+              </a-tooltip>
             </div>
             <div class="settings-item-li desc">
               {{ $t('feature.superPanelShortcut.autoTranslateDesc') }}
@@ -118,9 +230,20 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onUnmounted } from 'vue';
+import { computed, reactive, ref, watch, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
+import { nanoid } from 'nanoid';
+import {
+  emptyProfile,
+  formToProfile,
+  isTranslateConfigured,
+  LEGACY_TRANSLATE_FLAT_KEYS,
+  loadProfilesFromDoc,
+  type SuperPanelTranslateProvider,
+  type TranslateProfile,
+} from '@/utils/superPanelTranslatePrefs';
+import { testTranslateConnection } from '@/utils/translateConnectionTest';
 
 const { t } = useI18n();
 
@@ -142,8 +265,9 @@ function getRubick() {
 const initialRaw =
   getRubick()?.dbStorage.getItem(SUPER_PANEL_HOTKEY_DB_ID) || 'Ctrl+W';
 const initialPref =
-  (window as unknown as { rubick?: { db?: { get: (id: string) => { data?: { autoTranslate?: boolean } } | null } } })
-    .rubick?.db?.get(SUPER_PANEL_PREF_DB_ID) || { data: {} };
+  (window as unknown as {
+    rubick?: { db?: { get: (id: string) => { data?: Record<string, unknown> } | null } };
+  }).rubick?.db?.get(SUPER_PANEL_PREF_DB_ID) || { data: {} };
 
 const lastKeyboardCombo = ref(
   initialRaw.startsWith('rubick:sp:') ? 'Ctrl+W' : initialRaw
@@ -157,9 +281,183 @@ const triggerSelect = ref<string>(
   initialRaw.startsWith('rubick:sp:') ? initialRaw : 'keyboard'
 );
 const activeTab = ref<string[]>(['shortcut']);
-const translateForm = reactive({
-  autoTranslate: initialPref?.data?.autoTranslate !== false,
+
+type TranslateEditorForm = {
+  profileId: string;
+  profileName: string;
+  translateProvider: SuperPanelTranslateProvider;
+  llmBaseUrl: string;
+  llmApiKey: string;
+  llmModel: string;
+  llmSystemPrompt: string;
+  llmExtraHeaders: string;
+  anthropicApiVersion: string;
+  anthropicMaxTokens: number;
+  autoTranslate: boolean;
+};
+
+function blankEditor(): Omit<TranslateEditorForm, 'autoTranslate'> {
+  return {
+    profileId: '',
+    profileName: '',
+    translateProvider: 'openai_chat',
+    llmBaseUrl: '',
+    llmApiKey: '',
+    llmModel: '',
+    llmSystemPrompt: '',
+    llmExtraHeaders: '',
+    anthropicApiVersion: '2023-06-01',
+    anthropicMaxTokens: 1024,
+  };
+}
+
+const loadedProfiles = loadProfilesFromDoc(initialPref?.data as Record<string, unknown> | undefined);
+const translateProfiles = ref<TranslateProfile[]>(loadedProfiles.profiles);
+const selectedProfileId = ref<string | null>(loadedProfiles.activeProfileId);
+
+const translateForm = reactive<TranslateEditorForm>({
+  ...blankEditor(),
+  autoTranslate: false,
 });
+
+const testLoading = ref(false);
+const desiredAutoTranslate = ref(false);
+
+function applyEditorFromProfile(p: TranslateProfile | null) {
+  if (!p) {
+    Object.assign(translateForm, blankEditor(), { autoTranslate: false });
+    return;
+  }
+  Object.assign(translateForm, {
+    profileId: p.id,
+    profileName: p.name,
+    translateProvider: p.translateProvider,
+    llmBaseUrl: p.llmBaseUrl,
+    llmApiKey: p.llmApiKey,
+    llmModel: p.llmModel,
+    llmSystemPrompt: p.llmSystemPrompt,
+    llmExtraHeaders: p.llmExtraHeaders,
+    anthropicApiVersion: p.anthropicApiVersion,
+    anthropicMaxTokens: p.anthropicMaxTokens,
+    autoTranslate: desiredAutoTranslate.value && isTranslateConfigured(p),
+  });
+}
+
+function commitEditorToProfiles() {
+  const id = translateForm.profileId?.trim();
+  if (!id) return;
+  const next = formToProfile(translateForm);
+  const idx = translateProfiles.value.findIndex((x) => x.id === id);
+  if (idx >= 0) {
+    translateProfiles.value.splice(idx, 1, next);
+  }
+}
+
+const initialWantOn = initialPref?.data?.autoTranslate !== false;
+desiredAutoTranslate.value = initialWantOn;
+if (selectedProfileId.value) {
+  const p = translateProfiles.value.find((x) => x.id === selectedProfileId.value);
+  applyEditorFromProfile(p ?? null);
+}
+translateForm.autoTranslate = initialWantOn && isTranslateConfigured(translateForm);
+
+const translateSwitchDisabled = computed(
+  () => !translateForm.profileId || !isTranslateConfigured(translateForm)
+);
+
+watch(translateSwitchDisabled, (off) => {
+  if (off) {
+    translateForm.autoTranslate = false;
+    return;
+  }
+  translateForm.autoTranslate = desiredAutoTranslate.value;
+});
+
+watch(
+  () => translateForm.autoTranslate,
+  (on) => {
+    if (!translateSwitchDisabled.value) {
+      desiredAutoTranslate.value = on;
+    }
+  }
+);
+
+watch(
+  () => translateForm.profileName,
+  (nm) => {
+    const id = translateForm.profileId;
+    if (!id) return;
+    const ix = translateProfiles.value.findIndex((p) => p.id === id);
+    if (ix < 0) return;
+    const cur = translateProfiles.value[ix];
+    const label = String(nm || '').trim() || '—';
+    if (cur.name === label) return;
+    translateProfiles.value.splice(ix, 1, { ...cur, name: label });
+  }
+);
+
+function onProfileSelectChange(newId: string) {
+  commitEditorToProfiles();
+  selectedProfileId.value = newId;
+  const p = translateProfiles.value.find((x) => x.id === newId);
+  applyEditorFromProfile(p ?? null);
+}
+
+function onAddProfile() {
+  commitEditorToProfiles();
+  const id = nanoid();
+  const p = emptyProfile(
+    id,
+    `${t('feature.superPanelShortcut.defaultProfileName')} ${translateProfiles.value.length + 1}`
+  );
+  translateProfiles.value = [...translateProfiles.value, p];
+  selectedProfileId.value = id;
+  applyEditorFromProfile(p);
+}
+
+function onDeleteProfile() {
+  const id = selectedProfileId.value;
+  if (!id) return;
+  commitEditorToProfiles();
+  translateProfiles.value = translateProfiles.value.filter((x) => x.id !== id);
+  selectedProfileId.value = translateProfiles.value[0]?.id ?? null;
+  applyEditorFromProfile(translateProfiles.value[0] ?? null);
+  if (!translateProfiles.value.length) {
+    desiredAutoTranslate.value = false;
+    translateForm.autoTranslate = false;
+  }
+}
+
+async function onTestConnection() {
+  if (!isTranslateConfigured(translateForm)) {
+    message.warning(t('feature.superPanelShortcut.switchNeedConfig'));
+    return;
+  }
+  testLoading.value = true;
+  try {
+    const r = await testTranslateConnection({
+      translateProvider: translateForm.translateProvider,
+      llmBaseUrl: translateForm.llmBaseUrl,
+      llmApiKey: translateForm.llmApiKey,
+      llmModel: translateForm.llmModel,
+      llmSystemPrompt: translateForm.llmSystemPrompt,
+      llmExtraHeaders: translateForm.llmExtraHeaders,
+      anthropicApiVersion: translateForm.anthropicApiVersion,
+      anthropicMaxTokens: translateForm.anthropicMaxTokens,
+    });
+    if (r.message === 'missing_fields') {
+      message.warning(t('feature.superPanelShortcut.switchNeedConfig'));
+      return;
+    }
+    if (r.ok) {
+      message.success(`${t('feature.superPanelShortcut.testConnectionOk')}: ${r.message}`);
+    } else {
+      message.error(`${t('feature.superPanelShortcut.testConnectionFail')}: ${r.message}`);
+    }
+  } finally {
+    testLoading.value = false;
+  }
+}
 
 function onTriggerTypeChange(v: string) {
   if (v === 'keyboard') {
@@ -273,15 +571,50 @@ function onSaveTranslate() {
     message.warning(t('feature.superPanelShortcut.saveDevHint'));
     return;
   }
+  commitEditorToProfiles();
+  if (translateForm.autoTranslate && !isTranslateConfigured(translateForm)) {
+    message.warning(t('feature.superPanelShortcut.switchNeedConfig'));
+    return;
+  }
   const oldDoc = rubick.db.get(SUPER_PANEL_PREF_DB_ID) || {};
+  const oldData = { ...(oldDoc.data as Record<string, unknown> | undefined) };
+  for (const k of LEGACY_TRANSLATE_FLAT_KEYS) {
+    delete oldData[k];
+  }
+
+  let autoTranslate = false;
+  let activeId: string | null = null;
+  let profilesOut: TranslateProfile[] = [];
+
+  if (!translateProfiles.value.length) {
+    autoTranslate = false;
+    activeId = null;
+    profilesOut = [];
+  } else {
+    profilesOut = translateProfiles.value.map((x) => ({ ...x }));
+    activeId = selectedProfileId.value;
+    if (activeId && !profilesOut.some((p) => p.id === activeId)) {
+      activeId = profilesOut[0]?.id ?? null;
+    }
+    if (!activeId) {
+      activeId = profilesOut[0].id;
+    }
+    selectedProfileId.value = activeId;
+    const active = profilesOut.find((p) => p.id === activeId);
+    autoTranslate = !!desiredAutoTranslate.value && !!active && isTranslateConfigured(active);
+  }
+
+  oldData.translateProfiles = profilesOut;
+  oldData.activeTranslateProfileId = activeId;
+  oldData.autoTranslate = autoTranslate;
+
   rubick.db.put({
     ...oldDoc,
     _id: SUPER_PANEL_PREF_DB_ID,
-    data: {
-      ...(oldDoc.data || {}),
-      autoTranslate: !!translateForm.autoTranslate,
-    },
+    data: oldData,
   });
+  desiredAutoTranslate.value = autoTranslate;
+  translateForm.autoTranslate = autoTranslate;
   message.success(t('feature.superPanelShortcut.saveOk'));
 }
 </script>
@@ -329,6 +662,58 @@ function onSaveTranslate() {
 
   .shortcut-form {
     max-width: 640px;
+  }
+
+  .translate-tip {
+    margin-bottom: 16px;
+  }
+
+  .translate-form {
+    max-width: 560px;
+    margin-bottom: 8px;
+  }
+
+  .translate-provider-select {
+    max-width: 360px;
+    width: 100%;
+  }
+
+  .switch-wrap {
+    display: inline-block;
+  }
+
+  .anthropic-max-tokens {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .profile-toolbar {
+    margin-bottom: 16px;
+    max-width: 720px;
+  }
+
+  .profile-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .profile-toolbar-label {
+    color: var(--color-text-content);
+    flex-shrink: 0;
+  }
+
+  .profile-select {
+    min-width: 200px;
+    max-width: 280px;
+    flex: 1;
+  }
+
+  .translate-empty {
+    color: var(--color-text-desc);
+    padding: 8px 0 16px;
+    max-width: 560px;
   }
 
   /* 与触发方式下拉同宽 */

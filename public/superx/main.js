@@ -148,6 +148,10 @@ function createPlugin() {
                 const win = panelInstance.getWindow();
                 if (!win)
                     return;
+                if (panelInstance.isPinned() && win.isVisible()) {
+                    panelInstance.resetPin();
+                    win.hide();
+                }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const localPlugins = global.LOCAL_PLUGINS.getLocalPlugins();
                 const cursor = (0, clipboard_helpers_1.getPos)(screen, { x, y }, isMacOS);

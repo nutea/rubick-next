@@ -1,6 +1,18 @@
 <template>
-  <div class="main" id="app">
-    <div class="panel-caption">超级面板</div>
+  <div class="main" id="app" :class="{ pinned }">
+    <div class="panel-caption" :class="{ draggable: pinned }">
+      <span class="panel-caption-text">超级面板</span>
+      <button
+        type="button"
+        class="pin-btn"
+        :class="{ active: pinned }"
+        :title="pinned ? '取消固定' : '固定窗口'"
+        @click="togglePin"
+      >
+        <PushpinOutlined />
+      </button>
+    </div>
+
     <div v-if="selectedPreview" class="selected-content" :class="`kind-${selectedPreview.kind}`">
       <div class="selected-header">
         <span class="selected-title">当前选中</span>
@@ -34,6 +46,7 @@
         </div>
       </template>
     </div>
+
     <a-modal
       v-model:visible="fullTranslationVisible"
       title="翻译全文"
@@ -97,8 +110,9 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
   CodeOutlined,
-  FileAddOutlined,
   CopyOutlined,
+  FileAddOutlined,
+  PushpinOutlined,
 } from '@ant-design/icons-vue';
 import { useSuperPanel } from './use-super-panel';
 import type { MatchPluginItem } from './types';
@@ -110,8 +124,11 @@ const {
   selectedFileUrl,
   matchPlugins,
   userPlugins,
+  pinned,
+  togglePin,
   runPluginClick,
 } = useSuperPanel();
+
 const fullTranslationVisible = ref(false);
 
 const defaultIconByName: Record<string, typeof CodeOutlined> = {
@@ -212,9 +229,9 @@ const selectedPreview = computed(() => {
 
 const fullTranslationLines = computed(() => {
   if (!translate.value) return [] as string[];
-  if (translate.value.basic?.explains?.length) return translate.value.basic.explains;
-  if (translate.value.translation?.length) return translate.value.translation;
-  return [] as string[];
+  const main = (translate.value.translation || []).filter((line) => String(line || '').trim());
+  const notes = (translate.value.basic?.explains || []).filter((line) => String(line || '').trim());
+  return [...main, ...notes];
 });
 
 const translationFullText = computed(() => fullTranslationLines.value.join('；'));
@@ -255,11 +272,51 @@ body {
   box-sizing: border-box;
   padding: 8px 0 10px;
 }
+.main.pinned .selected-content,
+.main.pinned .translate-content {
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.12);
+}
 .panel-caption {
   padding: 0 10px 8px;
   font-size: 12px;
   color: #8b93a1;
   letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.panel-caption.draggable {
+  -webkit-app-region: drag;
+}
+.panel-caption-text {
+  min-width: 0;
+}
+.pin-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8b93a1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+.pin-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+.pin-btn.active {
+  background: #dbeafe;
+  color: #2563eb;
+  transform: rotate(18deg);
 }
 .translate-content {
   margin: 0 10px 10px;
@@ -342,9 +399,6 @@ body {
   background: #e2e8f0;
   color: #334155;
 }
-.source {
-  margin-bottom: 4px;
-}
 .translate-target {
   color: #334155;
   font-size: 13px;
@@ -380,7 +434,8 @@ body {
   -webkit-box-orient: vertical;
 }
 .plugin-item {
-  height: 82px;
+  height: 74px;
+  margin: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -388,10 +443,15 @@ body {
   font-size: 12px;
   cursor: pointer;
   border-radius: 8px;
-  transition: background-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 .plugin-item:hover {
   background: #f5f7fb;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 .plugin-item img,
 .plugin-default-icon {
@@ -419,6 +479,9 @@ body {
   color: #8b93a1;
   letter-spacing: 0.3px;
   box-sizing: border-box;
+}
+:deep(.plugins-content .ant-row) {
+  padding: 0 6px;
 }
 .spinner > div {
   width: 10px;

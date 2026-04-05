@@ -1,6 +1,5 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import localConfig from '../common/initLocalConfig';
-import commonConst from '@/common/utils/commonConst';
 import path from 'path';
 import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
 import { executePluginSubInputChangeHook } from '@/main/common/pluginSubInputHook';
@@ -93,38 +92,7 @@ export default () => {
       singleDetachWindowByPlugin.set(pluginKey, createWin);
     }
 
-    const detachFileUrl = `file://${path.join(
-      __static,
-      './detach/index.html'
-    )}`;
-    const detachDevUrl = process.env.DETACH_DEV_SERVER_URL;
-    if (detachDevUrl) {
-      const onFail = (
-        _e: Electron.Event,
-        _code: number,
-        _desc: string,
-        url: string,
-        isMainFrame: boolean
-      ) => {
-        if (!isMainFrame) return;
-        createWin.webContents.removeListener('did-fail-load', onFail);
-        createWin.webContents.removeListener('did-finish-load', onOk);
-        void createWin.loadURL(detachFileUrl);
-      };
-      const onOk = () => {
-        createWin.webContents.removeListener('did-fail-load', onFail);
-        createWin.webContents.removeListener('did-finish-load', onOk);
-      };
-      createWin.webContents.once('did-fail-load', onFail);
-      createWin.webContents.once('did-finish-load', onOk);
-      void createWin.loadURL(detachDevUrl).catch(() => {
-        createWin.webContents.removeListener('did-fail-load', onFail);
-        createWin.webContents.removeListener('did-finish-load', onOk);
-        void createWin.loadURL(detachFileUrl);
-      });
-    } else {
-      void createWin.loadURL(detachFileUrl);
-    }
+    void createWin.loadURL(`file://${path.join(__static, './detach/index.html')}`);
     createWin.on('close', () => {
       executeHooks('PluginOut', null);
     });

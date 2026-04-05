@@ -12,6 +12,12 @@ import type {
   TranslateState,
   UserPluginItem,
 } from './types';
+import {
+  fetchTranslationRaw,
+  isTranslateConfigured,
+  resolveTranslatePrefsFromPreferencesData,
+  type SuperPanelTranslatePrefs,
+} from './translate-config';
 
 const EXPLORER_LIKE = [
   'explorer.exe',
@@ -83,7 +89,8 @@ export function useSuperPanel() {
     fileUrl: '',
     selectedText: '',
     selectedFileUrl: '',
-    autoTranslate: true,
+    autoTranslate: false,
+    translatePrefs: {} as SuperPanelTranslatePrefs,
     matchPlugins: [] as MatchPluginItem[],
     userPlugins: [] as UserPluginItem[],
   });
@@ -138,20 +145,16 @@ export function useSuperPanel() {
 
   function runTranslate(word: string) {
     const visibleWord = normalizeVisibleText(word);
-    if (!state.autoTranslate || !visibleWord) {
-      state.translate = null;
-      state.loading = false;
-      return;
-    }
-    const translator = (window as unknown as { translator?: { translate: (w: string) => Promise<string> } }).translator;
-    if (!translator) {
+    const prefs = state.translatePrefs;
+    const allow =
+      state.autoTranslate && !!visibleWord && isTranslateConfigured(prefs);
+    if (!allow) {
       state.translate = null;
       state.loading = false;
       return;
     }
     state.loading = true;
-    translator
-      .translate(visibleWord)
+    fetchTranslationRaw(visibleWord, prefs)
       .then((raw) => {
         const parsed = JSON.parse(raw) as TranslateState;
         const hasBasic = !!parsed?.basic?.explains?.filter((line) => String(line || '').trim()).length;
@@ -272,10 +275,19 @@ export function useSuperPanel() {
 
   function refreshPreferences() {
     try {
-      const doc = rubickDb.get(SUPER_PANEL_PREF_DB_ID) as { data?: { autoTranslate?: boolean } } | null;
-      state.autoTranslate = doc?.data?.autoTranslate !== false;
+      const doc = rubickDb.get(SUPER_PANEL_PREF_DB_ID) as {
+        data?: {
+          autoTranslate?: boolean;
+        } & SuperPanelTranslatePrefs;
+      } | null;
+      const data = doc?.data as Record<string, unknown> | undefined;
+      const prefs = resolveTranslatePrefsFromPreferencesData(data);
+      state.translatePrefs = prefs;
+      const wantOn = data?.autoTranslate !== false;
+      state.autoTranslate = wantOn && isTranslateConfigured(prefs);
     } catch {
-      state.autoTranslate = true;
+      state.translatePrefs = {};
+      state.autoTranslate = false;
     }
   }
 
@@ -410,18 +422,33 @@ export function useSuperPanel() {
   }
 
   let offTrigger: (() => void) | undefined;
+  let offPinState: (() => void) | undefined;
 
   onMounted(() => {
     refreshUserPlugins();
     refreshPreferences();
     const handler = (_e: Electron.IpcRendererEvent, payload: TriggerSuperPanelPayload) =>
       onTrigger(_e, payload);
+    const pinStateHandler = (_e: Electron.IpcRendererEvent, pin: boolean) => {
+      pinned.value = !!pin;
+    };
     ipcRenderer.on('trigger-super-panel', handler);
+    ipcRenderer.on('superPanel-pin-state', pinStateHandler);
     offTrigger = () => ipcRenderer.removeListener('trigger-super-panel', handler);
+    offPinState = () => ipcRenderer.removeListener('superPanel-pin-state', pinStateHandler);
+    ipcRenderer
+      .invoke('superPanel-get-pin-state')
+      .then((pin: unknown) => {
+        pinned.value = !!pin;
+      })
+      .catch(() => {
+        pinned.value = false;
+      });
   });
 
   onUnmounted(() => {
     offTrigger?.();
+    offPinState?.();
   });
 
   watch(

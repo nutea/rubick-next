@@ -122,11 +122,7 @@ export default () => {
       pluginIndexPath = `file://${__static}/feature/index.html`;
     }
     if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
-      pluginIndexPath = `file://${path.join(
-        __static,
-        'superx',
-        main
-      )}`;
+      pluginIndexPath = `file://${path.join(__static, 'superx', main)}`;
     }
     if (!pluginIndexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', name);

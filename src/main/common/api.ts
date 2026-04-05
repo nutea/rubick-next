@@ -381,9 +381,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
 
     // 模板文件
     if (!plugin.main) {
-      plugin.tplPath = common.dev()
-        ? 'http://localhost:8083/#/'
-        : `file://${__static}/tpl/index.html`;
+      plugin.tplPath = `file://${__static}/tpl/index.html`;
     }
     if (plugin.name === 'rubick-system-feature') {
       plugin.logo = plugin.logo || `file://${__static}/logo.png`;

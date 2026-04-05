@@ -57,12 +57,7 @@ export default () => {
         spellcheck: false,
       },
     });
-    if (process.env.GUIDE_DEV_SERVER_URL) {
-      // Load the url of the dev server if in development mode
-      win.loadURL(process.env.GUIDE_DEV_SERVER_URL);
-    } else {
-      win.loadURL(`file://${path.join(__static, './guide/index.html')}`);
-    }
+    win.loadURL(`file://${path.join(__static, './guide/index.html')}`);
     win.on('closed', () => {
       win = undefined;
     });

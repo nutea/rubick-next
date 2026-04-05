@@ -39,6 +39,17 @@ function createPanelWindow(ctx) {
     let ipcHandlersAttached = false;
     /** 主进程 placePanelAtCursor 算出的意图坐标；Win 高 DPI 下 getBounds 与 setBounds 舍入不一致，勿用 b.x/b.y 做二次缩放锚点 */
     let panelPositionAnchor = null;
+    const syncPanelPositionAnchorFromWindow = () => {
+        if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed()))
+            return;
+        try {
+            const b = win.getBounds();
+            panelPositionAnchor = { x: Math.round(b.x), y: Math.round(b.y) };
+        }
+        catch {
+            /* ignore */
+        }
+    };
     function needsNewWindow() {
         if (win == null)
             return true;
@@ -80,6 +91,8 @@ function createPanelWindow(ctx) {
             win = undefined;
             panelPositionAnchor = null;
         });
+        // 拖动后同步锚点，避免后续 superPanel-setSize 仍按旧坐标 setBounds 导致闪回原位
+        win.on('move', syncPanelPositionAnchorFromWindow);
         win.on('blur', () => {
             if (!pinned)
                 win === null || win === void 0 ? void 0 : win.hide();
@@ -127,7 +140,10 @@ function createPanelWindow(ctx) {
         });
         ipcMain.on('trigger-pin', (_event, pin) => {
             pinned = pin;
+            win === null || win === void 0 ? void 0 : win.setAlwaysOnTop(true);
+            win === null || win === void 0 ? void 0 : win.webContents.send('superPanel-pin-state', pinned);
         });
+        ipcMain.handle('superPanel-get-pin-state', () => pinned);
     };
     const init = () => {
         attachIpcOnce();
@@ -140,5 +156,10 @@ function createPanelWindow(ctx) {
     const setPanelPositionAnchor = (x, y) => {
         panelPositionAnchor = { x: Math.round(x), y: Math.round(y) };
     };
-    return { init, getWindow, setPanelPositionAnchor };
+    const isPinned = () => pinned;
+    const resetPin = () => {
+        pinned = false;
+        win === null || win === void 0 ? void 0 : win.webContents.send('superPanel-pin-state', false);
+    };
+    return { init, getWindow, setPanelPositionAnchor, isPinned, resetPin };
 }
