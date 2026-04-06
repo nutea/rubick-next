@@ -28,6 +28,11 @@ import DBInstance from './db';
 import getWinPosition from './getWinPosition';
 import path from 'path';
 import commonConst from '@/common/utils/commonConst';
+import {
+  DEV_APP_PORTS,
+  devSubAppHttpUrl,
+  warmupDevSubAppServers,
+} from './devSubAppServers';
 import { copyFilesToWindowsClipboard } from './windowsClipboard';
 import {
   exportPluginBundle,
@@ -52,8 +57,8 @@ const sanitizeInputFiles = (input: unknown): string[] => {
   const candidates = Array.isArray(input)
     ? input
     : typeof input === 'string'
-    ? [input]
-    : [];
+      ? [input]
+      : [];
   return candidates
     .map((filePath) => (typeof filePath === 'string' ? filePath.trim() : ''))
     .filter((filePath) => {
@@ -106,69 +111,81 @@ class API extends DBInstance {
         /* 首次启动 */
       }
     }
-    ipcMain.handle('rubick:get-plugin-rubick-config', (_e, pluginName: unknown) => {
-      const name = typeof pluginName === 'string' ? pluginName : '';
-      if (!name)
-        return { autoDetach: false, detachAlwaysShowSearch: false };
-      const cfg = readPluginRubickConfigSync(name);
-      return {
-        autoDetach: !!cfg.autoDetach,
-        detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
-      };
-    });
-    ipcMain.handle('rubick:set-plugin-rubick-config', (_e, payload: unknown) => {
-      const p = payload as {
-        name?: string;
-        pluginName?: string;
-        autoDetach?: boolean;
-        detachAlwaysShowSearch?: boolean;
-      };
-      const id =
-        typeof p?.name === 'string'
-          ? p.name
-          : typeof p?.pluginName === 'string'
-            ? p.pluginName
-            : '';
-      if (!id) return false;
-      const patch: Record<string, boolean> = {};
-      if (typeof p.autoDetach === 'boolean') patch.autoDetach = p.autoDetach;
-      if (typeof p.detachAlwaysShowSearch === 'boolean')
-        patch.detachAlwaysShowSearch = p.detachAlwaysShowSearch;
-      if (!Object.keys(patch).length) return false;
-      return writePluginRubickConfigSync(id, patch);
-    });
-    ipcMain.handle('rubick:flip-plugin-auto-detach', (_e, pluginName: unknown) => {
-      const name = typeof pluginName === 'string' ? pluginName : '';
-      if (!name) return { autoDetach: false };
-      return { autoDetach: flipPluginAutoDetachSync(name) };
-    });
+    ipcMain.handle(
+      'rubick:get-plugin-rubick-config',
+      (_e, pluginName: unknown) => {
+        const name = typeof pluginName === 'string' ? pluginName : '';
+        if (!name) return { autoDetach: false, detachAlwaysShowSearch: false };
+        const cfg = readPluginRubickConfigSync(name);
+        return {
+          autoDetach: !!cfg.autoDetach,
+          detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
+        };
+      }
+    );
+    ipcMain.handle(
+      'rubick:set-plugin-rubick-config',
+      (_e, payload: unknown) => {
+        const p = payload as {
+          name?: string;
+          pluginName?: string;
+          autoDetach?: boolean;
+          detachAlwaysShowSearch?: boolean;
+        };
+        const id =
+          typeof p?.name === 'string'
+            ? p.name
+            : typeof p?.pluginName === 'string'
+              ? p.pluginName
+              : '';
+        if (!id) return false;
+        const patch: Record<string, boolean> = {};
+        if (typeof p.autoDetach === 'boolean') patch.autoDetach = p.autoDetach;
+        if (typeof p.detachAlwaysShowSearch === 'boolean')
+          patch.detachAlwaysShowSearch = p.detachAlwaysShowSearch;
+        if (!Object.keys(patch).length) return false;
+        return writePluginRubickConfigSync(id, patch);
+      }
+    );
+    ipcMain.handle(
+      'rubick:flip-plugin-auto-detach',
+      (_e, pluginName: unknown) => {
+        const name = typeof pluginName === 'string' ? pluginName : '';
+        if (!name) return { autoDetach: false };
+        return { autoDetach: flipPluginAutoDetachSync(name) };
+      }
+    );
     ipcMain.handle(
       'rubick:flip-plugin-detach-always-show-search',
       (_e, pluginName: unknown) => {
         const name = typeof pluginName === 'string' ? pluginName : '';
         if (!name) return { detachAlwaysShowSearch: false };
         return {
-          detachAlwaysShowSearch:
-            flipPluginDetachAlwaysShowSearchSync(name),
+          detachAlwaysShowSearch: flipPluginDetachAlwaysShowSearchSync(name),
         };
       }
     );
-    ipcMain.handle('rubick:detach-adjust-plugin-zoom', (_e, payload: unknown) => {
-      const p = payload as { action?: string; winId?: number };
-      if (typeof p?.winId !== 'number') return false;
-      return this.detachAdjustPluginZoom(
-        { data: { action: p.action }, winId: p.winId },
-        mainWindow,
-        undefined
-      );
-    });
+    ipcMain.handle(
+      'rubick:detach-adjust-plugin-zoom',
+      (_e, payload: unknown) => {
+        const p = payload as { action?: string; winId?: number };
+        if (typeof p?.winId !== 'number') return false;
+        return this.detachAdjustPluginZoom(
+          { data: { action: p.action }, winId: p.winId },
+          mainWindow,
+          undefined
+        );
+      }
+    );
     try {
       ipcMain.removeHandler('rubick:try-redirect-singleton-detach');
     } catch {
       /* 首次启动 */
     }
-    ipcMain.handle('rubick:try-redirect-singleton-detach', (_e, pluginPayload: unknown) =>
-      this.tryRedirectSingletonDetach({ data: pluginPayload }, mainWindow)
+    ipcMain.handle(
+      'rubick:try-redirect-singleton-detach',
+      (_e, pluginPayload: unknown) =>
+        this.tryRedirectSingletonDetach({ data: pluginPayload }, mainWindow)
     );
     // 响应 preload.js 事件
     ipcMain.on('msg-trigger', async (event, arg) => {
@@ -229,7 +246,7 @@ class API extends DBInstance {
     getWinPosition.setPosition(nx, ny);
   }
 
-  public loadPlugin({ data: plugin }, window) {
+  public async loadPlugin({ data: plugin }, window) {
     if (this.tryRedirectSingletonDetach({ data: plugin }, window)) {
       return;
     }
@@ -242,7 +259,7 @@ class API extends DBInstance {
       `if (window.captureSearchSnapshotForNextDetach) window.captureSearchSnapshotForNextDetach();
 void window.loadPlugin(${JSON.stringify(plugin)});`
     );
-    this.openPlugin({ data: plugin }, window);
+    await this.openPlugin({ data: plugin }, window);
   }
 
   /**
@@ -347,7 +364,8 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     return incoming.some((n) => n === currentName);
   }
 
-  public openPlugin({ data: plugin }, window) {
+  public async openPlugin({ data: plugin }, window) {
+    await warmupDevSubAppServers();
     if (plugin.platform && !plugin.platform.includes(process.platform)) {
       return new Notification({
         title: `插件不支持当前 ${process.platform} 系统`,
@@ -382,12 +400,21 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     // 模板文件
     if (!plugin.main) {
       plugin.tplPath = `file://${__static}/tpl/index.html`;
+      const tplHttp = devSubAppHttpUrl(DEV_APP_PORTS.tpl, '/');
+      if (tplHttp) plugin.tplPath = tplHttp;
     }
     if (plugin.name === 'rubick-system-feature') {
       plugin.logo = plugin.logo || `file://${__static}/logo.png`;
       plugin.indexPath = `file://${__static}/feature/index.html`;
+      const featureHttp = devSubAppHttpUrl(DEV_APP_PORTS.feature, '/');
+      if (featureHttp) plugin.indexPath = featureHttp;
     } else if (plugin.name === 'rubick-system-super-panel') {
       plugin.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
+      const superxHttp = devSubAppHttpUrl(
+        DEV_APP_PORTS.superxWeb,
+        '/main.html'
+      );
+      if (superxHttp) plugin.indexPath = superxHttp;
     } else if (!plugin.indexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', plugin.name);
       plugin.indexPath = `file://${path.join(
@@ -550,7 +577,8 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     const wc = bv.webContents;
     const cur = wc.getZoomFactor();
     const act = data?.action;
-    if (act === 'in') wc.setZoomFactor(Math.min(3, Math.round((cur + 0.1) * 100) / 100));
+    if (act === 'in')
+      wc.setZoomFactor(Math.min(3, Math.round((cur + 0.1) * 100) / 100));
     else if (act === 'out')
       wc.setZoomFactor(Math.max(0.5, Math.round((cur - 0.1) * 100) / 100));
     else if (act === 'reset') wc.setZoomFactor(1);
@@ -804,8 +832,8 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
           {
             ...this.currentPlugin,
             subInput,
-            detachAlwaysShowSearch: !!readPluginRubickConfigSync(pluginName)
-              .detachAlwaysShowSearch,
+            detachAlwaysShowSearch:
+              !!readPluginRubickConfigSync(pluginName).detachAlwaysShowSearch,
           },
           window.getBounds(),
           view,

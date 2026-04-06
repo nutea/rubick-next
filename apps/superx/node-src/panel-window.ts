@@ -9,7 +9,8 @@ export default function createPanelWindow(ctx: any) {
   const shouldOpenPanelDevtools =
     process.env.NODE_ENV === 'development' ||
     Boolean(process.env.VITE_DEV_SERVER_URL) ||
-    Boolean(process.env.ELECTRON_RENDERER_URL);
+    Boolean(process.env.ELECTRON_RENDERER_URL) ||
+    Boolean(process.env.RUBICK_SUPERX_PANEL_DEV_URL);
 
   let win: InstanceType<typeof BrowserWindow> | undefined;
   let pinned = false;
@@ -53,7 +54,13 @@ export default function createPanelWindow(ctx: any) {
         preload: path.join(__dirname, 'panel-preload.js'),
       },
     });
-    win.loadURL(`file://${path.join(__dirname, 'main.html')}`);
+    const panelDev = process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+    const panelUrl =
+      typeof panelDev === 'string' &&
+      (panelDev.startsWith('http://') || panelDev.startsWith('https://'))
+        ? panelDev
+        : `file://${path.join(__dirname, 'main.html')}`;
+    win.loadURL(panelUrl);
     if (shouldOpenPanelDevtools) {
       win.webContents.once('did-finish-load', () => {
         if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) return;

@@ -1,9 +1,15 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import localConfig from '../common/initLocalConfig';
 import path from 'path';
+import commonConst from '@/common/utils/commonConst';
 import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
 import { executePluginSubInputChangeHook } from '@/main/common/pluginSubInputHook';
 import { resolveDetachWindowIcon } from '@/main/common/detachWindowIcon';
+import {
+  DEV_APP_PORTS,
+  devSubAppHttpUrl,
+  shouldOpenSubAppShellDevTools,
+} from '@/main/common/devSubAppServers';
 
 export default () => {
   let win: BrowserWindow | undefined;
@@ -92,7 +98,17 @@ export default () => {
       singleDetachWindowByPlugin.set(pluginKey, createWin);
     }
 
-    void createWin.loadURL(`file://${path.join(__static, './detach/index.html')}`);
+    const detachFile = `file://${path.join(__static, './detach/index.html')}`;
+    const detachUrl =
+      devSubAppHttpUrl(DEV_APP_PORTS.detach, '/') ?? detachFile;
+    void createWin.loadURL(detachUrl);
+    if (shouldOpenSubAppShellDevTools()) {
+      createWin.webContents.once('did-finish-load', () => {
+        if (!createWin || createWin.isDestroyed()) return;
+        if (createWin.webContents.isDevToolsOpened()) return;
+        createWin.webContents.openDevTools({ mode: 'detach' });
+      });
+    }
     createWin.on('close', () => {
       executeHooks('PluginOut', null);
     });

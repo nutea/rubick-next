@@ -5,6 +5,11 @@ import {
   WINDOW_MIN_HEIGHT,
   GUIDE_HEIGHT,
 } from '@/common/constans/common';
+import {
+  DEV_APP_PORTS,
+  devSubAppHttpUrl,
+  shouldOpenSubAppShellDevTools,
+} from '@/main/common/devSubAppServers';
 
 const getWindowPos = (width, height) => {
   const screenPoint = screen.getCursorScreenPoint();
@@ -57,13 +62,20 @@ export default () => {
         spellcheck: false,
       },
     });
-    win.loadURL(`file://${path.join(__static, './guide/index.html')}`);
+    const guideFile = `file://${path.join(__static, './guide/index.html')}`;
+    win.loadURL(devSubAppHttpUrl(DEV_APP_PORTS.guide, '/') ?? guideFile);
+    if (shouldOpenSubAppShellDevTools()) {
+      win.webContents.once('did-finish-load', () => {
+        if (!win || win.isDestroyed()) return;
+        if (win.webContents.isDevToolsOpened()) return;
+        win.webContents.openDevTools({ mode: 'detach' });
+      });
+    }
     win.on('closed', () => {
       win = undefined;
     });
 
     win.once('ready-to-show', () => {
-      // win.webContents.openDevTools();
       win.show();
     });
   };

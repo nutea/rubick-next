@@ -1,4 +1,4 @@
-import { BrowserView, BrowserWindow, session } from 'electron';
+import { app, BrowserView, BrowserWindow, session } from 'electron';
 import path from 'path';
 import commonConst from '../../common/utils/commonConst';
 import { PLUGIN_INSTALL_DIR as baseDir } from '@/common/constans/main';
@@ -9,6 +9,12 @@ import {
   WINDOW_WIDTH,
 } from '@/common/constans/common';
 import { applyMainWindowContentHeight } from '@/main/common/mainWindowContentResize';
+import { DEV_APP_PORTS, devSubAppHttpUrl } from '@/main/common/devSubAppServers';
+
+/** 与主窗口 webPreferences.preload 一致：须为 electron-vite 产物；勿用 public/preload.js（裸 require @electron/remote 在 session preload 中会解析失败） */
+function rubickSessionPreloadPath(): string {
+  return path.join(app.getAppPath(), 'dist', 'preload', 'index.js');
+}
 
 const getRelativePath = (indexPath) => {
   return commonConst.windows()
@@ -21,6 +27,10 @@ const getPreloadPath = (plugin, pluginIndexPath) => {
   if (!preload) return;
   if (name === 'rubick-system-super-panel') {
     return path.join(__static, 'superx', preload || 'preload.js');
+  }
+  // 子项目走 Vite 时 indexPath 为 http://，不可用 path.resolve 相对其推导 preload，须固定磁盘路径
+  if (name === 'rubick-system-feature') {
+    return path.join(__static, 'feature', preload || 'preload.js');
   }
   if (tplPath) {
     return path.resolve(getRelativePath(indexPath), `./`, preload);
@@ -128,10 +138,17 @@ export default () => {
       const pluginPath = path.resolve(baseDir, 'node_modules', name);
       pluginIndexPath = `file://${path.join(pluginPath, './', main)}`;
     }
+    if (name === 'rubick-system-feature') {
+      const h = devSubAppHttpUrl(DEV_APP_PORTS.feature, '/');
+      if (h) pluginIndexPath = h;
+    } else if (name === 'rubick-system-super-panel') {
+      const h = devSubAppHttpUrl(DEV_APP_PORTS.superxWeb, `/${main}`);
+      if (h) pluginIndexPath = h;
+    }
     const preload = getPreloadPath(plugin, preloadPath || pluginIndexPath);
 
     const ses = session.fromPartition('<' + name + '>');
-    ses.setPreloads([`${__static}/preload.js`]);
+    ses.setPreloads([rubickSessionPreloadPath()]);
 
     view = new BrowserView({
       webPreferences: {

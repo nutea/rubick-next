@@ -69,7 +69,7 @@
 
     <div v-if="matchPlugins.length" class="plugins-content">
       <div class="plugin-title">匹配插件</div>
-      <a-row>
+      <a-row class="plugin-row" :gutter="[0, 0]">
         <a-col
           v-for="(item, idx) in matchPlugins"
           :key="idx"
@@ -90,7 +90,7 @@
 
     <div v-if="userPlugins.length" class="plugins-content">
       <div class="plugin-title">固定插件</div>
-      <a-row>
+      <a-row class="plugin-row" :gutter="[0, 0]">
         <a-col
           v-for="(item, idx) in userPlugins"
           :key="idx"
@@ -435,7 +435,10 @@ body {
 }
 .plugin-item {
   height: 74px;
-  margin: 4px 6px;
+  margin: 4px 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -462,7 +465,10 @@ body {
   color: #574778;
 }
 .plugin-item div {
-  width: 80px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
@@ -480,8 +486,14 @@ body {
   letter-spacing: 0.3px;
   box-sizing: border-box;
 }
-:deep(.plugins-content .ant-row) {
-  padding: 0 6px;
+:deep(.plugins-content .plugin-row.ant-row) {
+  padding: 0 4px;
+  margin-inline: 0 !important;
+}
+:deep(.plugins-content .plugin-row .ant-col) {
+  min-width: 0;
+  flex: 0 0 33.333333% !important;
+  max-width: 33.333333% !important;
 }
 .spinner > div {
   width: 10px;

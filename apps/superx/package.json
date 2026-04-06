@@ -8,6 +8,8 @@
     "build:web": "vite build",
     "build:node": "tsc -p tsconfig.node.json",
     "build": "vite build && tsc -p tsconfig.node.json",
+    "dev:web": "vite dev --port 8085 --strictPort",
+    "dev:node": "tsc -p tsconfig.node.json --watch --preserveWatchOutput",
     "lint": "eslint src node-src"
   },
   "dependencies": {

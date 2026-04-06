@@ -33,7 +33,8 @@ function createPanelWindow(ctx) {
     // 打包后 NODE_ENV 常未设置，不能用 !== 'production'（会误开 DevTools）
     const shouldOpenPanelDevtools = process.env.NODE_ENV === 'development' ||
         Boolean(process.env.VITE_DEV_SERVER_URL) ||
-        Boolean(process.env.ELECTRON_RENDERER_URL);
+        Boolean(process.env.ELECTRON_RENDERER_URL) ||
+        Boolean(process.env.RUBICK_SUPERX_PANEL_DEV_URL);
     let win;
     let pinned = false;
     let ipcHandlersAttached = false;
@@ -77,7 +78,12 @@ function createPanelWindow(ctx) {
                 preload: path.join(__dirname, 'panel-preload.js'),
             },
         });
-        win.loadURL(`file://${path.join(__dirname, 'main.html')}`);
+        const panelDev = process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+        const panelUrl = typeof panelDev === 'string' &&
+            (panelDev.startsWith('http://') || panelDev.startsWith('https://'))
+            ? panelDev
+            : `file://${path.join(__dirname, 'main.html')}`;
+        win.loadURL(panelUrl);
         if (shouldOpenPanelDevtools) {
             win.webContents.once('did-finish-load', () => {
                 if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed()))
