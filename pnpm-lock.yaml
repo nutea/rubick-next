@@ -143,6 +143,9 @@ importers:
       pinyin-match:
         specifier: ^1.2.4
         version: 1.2.10
+      plist:
+        specifier: ^3.1.0
+        version: 3.1.0
       pouchdb:
         specifier: ^7.2.2
         version: 7.3.1(encoding@0.1.13)
