@@ -2,7 +2,6 @@
 import electron, {
   app,
   globalShortcut,
-  protocol,
   BrowserWindow,
 } from 'electron';
 import { main, guide } from './browsers';
@@ -23,15 +22,14 @@ import '../common/utils/localPlugin';
 
 import checkVersion from './common/versionHandler';
 import registerSystemPlugin from './common/registerSystemPlugin';
+import registerCdwhereIpc from './common/registerCdwhereIpc';
+import { warmupDevSubAppServers } from './common/devSubAppServers';
 
 class App {
   public windowCreator: { init: () => void; getWindow: () => BrowserWindow };
   private systemPlugins: any;
 
   constructor() {
-    protocol.registerSchemesAsPrivileged([
-      { scheme: 'app', privileges: { secure: true, standard: true } },
-    ]);
     this.windowCreator = main();
     const gotTheLock = app.requestSingleInstanceLock();
     if (!gotTheLock) {
@@ -63,6 +61,8 @@ class App {
   }
   onReady() {
     const readyFunction = async () => {
+      await warmupDevSubAppServers();
+      registerCdwhereIpc();
       checkVersion();
       await localConfig.init();
       const config = await localConfig.getConfig();
@@ -100,9 +100,10 @@ class App {
         if (win.isMinimized()) {
           win.restore();
         }
+        // 第二实例被拒绝后，确保主窗口可见，避免仅 focus 但窗口仍隐藏
+        win.show();
         win.focus();
         if (files.length > 0) {
-          win.show();
           putFileToRubick(win.webContents, files);
         }
       }

@@ -1,4 +1,4 @@
-import { BrowserView, BrowserWindow, session } from 'electron';
+import { app, BrowserView, BrowserWindow, session } from 'electron';
 import path from 'path';
 import commonConst from '../../common/utils/commonConst';
 import { PLUGIN_INSTALL_DIR as baseDir } from '@/common/constans/main';
@@ -8,6 +8,26 @@ import {
   WINDOW_PLUGIN_HEIGHT,
   WINDOW_WIDTH,
 } from '@/common/constans/common';
+import { applyMainWindowContentHeight } from '@/main/common/mainWindowContentResize';
+import { DEV_APP_PORTS, devSubAppHttpUrl } from '@/main/common/devSubAppServers';
+
+/** 与主窗口 webPreferences.preload 一致：须为 electron-vite 产物；勿用 public/preload.js（裸 require @electron/remote 在 session preload 中会解析失败） */
+function rubickSessionPreloadPath(): string {
+  return path.join(app.getAppPath(), 'dist', 'preload', 'index.js');
+}
+
+const registeredSessionPreloads = new WeakMap<Electron.Session, string>();
+
+function ensureSessionPreload(ses: Electron.Session): void {
+  const filePath = rubickSessionPreloadPath();
+  if (typeof ses.registerPreloadScript === 'function') {
+    if (registeredSessionPreloads.has(ses)) return;
+    const id = ses.registerPreloadScript({ type: 'frame', filePath });
+    registeredSessionPreloads.set(ses, id);
+    return;
+  }
+  ses.setPreloads([filePath]);
+}
 
 const getRelativePath = (indexPath) => {
   return commonConst.windows()
@@ -18,14 +38,12 @@ const getRelativePath = (indexPath) => {
 const getPreloadPath = (plugin, pluginIndexPath) => {
   const { name, preload, tplPath, indexPath } = plugin;
   if (!preload) return;
-  if (commonConst.dev()) {
-    if (name === 'rubick-system-feature') {
-      return path.resolve(__static, `../feature/public/preload.js`);
-    }
-    if (tplPath) {
-      return path.resolve(getRelativePath(indexPath), `./`, preload);
-    }
-    return path.resolve(getRelativePath(pluginIndexPath), `../`, preload);
+  if (name === 'rubick-system-super-panel') {
+    return path.join(__static, 'superx', preload || 'preload.js');
+  }
+  // 子项目走 Vite 时 indexPath 为 http://，不可用 path.resolve 相对其推导 preload，须固定磁盘路径
+  if (name === 'rubick-system-feature') {
+    return path.join(__static, 'feature', preload || 'preload.js');
   }
   if (tplPath) {
     return path.resolve(getRelativePath(indexPath), `./`, preload);
@@ -62,7 +80,7 @@ export default () => {
   const viewReadyFn = async (window, { pluginSetting, ext }) => {
     if (!view) return;
     const height = pluginSetting && pluginSetting.height;
-    window.setSize(WINDOW_WIDTH, height || WINDOW_PLUGIN_HEIGHT);
+    applyMainWindowContentHeight(window, height || WINDOW_PLUGIN_HEIGHT);
     view.setBounds({
       x: 0,
       y: WINDOW_HEIGHT,
@@ -82,7 +100,12 @@ export default () => {
   };
 
   const init = (plugin, window: BrowserWindow) => {
-    if (view === null || view === undefined || view.inDetach) {
+    if (
+      view == null ||
+      view.inDetach ||
+      !view.webContents ||
+      view.webContents.isDestroyed()
+    ) {
       createView(plugin, window);
       // if (viewInstance.getView(plugin.name) && !commonConst.dev()) {
       //   view = viewInstance.getView(plugin.name).view;
@@ -119,18 +142,26 @@ export default () => {
     }
     // 再尝试去找
     if (plugin.name === 'rubick-system-feature' && !pluginIndexPath) {
-      pluginIndexPath = commonConst.dev()
-        ? 'http://localhost:8081/#/'
-        : `file://${__static}/feature/index.html`;
+      pluginIndexPath = `file://${__static}/feature/index.html`;
+    }
+    if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
+      pluginIndexPath = `file://${path.join(__static, 'superx', main)}`;
     }
     if (!pluginIndexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', name);
       pluginIndexPath = `file://${path.join(pluginPath, './', main)}`;
     }
+    if (name === 'rubick-system-feature') {
+      const h = devSubAppHttpUrl(DEV_APP_PORTS.feature, '/');
+      if (h) pluginIndexPath = h;
+    } else if (name === 'rubick-system-super-panel') {
+      const h = devSubAppHttpUrl(DEV_APP_PORTS.superxWeb, `/${main}`);
+      if (h) pluginIndexPath = h;
+    }
     const preload = getPreloadPath(plugin, preloadPath || pluginIndexPath);
 
     const ses = session.fromPartition('<' + name + '>');
-    ses.setPreloads([`${__static}/preload.js`]);
+    ensureSessionPreload(ses);
 
     view = new BrowserView({
       webPreferences: {
@@ -175,30 +206,24 @@ export default () => {
 
   const removeView = (window: BrowserWindow) => {
     if (!view) return;
+    if (view.inDetach) {
+      view = undefined;
+      return;
+    }
     executeHooks('PluginOut', null);
-    // 先记住这次要移除的视图，防止后面异步代码里全局引用被换掉
     const snapshotView = view;
     setTimeout(() => {
-      // 获取当前视图，判断是否已经换成了新视图
       const currentView = window.getBrowserView?.();
       window.removeBrowserView(snapshotView);
 
-      // 主窗口的插件视图仍然挂着旧实例时，需要还原主窗口 UI
-      if (!snapshotView.inDetach) {
-        // 如果窗口还挂着旧视图，说明还没换掉，需要把主窗口恢复到初始状态
-        if (currentView === snapshotView) {
-          window.setBrowserView(null);
-          if (view === snapshotView) {
-            window.webContents?.executeJavaScript(`window.initRubick()`);
-            view = undefined;
-          }
+      if (currentView === snapshotView) {
+        window.setBrowserView(null);
+        if (view === snapshotView) {
+          window.webContents?.executeJavaScript(`window.initRubick()`);
+          view = undefined;
         }
-        snapshotView.webContents?.destroy();
       }
-      // 分离窗口只需释放全局引用，视图由分离窗口继续管理
-      else if (view === snapshotView) {
-        view = undefined;
-      }
+      snapshotView.webContents?.destroy();
     }, 0);
   };
 

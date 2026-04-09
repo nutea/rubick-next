@@ -1,11 +1,7 @@
 import { reactive, toRefs, ref } from 'vue';
-import { nativeImage, ipcRenderer } from 'electron';
-import { getGlobal } from '@electron/remote';
 import appSearch from '@/core/app-search';
 import { PluginHandler } from '@/core';
-import path from 'path';
 import commonConst from '@/common/utils/commonConst';
-import { exec } from 'child_process';
 import searchManager from './search';
 import optionsManager from './options';
 import {
@@ -13,6 +9,11 @@ import {
   PLUGIN_HISTORY,
 } from '@/common/constans/renderer';
 import { message } from 'ant-design-vue';
+
+const { nativeImage, ipcRenderer } = window.require('electron');
+const { getGlobal } = window.require('@electron/remote');
+const path = window.require('path');
+const { exec } = window.require('child_process');
 
 const createPluginManager = (): any => {
   const pluginInstance = new PluginHandler({
@@ -64,28 +65,58 @@ const createPluginManager = (): any => {
 
   const loadPlugin = async (plugin) => {
     setSearchValue('');
-    ipcRenderer.send('msg-trigger', {
-      type: 'setExpendHeight',
-      data: 60,
-    });
+    // 缩窗由主进程 openPlugin 内 resizeLauncherContent 统一处理；此处再发 setExpendHeight 会与主进程次序交叉，高 DPI 下二次改尺寸导致跳动
     state.pluginLoading = true;
     state.currentPlugin = plugin;
     // 自带的插件不需要检测更新
-    if (plugin.name === 'rubick-system-feature') return;
+    if (
+      plugin.name === 'rubick-system-feature' ||
+      plugin.name === 'rubick-system-super-panel'
+    ) {
+      return;
+    }
     await pluginInstance.upgrade(plugin.name);
     state.pluginLoading = false;
   };
 
   const openPlugin = async (plugin, option) => {
-    ipcRenderer.send('msg-trigger', {
-      type: 'removePlugin',
-    });
-    window.initRubick();
     if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       if (state.currentPlugin && state.currentPlugin.name === plugin.name) {
         window.rubick.showMainWindow();
         return;
       }
+      const pluginPayload = JSON.parse(
+        JSON.stringify({
+          ...plugin,
+          ext: plugin.ext || {
+            code: plugin.feature.code,
+            type: plugin.cmd.type || 'text',
+            payload: null,
+          },
+        })
+      );
+      /** invoke：sendSync + async msg-trigger 会在 await 微任务之后才设 returnValue，重定向恒为假 */
+      const redirected = await ipcRenderer.invoke(
+        'rubick:try-redirect-singleton-detach',
+        pluginPayload
+      );
+      if (redirected) {
+        changePluginHistory({
+          ...plugin,
+          ...option,
+          originName: plugin.name,
+        });
+        return;
+      }
+    }
+
+    ipcRenderer.send('msg-trigger', {
+      type: 'removePlugin',
+    });
+    window.captureSearchSnapshotForNextDetach?.();
+    window.initRubick();
+
+    if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       await loadPlugin(plugin);
       window.rubick.openPlugin(
         JSON.parse(
@@ -182,9 +213,7 @@ const createPluginManager = (): any => {
     return {
       ...pluginInfo,
       icon: pluginInfo.logo,
-      indexPath: commonConst.dev()
-        ? 'http://localhost:8081/#/'
-        : `file://${path.join(pluginPath, '../', pluginInfo.main)}`,
+      indexPath: `file://${path.join(pluginPath, '../', pluginInfo.main)}`,
     };
   };
 

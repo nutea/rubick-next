@@ -6,6 +6,10 @@ const searchManager = () => {
     placeholder: '',
   });
 
+  /** 在 initRubick / loadPlugin 清空主搜索框之前保存，供分离窗 getMainInputInfo 合并（自动分离时 dom-ready 很早） */
+  let searchSnapshotBeforeOpen: { value: string; placeholder: string } | null =
+    null;
+
   // search Input operation
   const onSearch = (e) => {
     const value = e.target.value;
@@ -27,10 +31,36 @@ const searchManager = () => {
   };
 
   window.getMainInputInfo = () => {
+    const snap = searchSnapshotBeforeOpen;
+    if (snap) {
+      return {
+        value: state.searchValue || snap.value || '',
+        placeholder: state.placeholder || snap.placeholder || '',
+      };
+    }
     return {
       value: state.searchValue,
       placeholder: state.placeholder,
     };
+  };
+
+  window.captureSearchSnapshotForNextDetach = () => {
+    const value = state.searchValue;
+    const placeholder = state.placeholder;
+    /** 主进程 loadPlugin 会在 initRubick 之后再次 capture，避免用空状态覆盖已保存的启动关键词 */
+    if (
+      searchSnapshotBeforeOpen &&
+      !value &&
+      !placeholder &&
+      (searchSnapshotBeforeOpen.value || searchSnapshotBeforeOpen.placeholder)
+    ) {
+      return;
+    }
+    searchSnapshotBeforeOpen = { value, placeholder };
+  };
+
+  window.clearSearchSnapshotAfterDetach = () => {
+    searchSnapshotBeforeOpen = null;
   };
 
   return {

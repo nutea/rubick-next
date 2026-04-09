@@ -2,14 +2,17 @@ import {
   AdapterHandlerOptions,
   AdapterInfo,
 } from '@/core/plugin-handler/types';
-import fs from 'fs-extra';
-import path from 'path';
-import got from 'got';
-import fixPath from 'fix-path';
-
-import spawn from 'cross-spawn';
-import { ipcRenderer } from 'electron';
 import axios from 'axios';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const fs = nodeRequire('fs-extra');
+const fixPath = nodeRequire('fix-path');
+const path = nodeRequire('path');
+const { ipcRenderer } = nodeRequire('electron');
+const spawn = nodeRequire('cross-spawn');
 
 fixPath();
 
@@ -105,12 +108,11 @@ class AdapterHandler {
         fs.readFileSync(infoPath, 'utf-8')
       ) as AdapterInfo;
     } else {
-      // 本地没有从远程获取
-      const resp = await got.get(
-        `https://cdn.jsdelivr.net/npm/${adapter}/plugin.json`
+      const { data } = await axios.get(
+        `https://cdn.jsdelivr.net/npm/${adapter}/plugin.json`,
+        { timeout: 5000 }
       );
-      // Todo 校验合法性
-      adapterInfo = JSON.parse(resp.body) as AdapterInfo;
+      adapterInfo = data as AdapterInfo;
     }
     return adapterInfo;
   }
@@ -139,8 +141,14 @@ class AdapterHandler {
    */
   async uninstall(adapters: string[], options: { isDev: boolean }) {
     const installCmd = options.isDev ? 'unlink' : 'uninstall';
-    // 卸载插件
-    await this.execCommand(installCmd, adapters);
+    await this.execCommand(installCmd, adapters, {
+      timeoutMs: 120000,
+      quiet: true,
+      extraArgs:
+        installCmd === 'uninstall'
+          ? ['--no-audit', '--no-fund', '--loglevel=warn']
+          : [],
+    });
   }
 
   /**
@@ -162,14 +170,27 @@ class AdapterHandler {
    * 运行包管理器
    * @memberof AdapterHandler
    */
-  private async execCommand(cmd: string, modules: string[]): Promise<string> {
+  private async execCommand(
+    cmd: string,
+    modules: string[],
+    opts?: {
+      timeoutMs?: number;
+      /** 不向 process.stdout/stderr 管道，避免主进程反压导致 npm 卡住 */
+      quiet?: boolean;
+      extraArgs?: string[];
+    }
+  ): Promise<string> {
     return new Promise((resolve: any, reject: any) => {
       let args: string[] = [cmd].concat(
         cmd !== 'uninstall' && cmd !== 'link'
           ? modules.map((m) => `${m}@latest`)
           : modules
       );
-      if (cmd !== 'link') {
+      if (opts?.extraArgs?.length) {
+        args = args.concat(opts.extraArgs);
+      }
+      // uninstall/unlink 不应再走 registry 网络，否则易卡住超时
+      if (cmd !== 'link' && cmd !== 'unlink' && cmd !== 'uninstall') {
         args = args
           .concat('--color=always')
           .concat('--save')
@@ -183,23 +204,59 @@ class AdapterHandler {
       console.log(args);
 
       let output = '';
-      npm.stdout
-        .on('data', (data: string) => {
-          output += data; // 获取输出日志
-        })
-        .pipe(process.stdout);
+      let settled = false;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-      npm.stderr
-        .on('data', (data: string) => {
-          output += data; // 获取报错日志
-        })
-        .pipe(process.stderr);
+      const settle = (fn: (v?: unknown) => void, arg?: unknown) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
+        fn(arg);
+      };
+
+      const onOut = (data: Buffer | string) => {
+        output += data;
+      };
+
+      if (opts?.quiet) {
+        npm.stdout.on('data', onOut);
+        npm.stderr.on('data', onOut);
+      } else {
+        npm.stdout.on('data', onOut).pipe(process.stdout);
+        npm.stderr.on('data', onOut).pipe(process.stderr);
+      }
+
+      if (opts?.timeoutMs && opts.timeoutMs > 0) {
+        timeoutId = setTimeout(() => {
+          try {
+            npm.kill('SIGTERM');
+          } catch {
+            // ignore
+          }
+          setTimeout(() => {
+            try {
+              if (!npm.killed) npm.kill('SIGKILL');
+            } catch {
+              // ignore
+            }
+          }, 4000);
+          settle(reject, {
+            code: 'TIMEOUT',
+            data: output,
+            err: new Error(`npm ${cmd} timed out after ${opts.timeoutMs}ms`),
+          });
+        }, opts.timeoutMs);
+      }
+
+      npm.on('error', (err: Error) => {
+        settle(reject, { code: -1, data: output, err });
+      });
 
       npm.on('close', (code: number) => {
         if (!code) {
-          resolve({ code: 0, data: output }); // 如果没有报错就输出正常日志
+          settle(resolve, { code: 0, data: output });
         } else {
-          reject({ code: code, data: output }); // 如果报错就输出报错日志
+          settle(reject, { code: code, data: output });
         }
       });
     });

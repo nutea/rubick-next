@@ -1,10 +1,11 @@
 import getCopyFiles from '@/common/utils/getCopyFiles';
-import { clipboard, nativeImage, ipcRenderer } from 'electron';
-import { getGlobal } from '@electron/remote';
-import path from 'path';
 import pluginClickEvent from './pluginClickEvent';
 import localConfig from '../confOp';
 import { ref } from 'vue';
+
+const { clipboard, nativeImage, ipcRenderer } = window.require('electron');
+const { getGlobal } = window.require('@electron/remote');
+const path = window.require('path');
 
 export default ({ currentPlugin, optionsRef, openPlugin, setOptionsRef }) => {
   const clipboardFile: any = ref([]);

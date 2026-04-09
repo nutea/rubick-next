@@ -1,11 +1,16 @@
-import { clipboard, Notification } from 'electron';
-import { execFile, exec } from 'child_process';
 import platform from '@/common/utils/commonConst';
-import path from 'path';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const { clipboard, Notification } = nodeRequire('electron');
+const { execFile, exec } = nodeRequire('child_process');
+const path = nodeRequire('path');
 
 // 截图方法windows
 export const screenWindow = (cb) => {
-  const url = path.resolve(__static, 'ScreenCapture.exe');
+  const url = path.resolve(__static, 'bin', 'ScreenCapture.exe');
   const screen_window = execFile(url);
   screen_window.on('exit', (code) => {
     if (code) {

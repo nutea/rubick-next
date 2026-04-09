@@ -1,106 +1,101 @@
-[English](./README.md) | 简体中文
+﻿[English](./README.md) | 简体中文
 
+# Rubick Next
 
-<div align= "center">
-<img align="center" width=200 src="./public/logo.png" />
-</div>
+基于 Electron、Vue 和 pnpm workspace 的插件化桌面效率工具。
 
-<div align="center">
-    <h1>Rubick</h1>
-    <img alt="累计下载数" src="https://img.shields.io/github/downloads/rubickCenter/rubick/total" />
-    <a href="https://github.com/rubickCenter/rubick/releases"><img alt="最新发布版本" src="https://img.shields.io/github/package-json/v/rubickCenter/rubick" /></a>
-    <a href="https://github.com/rubickCenter/rubick/actions"><img alt="github action 构建" src="https://img.shields.io/github/actions/workflow/status/rubickCenter/rubick/main.yml" /></a>
-    <a href="https://github.com/rubickCenter/rubick/blob/master/LICENSE"><img alt="许可证" src="https://img.shields.io/github/license/rubickCenter/rubick" /></a>
-    <a href="https://github.com/rubickCenter/rubick/stargazers"><img alt="github 收藏数" src="https://img.shields.io/github/stars/rubickCenter/rubick?style=social" /></a>
-    <a href="https://gitee.com/monkeyWang/rubick"><img alt="gitee 镜像源" src="https://img.shields.io/badge/Gitee--yellow.svg?style=social&logo=data:image/svg+xml;base64,PHN2ZyB0PSIxNTc0ODM3MTM4ODM3IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE3NzAiICAgICB3aWR0aD0iMTYiIGhlaWdodD0iMTYiPiAgICA8cGF0aCBkPSJNODkxIDQyOC44SDQ2NS44Yy0yMC40IDAtMzcgMTYuNS0zNyAzN3Y5Mi40YzAgMjAuNCAxNi41IDM3IDM3IDM3aDI1OC45YzIwLjQgMCAzNyAxNi42IDM3IDM3djE4LjRjMCA2MS4zLTQ5LjcgMTEwLjktMTEwLjkgMTEwLjlIMjk5LjRjLTIwLjQgMC0zNy0xNi42LTM3LTM3VjM3My4yYzAtNjEuMyA0OS43LTExMC45IDExMC45LTExMC45aDUxNy42YzIwLjQgMCAzNy0xNi41IDM3LTM3bDAuMS05Mi4zYzAtMjAuNC0xNi41LTM3LTM3LTM3SDM3My4zQzIyMC4yIDk2IDk2IDIyMC4yIDk2IDM3My4zVjg5MWMwIDIwLjQgMTYuNiAzNyAzNyAzN2g1NDUuNEM4MTYuMiA5MjggOTI4IDgxNi4zIDkyOCA2NzguNFY0NjUuOGMwLTIwLjQtMTYuNi0zNy0zNy0zN3oiICAgICAgICAgIGZpbGw9IiNkODFlMDYiIHAtaWQ9IjE3NzEiPjwvcGF0aD48L3N2Zz4=" /></a>
-</div>
+这个仓库是一个桌面应用主程序与多个子应用组成的 monorepo，包含主搜索面板、插件市场、分离窗口、引导页和超级面板等模块，适合继续做桌面启动器、插件系统和效率工具方向的开发。
 
-<div align= "center">
-<img align="center" src="https://picx.zhimg.com/80/v2-f8fe09ef125dac5fdcbef3fe00f92b21_720w.png" />
-</div>
+## 项目简介
 
-开源的插件化桌面端效率工具箱。插件是基于 npm 进行安装和卸载，非常轻便。插件数据支持 webdav 多端同步，非常安全。支持内网部署，可二次定制化开发，非常灵活。
+项目当前包含这些核心部分：
 
-## 获取 rubick
-下载最新的安装包：
+- 主程序：Electron 主进程、主搜索面板、插件加载与窗口管理
+- `apps/feature`：插件市场与设置页面
+- `apps/superx`：超级面板
+- `apps/detach`：分离窗口
+- `apps/guide`：首次引导页
+- `apps/tpl`：模板页面
 
-* [Rubick Mac OS](https://github.com/rubickCenter/rubick/releases)
-* [Rubick Windows](https://github.com/rubickCenter/rubick/releases)
-* [Rubick Linux](https://github.com/rubickCenter/rubick/releases)
+## 技术栈
 
-## 使用文档
+- Electron
+- Vue 3
+- TypeScript
+- Vite / electron-vite
+- pnpm workspace
 
-[Rubick 官网](https://rubick.vip)
+## 开发
 
-[Rubick Docs](https://rubickCenter.github.io/rubick/)
+安装依赖：
 
-## 如何使用 rubick
-
-安装完成 rubick 后，可以通过快捷键 Alt/Option+R  可以快速呼起主程序。主程序输入框内输入关键词可以搜索出对应的 App、插件、文件... 选择即可使用。如果没有想要的功能，可以点击左侧的 logo 进入插件市场寻找自己想要的插件进行安装。
-
-## 支持能力
-- [x] 基于 npm 包模式的插件管理，安装插件和安装 npm 包一样简单
-- [x] 支持 webdav 多端数据同步，真正的数据安全同步
-- [x] 独一无二的系统插件模式，让插件成为 rubick 的一部分
-- [x] 支持快速启动本地 app、文件、文件夹
-- [x] 支持企业化内网部署
-- [x] 支持多语言
-
-
-## 核心功能展示
-### 1. 搜索系统应用
-支持拼音和缩写来搜索系统安装应用：
-
-![](https://pic1.zhimg.com/80/v2-70c105ff7fb1e955fc67ffa5a5564092_720w.gif)
-
-### 2. UI类插件安装
-点击搜索框右侧 `rubick` 图标，进入插件市场，选择所需插件，点击下载按钮即可下载，下载完成后在已安装 tab 下可以找到安装插件。
-安装完成后，输入插件呼起命令即可使用对应插件：
-
-![](https://pic1.zhimg.com/80/v2-5906bba20fe0a67f9e7a5a8c11341305_720w.gif)
-
-### 3. 系统类插件安装
-系统插件安装方式和UI类一样，在插件市场选择`系统分类`，寻找适合自己的系统插件安装即可。
-
-```
-系统插件安装成功后，需要重启 rubick 才能生效
+```bash
+pnpm install
 ```
 
-### 4. 基于 webdav 的多端数据同步
-在 `rubick` 内搜索`偏好设置` 进入 `账户和设置` -> `多端数据同步`；即可对 `rubick` 插件使用数据进行 `导出` 和 `导入`。
+启动主程序开发环境：
 
-![](https://pic1.zhimg.com/80/v2-ff85793741e4dff82a729d3eb3d41551_720w.png)
+```bash
+pnpm serve
+```
 
-## 关联仓库
+同时启动子应用调试服务与主程序：
 
-[Rubick 插件仓库](https://gitee.com/rubick-center)
+```bash
+pnpm dev:all
+```
 
-[Rubick 插件数据库](https://gitcode.net/rubickcenter/rubick-database)
+只启动各子应用调试服务：
 
-[Rubick Plugin CLI](https://github.com/rubickCenter/rubick-plugin-cli)
+```bash
+pnpm dev:apps
+```
 
-## 赞助
-### 1. 加入知识星球
-我们在知识星球积累了大量的关于 rubick 的知识和常见问题，您可以付费加入我们的知识星球来一起讨论。我们将随时解答！
+## 构建
 
-<img width=400 src=https://picx.zhimg.com/80/v2-6deabf65175d18080439ef813102d18c_720w.png />
+构建桌面应用：
 
-### 2. 打赏喝杯咖啡
-如果项目对你有帮助，可以请我喝杯咖啡赞赏！
+```bash
+pnpm build
+```
 
-<div align= "left">
-<img width="180" src="https://picx.zhimg.com/80/v2-911d249dc454f3460451a4e1ecceeb14_720w.png">
-<img width="180" src="https://picx.zhimg.com/80/v2-3160247d6099053405e6cd2cb6afb5e5_720w.png">
-</div>
+构建所有子应用：
 
-## 反馈
-对本项目有兴趣或者想要交流学习的同学可以扫码加下面的微信，备注 rubick，帮助我们更好的成长：
+```bash
+pnpm apps:build
+```
 
-![image](https://user-images.githubusercontent.com/21073039/127327603-9796f246-ee4b-4950-a69d-ce3205ec9569.png)
+生成本地安装包：
 
-## 贡献
-This project exists thanks to all the people who contribute. [[Contribute](https://github.com/rubickCenter/rubick/graphs/contributors)]. <a href="https://github.com/rubickCenter/rubick/graphs/contributors"><img src="https://opencollective.com/rubick/contributors.svg?width=890&button=false" /></a>
+```bash
+pnpm electron:build:local
+```
+
+## 目录结构
+
+```text
+.
+├─ src/                  主程序源码
+├─ apps/
+│  ├─ feature/           插件市场
+│  ├─ superx/            超级面板
+│  ├─ detach/            分离窗口
+│  ├─ guide/             引导页
+│  └─ tpl/               模板页面
+├─ public/               静态资源与构建产物
+└─ electron-builder.yml  打包配置
+```
+
+## 开源说明
+
+本项目基于开源项目 Rubick 继续开发，并保留必要的来源归属信息。
+
+- 原项目：Rubick
+- 原始仓库：https://github.com/rubickCenter/rubick
+- 原始许可证：MIT
+
+如果你继续分发或二次开发本项目，请一并遵守原项目许可证要求。
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/rubickCenter/rubick/blob/master/LICENSE) file for details.
 
+[MIT](./LICENSE)

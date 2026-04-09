@@ -1,6 +1,5 @@
 import { app, BrowserWindow, protocol, nativeTheme } from 'electron';
 import path from 'path';
-import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // import versonHandler from '../common/versionHandler';
 import localConfig from '@/main/common/initLocalConfig';
 import {
@@ -38,17 +37,17 @@ export default () => {
         contextIsolation: false,
         webviewTag: true,
         nodeIntegration: true,
-        preload: path.join(__static, 'preload.js'),
+        preload: path.join(__dirname, '../../preload/index.js'),
         spellcheck: false,
       },
     });
-    if (process.env.WEBPACK_DEV_SERVER_URL) {
+    const devServerUrl = process.env.ELECTRON_RENDERER_URL;
+    if (devServerUrl) {
       // Load the url of the dev server if in development mode
-      win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string);
+      win.loadURL(devServerUrl);
     } else {
-      createProtocol('app');
-      // Load the index.html when not in development
-      win.loadURL('app://./index.html');
+      // 主进程在 dist/main/chunks 下时 __dirname 多一层，不能用相对 chunks 的 ../renderer
+      win.loadFile(path.join(app.getAppPath(), 'dist', 'renderer', 'index.html'));
     }
     protocol.interceptFileProtocol('image', (req, callback) => {
       const url = req.url.substr(8);

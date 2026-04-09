@@ -1,0 +1,29 @@
+productName: rubick
+appId: com.muwoo.rubick
+compression: maximum
+directories:
+  output: build
+releaseInfo:
+  releaseName: normal
+  releaseNotesFile: ./release/releaseNotes.md
+files:
+  - dist/**/*
+  - public/**/*
+  - package.json
+asarUnpack:
+  - '**/public/bin/**'
+extraMetadata:
+  main: dist/main/entry.js
+win:
+  icon: public/icons/icon.ico
+  artifactName: rubick-Setup-${version}-x64.exe
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  shortcutName: rubick
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  include: public/installer.nsh
+  warningsAsErrors: false

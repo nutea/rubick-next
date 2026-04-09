@@ -1,8 +1,13 @@
-import { Notification, app } from 'electron';
 import MemoryStream from 'memorystream';
 
 import { createClient } from 'webdav';
 import { WebDAVClient } from 'webdav/dist/node/types';
+
+const nodeRequire =
+  typeof window !== 'undefined' && (window as any).require
+    ? (window as any).require
+    : require;
+const { Notification, app } = nodeRequire('electron');
 
 type WebDavOptions = {
   username: string;

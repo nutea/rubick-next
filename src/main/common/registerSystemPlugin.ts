@@ -3,6 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import { PLUGIN_INSTALL_DIR } from '@/common/constans/main';
 
+declare const __static: string;
+
+function systemPluginDiskRoot(plugin: { name: string }): string {
+  if (plugin.name === 'rubick-system-super-panel') {
+    return path.join(__static, 'superx');
+  }
+  return path.resolve(PLUGIN_INSTALL_DIR, 'node_modules', plugin.name);
+}
+
 export default () => {
   // 读取所有插件
   const totalPlugins = global.LOCAL_PLUGINS.getLocalPlugins();
@@ -12,11 +21,7 @@ export default () => {
   systemPlugins = systemPlugins
     .map((plugin) => {
       try {
-        const pluginPath = path.resolve(
-          PLUGIN_INSTALL_DIR,
-          'node_modules',
-          plugin.name
-        );
+        const pluginPath = systemPluginDiskRoot(plugin);
         return {
           ...plugin,
           indexPath: path.join(pluginPath, './', plugin.entry),
@@ -33,9 +38,20 @@ export default () => {
 
   systemPlugins.forEach((plugin) => {
     if (fs.existsSync(plugin.indexPath)) {
-      const pluginModule = __non_webpack_require__(plugin.indexPath)();
-      // @ts-ignore
-      hooks.onReady.push(pluginModule.onReady);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pluginModule = (require(plugin.indexPath) as any)();
+        // @ts-ignore
+        hooks.onReady.push(async (ctx) => {
+          try {
+            await pluginModule.onReady(ctx);
+          } catch (e) {
+            console.error(`[rubick] system plugin onReady failed [${plugin.name}]:`, e);
+          }
+        });
+      } catch (e) {
+        console.error(`[rubick] failed to load system plugin [${plugin.name}]:`, e);
+      }
     }
   });
 
