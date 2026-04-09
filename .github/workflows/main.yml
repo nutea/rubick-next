@@ -32,6 +32,17 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure node-gyp Python
+        shell: pwsh
+        run: |
+          "PYTHON=$env:pythonLocation\python.exe" >> $env:GITHUB_ENV
+          "npm_config_python=$env:pythonLocation\python.exe" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
