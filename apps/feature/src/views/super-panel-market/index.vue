@@ -12,22 +12,21 @@
       </a-menu>
       <div class="settings-detail">
         <template v-if="activeTab[0] === 'shortcut'">
-          <a-alert
-            type="info"
-            show-icon
-            :message="$t('feature.superPanelShortcut.tipTitle')"
-            :description="$t('feature.superPanelShortcut.tipDesc')"
-            class="tip-alert"
-          />
-          <a-form
-            class="shortcut-form"
-            :model="form"
-            :label-col="{ span: 10 }"
-            :wrapper-col="{ span: 14 }"
-            name="superPanelHotkey"
-            autocomplete="off"
-            @finish="onSave"
-          >
+          <div class="setting-item">
+            <a-alert
+              type="info"
+              show-icon
+              :message="$t('feature.superPanelShortcut.tipDesc')"
+              class="tip-alert translate-tip"
+            />
+            <a-form
+              layout="vertical"
+              class="shortcut-form"
+              :model="form"
+              name="superPanelHotkey"
+              autocomplete="off"
+              @finish="onSave"
+            >
             <a-form-item
               :label="$t('feature.superPanelShortcut.triggerType')"
               name="triggerType"
@@ -81,49 +80,56 @@
                 @compositionend.prevent
               />
             </a-form-item>
-            <a-form-item :wrapper-col="{ offset: 10, span: 14 }">
+            <a-form-item>
               <a-button type="primary" html-type="submit">
                 {{ $t('feature.superPanelShortcut.save') }}
               </a-button>
             </a-form-item>
           </a-form>
+          </div>
         </template>
 
         <template v-else>
-          <div class="setting-item">
-            <div class="title">{{ $t('feature.superPanelShortcut.translateTitle') }}</div>
+          <div class="setting-item translate-page">
             <a-alert
               type="info"
               show-icon
               :message="$t('feature.superPanelShortcut.translateConfigHint')"
               class="tip-alert translate-tip"
             />
-            <div class="profile-toolbar">
-              <div class="profile-toolbar-row">
-                <span class="profile-toolbar-label">{{ $t('feature.superPanelShortcut.profileSelect') }}</span>
-                <a-select
-                  :value="selectedProfileId"
-                  class="profile-select"
-                  :disabled="translateProfiles.length === 0"
-                  :placeholder="$t('feature.superPanelShortcut.translateProfilesEmpty')"
-                  @change="onProfileSelectChange"
-                >
-                  <a-select-option v-for="p in translateProfiles" :key="p.id" :value="p.id">
-                    {{ p.name }}
-                  </a-select-option>
-                </a-select>
-                <a-button @click="onAddProfile">{{ $t('feature.superPanelShortcut.addProfile') }}</a-button>
-                <a-popconfirm
-                  :title="$t('feature.superPanelShortcut.deleteProfileConfirm')"
-                  @confirm="onDeleteProfile"
-                >
-                  <a-button danger :disabled="!selectedProfileId">
-                    {{ $t('feature.superPanelShortcut.deleteProfile') }}
-                  </a-button>
-                </a-popconfirm>
-                <a-button :loading="testLoading" @click="onTestConnection">
-                  {{ $t('feature.superPanelShortcut.testConnection') }}
-                </a-button>
+
+            <div class="translate-section">
+              <div class="translate-section-title">
+                {{ $t('feature.superPanelShortcut.translateSectionProfiles') }}
+              </div>
+              <div class="translate-profile-card">
+                <div class="translate-profile-row">
+                  <span class="translate-profile-label">{{
+                    $t('feature.superPanelShortcut.profileSelect')
+                  }}</span>
+                  <a-select
+                    :value="selectedProfileId"
+                    class="profile-select"
+                    :disabled="translateProfiles.length === 0"
+                    :placeholder="$t('feature.superPanelShortcut.translateProfilesEmpty')"
+                    @change="onProfileSelectChange"
+                  >
+                    <a-select-option v-for="p in translateProfiles" :key="p.id" :value="p.id">
+                      {{ p.name }}
+                    </a-select-option>
+                  </a-select>
+                  <div class="translate-profile-actions">
+                    <a-button @click="onAddProfile">{{ $t('feature.superPanelShortcut.addProfile') }}</a-button>
+                    <a-popconfirm
+                      :title="$t('feature.superPanelShortcut.deleteProfileConfirm')"
+                      @confirm="onDeleteProfile"
+                    >
+                      <a-button danger :disabled="!selectedProfileId">
+                        {{ $t('feature.superPanelShortcut.deleteProfile') }}
+                      </a-button>
+                    </a-popconfirm>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -131,96 +137,130 @@
               {{ $t('feature.superPanelShortcut.translateProfilesEmpty') }}
             </div>
 
-            <a-form v-else layout="vertical" class="translate-form">
-              <a-form-item :label="$t('feature.superPanelShortcut.profileName')">
-                <a-input v-model:value="translateForm.profileName" autocomplete="off" />
-              </a-form-item>
-              <a-form-item :label="$t('feature.superPanelShortcut.translateProvider')">
-                <a-select v-model:value="translateForm.translateProvider" class="translate-provider-select">
-                  <a-select-option value="openai_chat">
-                    {{ $t('feature.superPanelShortcut.providerOpenaiChat') }}
-                  </a-select-option>
-                  <a-select-option value="anthropic_messages">
-                    {{ $t('feature.superPanelShortcut.providerAnthropic') }}
-                  </a-select-option>
-                </a-select>
-              </a-form-item>
+            <div v-else class="translate-layout">
+              <a-form layout="vertical" class="translate-form">
+                <div class="translate-section translate-section-api">
+                  <div class="translate-section-title">
+                    {{ $t('feature.superPanelShortcut.translateSectionApi') }}
+                  </div>
+                  <a-form-item :label="$t('feature.superPanelShortcut.translateProvider')">
+                    <a-select
+                      v-model:value="translateForm.translateProvider"
+                      class="translate-provider-select"
+                    >
+                      <a-select-option value="openai_chat">
+                        {{ $t('feature.superPanelShortcut.providerOpenaiChat') }}
+                      </a-select-option>
+                    </a-select>
+                  </a-form-item>
+                  <a-form-item :label="$t('feature.superPanelShortcut.profileName')">
+                    <a-input v-model:value="translateForm.profileName" autocomplete="off" />
+                  </a-form-item>
+                  <a-form-item :label="$t('feature.superPanelShortcut.llmBaseUrl')">
+                    <a-input
+                      v-model:value="translateForm.llmBaseUrl"
+                      :placeholder="$t('feature.superPanelShortcut.llmBaseUrlPh')"
+                    />
+                  </a-form-item>
+                  <a-form-item :label="$t('feature.superPanelShortcut.llmApiKey')">
+                    <a-input-password v-model:value="translateForm.llmApiKey" autocomplete="off" />
+                  </a-form-item>
+                  <a-form-item :label="$t('feature.superPanelShortcut.llmModel')">
+                    <a-input v-model:value="translateForm.llmModel" />
+                  </a-form-item>
+                  <div class="translate-test-row">
+                    <a-button :loading="testLoading" @click="onTestConnection">
+                      {{ $t('feature.superPanelShortcut.testConnection') }}
+                    </a-button>
+                  </div>
+                </div>
 
-              <a-form-item :label="$t('feature.superPanelShortcut.llmBaseUrl')">
-                <a-input
-                  v-model:value="translateForm.llmBaseUrl"
-                  :placeholder="
-                    translateForm.translateProvider === 'anthropic_messages'
-                      ? $t('feature.superPanelShortcut.anthropicUrlPh')
-                      : $t('feature.superPanelShortcut.llmBaseUrlPh')
-                  "
-                />
-              </a-form-item>
-              <a-form-item
-                :label="
-                  translateForm.translateProvider === 'anthropic_messages'
-                    ? $t('feature.superPanelShortcut.anthropicApiKey')
-                    : $t('feature.superPanelShortcut.llmApiKey')
-                "
-              >
-                <a-input-password v-model:value="translateForm.llmApiKey" autocomplete="off" />
-              </a-form-item>
-              <a-form-item :label="$t('feature.superPanelShortcut.llmModel')">
-                <a-input v-model:value="translateForm.llmModel" />
-              </a-form-item>
+                <div class="translate-section translate-section-prompt">
+                  <div class="translate-section-title">
+                    {{ $t('feature.superPanelShortcut.translateSectionPrompt') }}
+                  </div>
+                  <a-form-item :label="$t('feature.superPanelShortcut.llmSystemPrompt')">
+                    <a-collapse ghost class="system-prompt-builtin-collapse">
+                      <a-collapse-panel
+                        key="builtin"
+                        :header="$t('feature.superPanelShortcut.systemPromptBuiltinCollapse')"
+                      >
+                        <pre class="system-prompt-builtin-pre">{{
+                          DEFAULT_TRANSLATE_SYSTEM_PROMPT
+                        }}</pre>
+                      </a-collapse-panel>
+                    </a-collapse>
+                    <a-textarea
+                      v-model:value="translateForm.llmSystemPrompt"
+                      :rows="4"
+                      class="system-prompt-textarea"
+                      :placeholder="$t('feature.superPanelShortcut.llmSystemPromptPh')"
+                    />
+                    <a-button
+                      type="default"
+                      size="small"
+                      class="system-prompt-fill-btn"
+                      @click="applyBuiltinSystemPrompt"
+                    >
+                      {{ $t('feature.superPanelShortcut.systemPromptFillBuiltin') }}
+                    </a-button>
+                  </a-form-item>
+                  <a-form-item :label="$t('feature.superPanelShortcut.llmExtraHeaders')">
+                    <a-textarea
+                      v-model:value="translateForm.llmExtraHeaders"
+                      :rows="2"
+                      :placeholder="$t('feature.superPanelShortcut.llmExtraHeadersPh')"
+                    />
+                  </a-form-item>
+                </div>
+              </a-form>
 
-              <template v-if="translateForm.translateProvider === 'anthropic_messages'">
-                <a-form-item :label="$t('feature.superPanelShortcut.anthropicApiVersion')">
-                  <a-input v-model:value="translateForm.anthropicApiVersion" />
-                </a-form-item>
-                <a-form-item :label="$t('feature.superPanelShortcut.anthropicMaxTokens')">
-                  <a-input-number
-                    v-model:value="translateForm.anthropicMaxTokens"
-                    :min="1"
-                    :max="200000"
-                    class="anthropic-max-tokens"
-                  />
-                </a-form-item>
-              </template>
-
-              <a-form-item :label="$t('feature.superPanelShortcut.llmSystemPrompt')">
-                <a-textarea
-                  v-model:value="translateForm.llmSystemPrompt"
-                  :rows="3"
-                  :placeholder="$t('feature.superPanelShortcut.llmSystemPromptPh')"
-                />
-              </a-form-item>
-              <a-form-item :label="$t('feature.superPanelShortcut.llmExtraHeaders')">
-                <a-textarea
-                  v-model:value="translateForm.llmExtraHeaders"
-                  :rows="2"
-                  :placeholder="$t('feature.superPanelShortcut.llmExtraHeadersPh')"
-                />
-              </a-form-item>
-            </a-form>
-
-            <div class="settings-item-li">
-              <div class="label">
-                {{ $t('feature.superPanelShortcut.autoTranslateLabel') }}
+              <div class="translate-section translate-section-behavior">
+                <div class="translate-section-title">
+                  {{ $t('feature.superPanelShortcut.translateSectionBehavior') }}
+                </div>
+                <a-form layout="vertical" class="translate-form translate-form-behavior">
+                  <a-form-item :label="$t('feature.superPanelShortcut.translateMaxCharsTitle')">
+                    <a-input-number
+                      v-model:value="translateMaxChars"
+                      :min="1"
+                      :max="100000"
+                      class="translate-max-chars-input"
+                    />
+                    <div class="translate-max-chars-hint">
+                      {{ $t('feature.superPanelShortcut.translateMaxCharsDesc') }}
+                    </div>
+                  </a-form-item>
+                  <div class="translate-auto-row">
+                    <div class="translate-auto-text">
+                      <div class="translate-auto-label">
+                        {{ $t('feature.superPanelShortcut.autoTranslateLabel') }}
+                      </div>
+                      <div class="translate-auto-desc">
+                        {{ $t('feature.superPanelShortcut.autoTranslateDesc') }}
+                      </div>
+                    </div>
+                    <a-tooltip
+                      :title="translateSwitchDisabled ? $t('feature.superPanelShortcut.switchNeedConfig') : ''"
+                    >
+                      <span class="switch-wrap">
+                        <a-switch
+                          v-model:checked="translateForm.autoTranslate"
+                          :disabled="translateSwitchDisabled"
+                          :checked-children="$t('feature.superPanelShortcut.on')"
+                          :un-checked-children="$t('feature.superPanelShortcut.off')"
+                        />
+                      </span>
+                    </a-tooltip>
+                  </div>
+                </a-form>
               </div>
-              <a-tooltip :title="translateSwitchDisabled ? $t('feature.superPanelShortcut.switchNeedConfig') : ''">
-                <span class="switch-wrap">
-                  <a-switch
-                    v-model:checked="translateForm.autoTranslate"
-                    :disabled="translateSwitchDisabled"
-                    :checked-children="$t('feature.superPanelShortcut.on')"
-                    :un-checked-children="$t('feature.superPanelShortcut.off')"
-                  />
-                </span>
-              </a-tooltip>
-            </div>
-            <div class="settings-item-li desc">
-              {{ $t('feature.superPanelShortcut.autoTranslateDesc') }}
-            </div>
-            <div class="settings-item-li action">
-              <a-button type="primary" @click="onSaveTranslate">
-                {{ $t('feature.superPanelShortcut.save') }}
-              </a-button>
+
+              <div class="translate-footer">
+                <a-button type="primary" @click="onSaveTranslate">
+                  {{ $t('feature.superPanelShortcut.save') }}
+                </a-button>
+              </div>
             </div>
           </div>
         </template>
@@ -243,6 +283,7 @@ import {
   type SuperPanelTranslateProvider,
   type TranslateProfile,
 } from '@/utils/superPanelTranslatePrefs';
+import { DEFAULT_TRANSLATE_SYSTEM_PROMPT } from '@/utils/superPanelTranslateBuiltinPrompt';
 import { testTranslateConnection } from '@/utils/translateConnectionTest';
 
 const { t } = useI18n();
@@ -311,9 +352,20 @@ function blankEditor(): Omit<TranslateEditorForm, 'autoTranslate'> {
   };
 }
 
+function clampTranslateMaxChars(n: unknown): number {
+  if (typeof n === 'number' && Number.isFinite(n) && n >= 1) {
+    return Math.min(100000, Math.floor(n));
+  }
+  return 2000;
+}
+
 const loadedProfiles = loadProfilesFromDoc(initialPref?.data as Record<string, unknown> | undefined);
 const translateProfiles = ref<TranslateProfile[]>(loadedProfiles.profiles);
 const selectedProfileId = ref<string | null>(loadedProfiles.activeProfileId);
+
+const translateMaxChars = ref(
+  clampTranslateMaxChars((initialPref?.data as Record<string, unknown> | undefined)?.translateMaxChars)
+);
 
 const translateForm = reactive<TranslateEditorForm>({
   ...blankEditor(),
@@ -563,6 +615,10 @@ function onSave() {
   message.success(t('feature.superPanelShortcut.saveOk'));
 }
 
+function applyBuiltinSystemPrompt() {
+  translateForm.llmSystemPrompt = DEFAULT_TRANSLATE_SYSTEM_PROMPT;
+}
+
 function onSaveTranslate() {
   const rubick = getRubick() as unknown as {
     db?: { get: (id: string) => { _id?: string; _rev?: string; data?: unknown } | null; put: (doc: unknown) => unknown };
@@ -607,6 +663,7 @@ function onSaveTranslate() {
   oldData.translateProfiles = profilesOut;
   oldData.activeTranslateProfileId = activeId;
   oldData.autoTranslate = autoTranslate;
+  oldData.translateMaxChars = clampTranslateMaxChars(translateMaxChars.value);
 
   rubick.db.put({
     ...oldDoc,
@@ -620,12 +677,15 @@ function onSaveTranslate() {
 </script>
 
 <style lang="less" scoped>
+@import '@/assets/common.less';
+
+/* 与 views/settings/index.vue 中 .settings 对齐 */
 .super-panel-settings {
   box-sizing: border-box;
   width: 100%;
   overflow-x: hidden;
   background: var(--color-body-bg2);
-  min-height: 100%;
+  height: calc(~'100vh - 34px');
 
   .view-title {
     font-size: 16px;
@@ -637,7 +697,8 @@ function onSaveTranslate() {
   .view-container {
     border-radius: 8px;
     background: var(--color-body-bg);
-    overflow: hidden;
+    overflow: auto;
+    height: calc(~'100vh - 84px');
   }
 
   .ant-menu-horizontal {
@@ -652,62 +713,248 @@ function onSaveTranslate() {
   .settings-detail {
     padding: 20px;
     box-sizing: border-box;
+    flex: 1;
+    overflow: auto;
     background: var(--color-body-bg);
     color: var(--color-text-content);
   }
 
   .tip-alert {
-    margin-bottom: 20px;
-  }
-
-  .shortcut-form {
-    max-width: 640px;
-  }
-
-  .translate-tip {
     margin-bottom: 16px;
   }
 
-  .translate-form {
+  .tip-alert :deep(.ant-alert) {
+    background: var(--color-input-hover);
+    border-color: var(--color-border-light);
+  }
+
+  .tip-alert :deep(.ant-alert-message) {
+    color: var(--color-text-primary);
+  }
+
+  .tip-alert :deep(.ant-alert-description) {
+    color: var(--color-text-desc);
+  }
+
+  .shortcut-form {
     max-width: 560px;
-    margin-bottom: 8px;
+  }
+
+  .translate-tip {
+    margin-bottom: 20px;
+  }
+
+  .translate-page {
+    max-width: 640px;
+  }
+
+  .translate-layout {
+    margin-top: 4px;
+  }
+
+  .translate-section {
+    margin-bottom: 28px;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+
+  .translate-section-title {
+    color: var(--ant-primary-color);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .translate-profile-card {
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--color-input-hover);
+    border: 1px solid var(--color-border-light);
+  }
+
+  .translate-profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+  }
+
+  .translate-profile-label {
+    color: var(--color-text-content);
+    flex-shrink: 0;
+    min-width: 4em;
+  }
+
+  .translate-profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
   }
 
   .translate-provider-select {
-    max-width: 360px;
+    max-width: 420px;
     width: 100%;
+  }
+
+  .translate-provider-select :deep(.ant-select-selector) {
+    background: var(--color-input-hover) !important;
+    color: var(--color-text-content);
+  }
+
+  .translate-provider-select :deep(.ant-select-arrow) {
+    color: var(--color-action-color);
+  }
+
+  .translate-test-row {
+    margin-top: 4px;
+    margin-bottom: 0;
+  }
+
+  .translate-section-behavior {
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 1px dashed var(--color-border-light);
+  }
+
+  .translate-auto-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 0 8px;
+  }
+
+  .translate-auto-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .translate-auto-label {
+    color: var(--color-text-content);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .translate-auto-desc {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color-text-desc);
+    line-height: 1.5;
+  }
+
+  .translate-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border-light);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .translate-form {
+    max-width: 100%;
+    margin-bottom: 0;
+  }
+
+  .translate-form-behavior {
+    :deep(.ant-form-item) {
+      margin-bottom: 14px;
+    }
+  }
+
+  .system-prompt-builtin-collapse {
+    margin-bottom: 8px;
+
+    :deep(.ant-collapse-header) {
+      color: var(--color-text-desc);
+      font-size: 13px;
+      font-weight: 400;
+      padding: 6px 0 !important;
+      line-height: 1.5;
+    }
+
+    :deep(.ant-collapse-arrow) {
+      color: var(--color-text-desc) !important;
+    }
+
+    :deep(.ant-collapse-content-box) {
+      padding: 0 0 8px !important;
+    }
+  }
+
+  .system-prompt-builtin-pre {
+    margin: 0;
+    padding: 10px 12px;
+    max-height: 200px;
+    overflow: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--color-text-content);
+    background: var(--color-input-hover);
+    border: 1px solid var(--color-border-light);
+    border-radius: 6px;
+  }
+
+  .system-prompt-textarea {
+    margin-bottom: 4px;
+  }
+
+  .system-prompt-fill-btn {
+    margin-top: 6px;
+    height: auto;
+    color: var(--color-text-desc);
+    border-color: var(--color-border-light);
+    background: var(--color-body-bg);
+    font-size: 12px;
+
+    &:hover,
+    &:focus {
+      color: var(--color-text-content);
+      border-color: var(--color-action-color);
+      background: var(--color-input-hover);
+    }
+  }
+
+  .translate-max-chars-input {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .translate-max-chars-hint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--color-text-desc);
+    line-height: 1.5;
   }
 
   .switch-wrap {
     display: inline-block;
   }
 
-  .anthropic-max-tokens {
-    width: 100%;
-    max-width: 200px;
-  }
-
-  .profile-toolbar {
-    margin-bottom: 16px;
-    max-width: 720px;
-  }
-
-  .profile-toolbar-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .profile-toolbar-label {
-    color: var(--color-text-content);
-    flex-shrink: 0;
+  .switch-wrap :deep(.ant-switch:not(.ant-switch-checked)) {
+    background: var(--color-list-hover);
   }
 
   .profile-select {
     min-width: 200px;
-    max-width: 280px;
-    flex: 1;
+    max-width: 320px;
+    flex: 1 1 220px;
+  }
+
+  .profile-select :deep(.ant-select-selector) {
+    background: var(--color-input-hover) !important;
+    color: var(--color-text-content);
+  }
+
+  .profile-select :deep(.ant-select-arrow) {
+    color: var(--color-action-color);
   }
 
   .translate-empty {
@@ -716,11 +963,15 @@ function onSaveTranslate() {
     max-width: 560px;
   }
 
-  /* 与触发方式下拉同宽 */
   .trigger-select,
   .shortcut-input {
     max-width: 280px;
     width: 100%;
+  }
+
+  .trigger-select :deep(.ant-select-selector) {
+    background: var(--color-input-hover) !important;
+    color: var(--color-text-content);
   }
 
   .shortcut-input :deep(.ant-input) {
@@ -728,10 +979,45 @@ function onSaveTranslate() {
     font-family: ui-monospace, monospace;
     user-select: none;
     caret-color: transparent;
+    text-align: center;
+    color: var(--ant-primary-color);
+    font-weight: lighter;
+    background: var(--color-input-hover);
+    border-color: var(--color-border-light);
   }
 
   .setting-item {
     margin-bottom: 20px;
+
+    :deep(.ant-form-item) {
+      margin-bottom: 16px;
+    }
+
+    :deep(.ant-form-item-label > label) {
+      color: var(--color-text-content);
+    }
+
+    :deep(.ant-input),
+    :deep(.ant-input-password input),
+    :deep(.ant-input-number-input) {
+      background: var(--color-input-hover);
+      color: var(--color-text-content);
+      border-color: var(--color-border-light);
+    }
+
+    :deep(.ant-input-password-icon) {
+      color: var(--color-action-color);
+    }
+
+    :deep(.ant-input-textarea) {
+      background: var(--color-input-hover);
+      color: var(--color-text-content);
+    }
+
+    :deep(.ant-input-textarea textarea) {
+      background: var(--color-input-hover);
+      color: var(--color-text-content);
+    }
   }
 
   .title {

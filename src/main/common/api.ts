@@ -28,11 +28,6 @@ import DBInstance from './db';
 import getWinPosition from './getWinPosition';
 import path from 'path';
 import commonConst from '@/common/utils/commonConst';
-import {
-  DEV_APP_PORTS,
-  devSubAppHttpUrl,
-  warmupDevSubAppServers,
-} from './devSubAppServers';
 import { copyFilesToWindowsClipboard } from './windowsClipboard';
 import {
   exportPluginBundle,
@@ -47,6 +42,11 @@ import {
   flipPluginDetachAlwaysShowSearchSync,
 } from './pluginRubickConfig';
 import { executePluginSubInputChangeHook } from './pluginSubInputHook';
+import {
+  DEV_APP_PORTS,
+  devSubAppHttpUrl,
+  warmupDevSubAppServers,
+} from './devSubAppServers';
 
 /**
  *  sanitize input files 剪贴板文件合法性校验
@@ -410,10 +410,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
       if (featureHttp) plugin.indexPath = featureHttp;
     } else if (plugin.name === 'rubick-system-super-panel') {
       plugin.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
-      const superxHttp = devSubAppHttpUrl(
-        DEV_APP_PORTS.superxWeb,
-        '/main.html'
-      );
+      const superxHttp = devSubAppHttpUrl(DEV_APP_PORTS.superxWeb, '/main.html');
       if (superxHttp) plugin.indexPath = superxHttp;
     } else if (!plugin.indexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', plugin.name);

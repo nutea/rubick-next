@@ -1,8 +1,7 @@
 {
-  "name": "rubick-superx-source",
+  "name": "superx",
   "private": true,
-  "version": "1.0.0",
-  "description": "系统内置超级面板插件",
+  "version": "0.1.0",
   "scripts": {
     "typecheck": "vue-tsc --noEmit",
     "build:web": "vite build",

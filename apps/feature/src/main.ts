@@ -10,6 +10,7 @@ import {
   Menu,
   Form,
   Input,
+  InputNumber,
   Radio,
   Typography,
   Select,
@@ -64,6 +65,7 @@ createApp(App)
   .use(Menu)
   .use(Form)
   .use(Input)
+  .use(InputNumber)
   .use(Radio)
   .use(Select)
   .use(Switch)

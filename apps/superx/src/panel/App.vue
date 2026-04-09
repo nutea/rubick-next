@@ -285,6 +285,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .panel-caption.draggable {
   -webkit-app-region: drag;

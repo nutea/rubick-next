@@ -7,7 +7,7 @@ const HISTORY_HEIGHT = 70;
  * a-list 无数据时默认空状态（插图 + 描述）所需内容区最小高度。
  * 若总高仅保留顶栏 60px，空图标会被裁切。
  */
-const LIST_EMPTY_MIN_BELOW_SEARCH = 240;
+const LIST_EMPTY_MIN_BELOW_SEARCH = 200;
 
 export type GetWindowHeightOpts = {
   searchValue?: string | number;

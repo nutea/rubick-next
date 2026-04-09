@@ -1,6 +1,8 @@
 /** 超级面板翻译：与 feature 设置页、DB `rubick-system-super-panel-preferences` 的 data 字段对齐 */
 
-export type SuperPanelTranslateProvider = 'openai_chat' | 'anthropic_messages';
+import { DEFAULT_TRANSLATE_SYSTEM_PROMPT as SYSTEM_DEFAULT } from '../../../feature/src/utils/superPanelTranslateBuiltinPrompt';
+
+export type SuperPanelTranslateProvider = 'openai_chat';
 
 /** 单条可保存的翻译接口配置（多配置列表中的一项） */
 export interface TranslateProfile {
@@ -29,9 +31,6 @@ export interface SuperPanelTranslatePrefs {
 
 type PlainObject = Record<string, unknown>;
 
-const SYSTEM_DEFAULT =
-  'You are a concise translation engine. Detect whether the source text contains Chinese characters. If it does, translate it into natural English. Otherwise, translate it into natural Simplified Chinese. Preserve meaning, tone, formatting, line breaks, numbers, code, URLs, product names, and technical terms when appropriate. Reply with ONLY valid JSON and no markdown fence. JSON shape: {"translation":["main translation text"]}. Do not include explanations, notes, alternatives, glosses, prefixes, labels, or commentary unless the source text itself asks for explanation.';
-
 export function defaultTranslatePrefs(): SuperPanelTranslatePrefs {
   return {
     translateProvider: 'openai_chat',
@@ -48,7 +47,7 @@ export function isTranslateConfigured(p: SuperPanelTranslatePrefs | undefined | 
 }
 
 function coerceProvider(raw: unknown): SuperPanelTranslateProvider {
-  if (raw === 'anthropic_messages') return 'anthropic_messages';
+  if (raw === 'anthropic_messages' || raw === 'youdao_openapi') return 'openai_chat';
   return 'openai_chat';
 }
 
@@ -316,81 +315,10 @@ async function fetchOpenAiCompatible(word: string, prefs: SuperPanelTranslatePre
   return llmTextToPanelJsonString(content);
 }
 
-function extractAnthropicMessageText(json: unknown): { text: string; error?: string } {
-  const j = json as {
-    content?: Array<{ type?: string; text?: string }>;
-    error?: { message?: string; type?: string };
-  };
-  if (j.error?.message) {
-    return { text: '', error: j.error.message };
-  }
-  const blocks = j.content;
-  if (!blocks?.length) return { text: '' };
-  const parts: string[] = [];
-  for (const block of blocks) {
-    if (block.type === 'text' && block.text) parts.push(block.text);
-  }
-  return { text: parts.join('\n').trim() };
-}
-
-async function fetchAnthropicMessages(word: string, prefs: SuperPanelTranslatePrefs): Promise<string> {
-  const baseUrl = String(prefs.llmBaseUrl || '').trim();
-  const apiKey = String(prefs.llmApiKey || '').trim();
-  const model = String(prefs.llmModel || '').trim();
-  const extra = parseExtraHeaders(prefs.llmExtraHeaders);
-  const system = String(prefs.llmSystemPrompt || '').trim() || SYSTEM_DEFAULT;
-  const userMsg = buildTranslateUserPrompt(word);
-  const version =
-    String(prefs.anthropicApiVersion || '').trim() || '2023-06-01';
-  const maxTokens = Number.isFinite(prefs.anthropicMaxTokens)
-    ? Math.max(1, Math.min(200000, Math.floor(Number(prefs.anthropicMaxTokens))))
-    : 1024;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': version,
-    ...extra,
-  };
-
-  const body = {
-    model,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: 'user', content: userMsg }],
-  };
-
-  const res = await fetch(baseUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    return JSON.stringify({ translation: [`Error: HTTP ${res.status}: ${text.slice(0, 400)}`] });
-  }
-  try {
-    const json = JSON.parse(text) as unknown;
-    const { text: inner, error } = extractAnthropicMessageText(json);
-    if (error) {
-      return JSON.stringify({ translation: [`Error: ${error}`] });
-    }
-    if (!inner) {
-      return JSON.stringify({ translation: ['Error: Empty response from model.'] });
-    }
-    return llmTextToPanelJsonString(inner);
-  } catch {
-    return llmTextToPanelJsonString(text);
-  }
-}
-
 /** 返回与面板解析一致的 JSON 字符串 */
 export async function fetchTranslationRaw(
   word: string,
   prefs: SuperPanelTranslatePrefs
 ): Promise<string> {
-  if (prefs.translateProvider === 'anthropic_messages') {
-    return fetchAnthropicMessages(word, prefs);
-  }
   return fetchOpenAiCompatible(word, prefs);
 }

@@ -51,6 +51,21 @@ function createPanelWindow(ctx) {
             /* ignore */
         }
     };
+    const emitPinState = (pin) => {
+        win === null || win === void 0 ? void 0 : win.webContents.send('superPanel-pin-state', pin);
+    };
+    const resetPin = () => {
+        if (!pinned)
+            return;
+        pinned = false;
+        emitPinState(false);
+    };
+    const hideWindow = () => {
+        if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed()))
+            return;
+        resetPin();
+        win.hide();
+    };
     function needsNewWindow() {
         if (win == null)
             return true;
@@ -101,7 +116,13 @@ function createPanelWindow(ctx) {
         win.on('move', syncPanelPositionAnchorFromWindow);
         win.on('blur', () => {
             if (!pinned)
-                win === null || win === void 0 ? void 0 : win.hide();
+                hideWindow();
+        });
+        win.on('hide', () => {
+            resetPin();
+            if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed()))
+                return;
+            win.webContents.send('super-panel-dismissed');
         });
     };
     /** 窗口被关闭/销毁后再次调用即可重建，供 getWindow / init 使用 */
@@ -115,7 +136,7 @@ function createPanelWindow(ctx) {
             return;
         ipcHandlersAttached = true;
         ipcMain.on('superPanel-hidden', () => {
-            win === null || win === void 0 ? void 0 : win.hide();
+            hideWindow();
         });
         ipcMain.on('superPanel-setSize', (_e, height) => {
             if (!win || typeof height !== 'number' || !Number.isFinite(height))
@@ -147,7 +168,7 @@ function createPanelWindow(ctx) {
         ipcMain.on('trigger-pin', (_event, pin) => {
             pinned = pin;
             win === null || win === void 0 ? void 0 : win.setAlwaysOnTop(true);
-            win === null || win === void 0 ? void 0 : win.webContents.send('superPanel-pin-state', pinned);
+            emitPinState(pinned);
         });
         ipcMain.handle('superPanel-get-pin-state', () => pinned);
     };
@@ -163,9 +184,5 @@ function createPanelWindow(ctx) {
         panelPositionAnchor = { x: Math.round(x), y: Math.round(y) };
     };
     const isPinned = () => pinned;
-    const resetPin = () => {
-        pinned = false;
-        win === null || win === void 0 ? void 0 : win.webContents.send('superPanel-pin-state', false);
-    };
     return { init, getWindow, setPanelPositionAnchor, isPinned, resetPin };
 }

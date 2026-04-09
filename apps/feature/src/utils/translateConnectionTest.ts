@@ -189,60 +189,6 @@ async function testOpenAi(prefs: TranslateTestPrefs): Promise<{ ok: boolean; mes
   }
 }
 
-async function testAnthropic(prefs: TranslateTestPrefs): Promise<{ ok: boolean; message: string }> {
-  const baseUrl = prefs.llmBaseUrl.trim();
-  const apiKey = prefs.llmApiKey.trim();
-  const model = prefs.llmModel.trim();
-  const extra = parseExtraHeaders(prefs.llmExtraHeaders);
-  const version = prefs.anthropicApiVersion.trim() || '2023-06-01';
-
-  const res = await fetch(baseUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': version,
-      ...extra,
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 32,
-      system: TEST_SYSTEM,
-      messages: [{ role: 'user', content: TEST_USER }],
-    }),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    return { ok: false, message: `HTTP ${res.status}: ${text.slice(0, 400)}` };
-  }
-  try {
-    const json = JSON.parse(text) as {
-      content?: Array<{ type?: string; text?: string }>;
-      error?: { message?: string };
-    };
-    if (json.error?.message) {
-      return { ok: false, message: json.error.message };
-    }
-    const blocks = json.content || [];
-    const parts = blocks
-      .filter((b) => b.type === 'text' && b.text)
-      .map((b) => b.text as string);
-    const content = parts.join('').trim();
-    if (content) return { ok: true, message: content.slice(0, 200) };
-    const modelName =
-      typeof (json as { model?: unknown }).model === 'string'
-        ? String((json as { model?: unknown }).model)
-        : model;
-    return { ok: true, message: `Connected${modelName ? ` (${modelName})` : ''}` };
-  } catch {
-    const plain = text.trim();
-    if (plain) {
-      return { ok: true, message: plain.slice(0, 200) };
-    }
-    return { ok: false, message: text.slice(0, 400) };
-  }
-}
-
 export async function testTranslateConnection(
   prefs: TranslateTestPrefs
 ): Promise<{ ok: boolean; message: string }> {
@@ -250,9 +196,6 @@ export async function testTranslateConnection(
     return { ok: false, message: 'missing_fields' };
   }
   try {
-    if (prefs.translateProvider === 'anthropic_messages') {
-      return await testAnthropic(prefs);
-    }
     return await testOpenAi(prefs);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

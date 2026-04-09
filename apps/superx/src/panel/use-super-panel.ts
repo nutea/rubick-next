@@ -83,6 +83,9 @@ export function useSuperPanel() {
 
   const pinned = ref(false);
 
+  /** 翻译请求代数：面板关闭或新一轮 trigger 时递增，防止旧请求完成后写回 state */
+  let translateSeq = 0;
+
   const state = reactive({
     translate: null as TranslateState | null,
     loading: false,
@@ -90,6 +93,8 @@ export function useSuperPanel() {
     selectedText: '',
     selectedFileUrl: '',
     autoTranslate: false,
+    /** 选中文本超过该长度则不发起翻译（与偏好 `translateMaxChars` 一致，默认 2000） */
+    translateMaxChars: 2000,
     translatePrefs: {} as SuperPanelTranslatePrefs,
     matchPlugins: [] as MatchPluginItem[],
     userPlugins: [] as UserPluginItem[],
@@ -143,11 +148,24 @@ export function useSuperPanel() {
     },
   ];
 
+  function effectiveTranslateMaxChars(): number {
+    const n = state.translateMaxChars;
+    if (typeof n === 'number' && Number.isFinite(n) && n >= 1) {
+      return Math.min(100000, Math.floor(n));
+    }
+    return 2000;
+  }
+
   function runTranslate(word: string) {
+    const mySeq = translateSeq;
     const visibleWord = normalizeVisibleText(word);
     const prefs = state.translatePrefs;
+    const maxLen = effectiveTranslateMaxChars();
     const allow =
-      state.autoTranslate && !!visibleWord && isTranslateConfigured(prefs);
+      state.autoTranslate &&
+      !!visibleWord &&
+      isTranslateConfigured(prefs) &&
+      visibleWord.length <= maxLen;
     if (!allow) {
       state.translate = null;
       state.loading = false;
@@ -156,17 +174,26 @@ export function useSuperPanel() {
     state.loading = true;
     fetchTranslationRaw(visibleWord, prefs)
       .then((raw) => {
+        if (mySeq !== translateSeq) return;
         const parsed = JSON.parse(raw) as TranslateState;
         const hasBasic = !!parsed?.basic?.explains?.filter((line) => String(line || '').trim()).length;
         const hasTranslation = !!parsed?.translation?.filter((line) => String(line || '').trim()).length;
         state.translate = hasBasic || hasTranslation ? { ...parsed, src: visibleWord } : null;
       })
       .catch(() => {
+        if (mySeq !== translateSeq) return;
         state.translate = null;
       })
       .finally(() => {
+        if (mySeq !== translateSeq) return;
         state.loading = false;
       });
+  }
+
+  function cancelTranslateBecausePanelGone() {
+    translateSeq += 1;
+    state.translate = null;
+    state.loading = false;
   }
 
   function collectTextPlugins(text: string, optionPlugin: OptionPlugin[]) {
@@ -278,11 +305,17 @@ export function useSuperPanel() {
       const doc = rubickDb.get(SUPER_PANEL_PREF_DB_ID) as {
         data?: {
           autoTranslate?: boolean;
+          translateMaxChars?: number;
         } & SuperPanelTranslatePrefs;
       } | null;
       const data = doc?.data as Record<string, unknown> | undefined;
       const prefs = resolveTranslatePrefsFromPreferencesData(data);
       state.translatePrefs = prefs;
+      const rawMax = data?.translateMaxChars;
+      state.translateMaxChars =
+        typeof rawMax === 'number' && Number.isFinite(rawMax) && rawMax >= 1
+          ? Math.min(100000, Math.floor(rawMax))
+          : 2000;
       const wantOn = data?.autoTranslate !== false;
       state.autoTranslate = wantOn && isTranslateConfigured(prefs);
     } catch {
@@ -317,8 +350,10 @@ export function useSuperPanel() {
 
   function onTrigger(_e: unknown, payload: TriggerSuperPanelPayload) {
     try {
+      translateSeq += 1;
       state.matchPlugins = [];
       state.translate = null;
+      state.loading = false;
       refreshPreferences();
 
       const { text, fileUrl, optionPlugin = [] } = payload;
@@ -423,6 +458,7 @@ export function useSuperPanel() {
 
   let offTrigger: (() => void) | undefined;
   let offPinState: (() => void) | undefined;
+  let offPanelDismissed: (() => void) | undefined;
 
   onMounted(() => {
     refreshUserPlugins();
@@ -432,10 +468,14 @@ export function useSuperPanel() {
     const pinStateHandler = (_e: Electron.IpcRendererEvent, pin: boolean) => {
       pinned.value = !!pin;
     };
+    const dismissedHandler = () => cancelTranslateBecausePanelGone();
     ipcRenderer.on('trigger-super-panel', handler);
     ipcRenderer.on('superPanel-pin-state', pinStateHandler);
+    ipcRenderer.on('super-panel-dismissed', dismissedHandler);
     offTrigger = () => ipcRenderer.removeListener('trigger-super-panel', handler);
     offPinState = () => ipcRenderer.removeListener('superPanel-pin-state', pinStateHandler);
+    offPanelDismissed = () =>
+      ipcRenderer.removeListener('super-panel-dismissed', dismissedHandler);
     ipcRenderer
       .invoke('superPanel-get-pin-state')
       .then((pin: unknown) => {
@@ -449,6 +489,7 @@ export function useSuperPanel() {
   onUnmounted(() => {
     offTrigger?.();
     offPinState?.();
+    offPanelDismissed?.();
   });
 
   watch(

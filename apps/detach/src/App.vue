@@ -20,7 +20,18 @@
             <i></i>
           </span>
         </div>
-        <div class="devtool" @click="openDevTool" title="开发者工具"></div>
+        <div
+          class="devtool"
+          :class="{ active: devToolsActive }"
+          @click.stop="toggleDevTools"
+          :title="devToolsActive ? '关闭开发者工具' : '开发者工具'"
+        ></div>
+        <div
+          class="pin"
+          :class="{ active: pinned }"
+          @click.stop="togglePin"
+          :title="pinned ? '取消固定' : '固定在最前'"
+        ></div>
       </div>
       <div class="window-handle" v-if="process.platform !== 'darwin'">
         <div class="minimize" @click="minimize"></div>
@@ -33,18 +44,115 @@
 
 <script setup>
 import throttle from 'lodash.throttle';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 const { ipcRenderer } = window.require('electron');
 const remote = window.require('@electron/remote');
 const { Menu, dialog, getCurrentWindow } = remote;
 
 const process = window.require('process');
+
+const pinned = ref(false);
+/** 插件 BrowserView 的开发者工具是否打开（与壳页无关） */
+const devToolsActive = ref(false);
 const showInput = ref(false);
 const detachAlwaysShowSearch = ref(false);
 
 const storeInfo = localStorage.getItem('rubick-system-detach') || '{}';
 const plugInfo = ref({});
+
+function pinStorageKey() {
+  return `rubick-detach-pin:${plugInfo.value.name || 'default'}`;
+}
+
+function syncDetachAlwaysOnTop() {
+  try {
+    const win = getCurrentWindow();
+    if (!win || typeof win.setAlwaysOnTop !== 'function') return;
+    /** 独立窗口已 enable remote；置顶用当前 BrowserWindow，避免 ipc 侧 fromWebContents 解析不到 sender */
+    win.setAlwaysOnTop(pinned.value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadPinFromStorage() {
+  try {
+    pinned.value = localStorage.getItem(pinStorageKey()) === '1';
+  } catch {
+    pinned.value = false;
+  }
+  syncDetachAlwaysOnTop();
+}
+
+function togglePin() {
+  pinned.value = !pinned.value;
+  try {
+    localStorage.setItem(pinStorageKey(), pinned.value ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+  syncDetachAlwaysOnTop();
+}
+
+function getPluginWebContents() {
+  try {
+    const win = getCurrentWindow();
+    const bv = win.getBrowserView();
+    return bv?.webContents ?? null;
+  } catch {
+    return null;
+  }
+}
+
+let devToolsListenersAttachedFor = 0;
+
+function setupPluginDevToolsListenersOnce(wc) {
+  if (!wc || wc.isDestroyed()) return;
+  if (devToolsListenersAttachedFor === wc.id) return;
+  devToolsListenersAttachedFor = wc.id;
+  wc.on('devtools-opened', () => {
+    devToolsActive.value = true;
+  });
+  wc.on('devtools-closed', () => {
+    devToolsActive.value = false;
+  });
+}
+
+function syncDevToolsState() {
+  const wc = getPluginWebContents();
+  devToolsActive.value = !!(wc && !wc.isDestroyed() && wc.isDevToolsOpened());
+}
+
+/** BrowserView 在 ready-to-show 后才挂上，壳脚本可能早于此时执行 */
+function scheduleDevToolsListenerSetup() {
+  let attempts = 0;
+  const tick = () => {
+    const wc = getPluginWebContents();
+    if (wc && !wc.isDestroyed()) {
+      setupPluginDevToolsListenersOnce(wc);
+      syncDevToolsState();
+      return;
+    }
+    if (++attempts < 50) {
+      setTimeout(tick, 40);
+    }
+  };
+  nextTick(tick);
+}
+
+function toggleDevTools() {
+  const wc = getPluginWebContents();
+  if (!wc || wc.isDestroyed()) return;
+  setupPluginDevToolsListenersOnce(wc);
+  if (wc.isDevToolsOpened()) {
+    wc.closeDevTools();
+    devToolsActive.value = false;
+  } else {
+    wc.openDevTools({ mode: 'detach' });
+    devToolsActive.value = true;
+  }
+}
 
 function ensureSubInputStubWhenAlwaysShow() {
   if (detachAlwaysShowSearch.value && !plugInfo.value.subInput) {
@@ -73,6 +181,8 @@ window.initDetach = (pluginInfo) => {
     (pluginInfo.subInput &&
       (!!pluginInfo.subInput.value || !!pluginInfo.subInput.placeholder));
   localStorage.setItem('rubick-system-detach', JSON.stringify(pluginInfo));
+  loadPinFromStorage();
+  scheduleDevToolsListenerSetup();
 };
 
 try {
@@ -89,10 +199,6 @@ const changeValue = throttle((e) => {
     },
   });
 }, 500);
-
-const openDevTool = () => {
-  ipcRenderer.send('msg-trigger', { type: 'openPluginDevTools' });
-};
 
 const zoomPlugin = (action) => {
   void ipcRenderer.invoke('rubick:detach-adjust-plugin-zoom', {
@@ -364,8 +470,21 @@ body {
   background: #ccc;
 }
 
+.handle .pin {
+  background: center / 20px no-repeat url('./assets/unpin.svg');
+}
+
+.handle .pin.active {
+  background-image: url('./assets/pin.svg');
+}
+
 .handle .devtool {
-  background: center no-repeat url('./assets/tool.svg');
+  background: center / 20px no-repeat url('./assets/tool.svg');
+}
+
+.handle .devtool.active {
+  background-image: url('./assets/tool-filled.svg');
+  background-size: 23px;
 }
 
 .handle-container {

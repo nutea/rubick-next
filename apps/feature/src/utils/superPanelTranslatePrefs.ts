@@ -2,7 +2,7 @@
 
 import { nanoid } from 'nanoid';
 
-export type SuperPanelTranslateProvider = 'openai_chat' | 'anthropic_messages';
+export type SuperPanelTranslateProvider = 'openai_chat';
 
 export interface TranslateProfile {
   id: string;
@@ -30,7 +30,7 @@ export const LEGACY_TRANSLATE_FLAT_KEYS = [
 ] as const;
 
 function coerceProvider(raw: unknown): SuperPanelTranslateProvider {
-  if (raw === 'anthropic_messages') return 'anthropic_messages';
+  if (raw === 'anthropic_messages' || raw === 'youdao_openapi') return 'openai_chat';
   return 'openai_chat';
 }
 

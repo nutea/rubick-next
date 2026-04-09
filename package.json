@@ -1,6 +1,6 @@
 {
   "name": "rubick-next",
-  "version": "4.3.8",
+  "version": "5.0.0",
   "author": "nutea <nutgeek@gmail.com>",
   "private": true,
   "scripts": {
@@ -12,9 +12,9 @@
     "dev:apps": "concurrently -n feature,detach,tpl,guide,sx-web,sx-node \"pnpm --filter feature run dev\" \"pnpm --filter detach run dev\" \"pnpm --filter tpl run dev\" \"pnpm --filter guide run dev\" \"pnpm --filter ./apps/superx run dev:web\" \"pnpm --filter ./apps/superx run dev:node\"",
     "apps:build": "pnpm --filter ./apps/** --parallel run build",
     "electron:serve": "electron-vite dev",
-    "electron:build": "electron-vite build && electron-builder --config electron-builder.yml",
-    "electron:build:local": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
-    "release": "electron-vite build && electron-builder --config electron-builder.yml",
+    "electron:build": "pnpm apps:build && electron-vite build && electron-builder --config electron-builder.yml --win nsis --x64",
+    "electron:build:local": "pnpm apps:build && electron-vite build && electron-builder --config electron-builder.yml --publish never --win nsis --x64",
+    "release": "pnpm apps:build && electron-vite build && electron-builder --config electron-builder.yml --win nsis --x64",
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },

@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, toRaw } from 'vue';
+import { watch, ref, toRaw, nextTick } from 'vue';
 import Result from './components/result.vue';
 import Search from './components/search.vue';
 import getWindowHeight from '../common/utils/getWindowHeight';
@@ -91,44 +91,74 @@ getPluginInfo({
   remote.getGlobal('LOCAL_PLUGINS').addPlugin(res);
 });
 
-const flushExpendHeight = debounce(
-  () => {
-    if (currentPlugin.value.name) return;
-    window.rubick.setExpendHeight(
-      getWindowHeight(
-        options.value,
-        pluginLoading.value || !config.value.perf.common.history
-          ? []
-          : pluginHistory.value,
-        {
-          searchValue: searchValue.value,
-          clipboardFileLength: clipboardFile.value?.length ?? 0,
-          historyEnabled: config.value.perf.common.history,
-        }
-      )
-    );
-  },
-  40,
-  { leading: true, trailing: true, maxWait: 120 }
-);
+const calcLauncherHeight = () =>
+  getWindowHeight(
+    options.value,
+    pluginLoading.value || !config.value.perf.common.history
+      ? []
+      : pluginHistory.value,
+    {
+      searchValue: searchValue.value,
+      clipboardFileLength: clipboardFile.value?.length ?? 0,
+      historyEnabled: config.value.perf.common.history,
+    }
+  );
+
+let heightApplyToken = 0;
+
+const applyHeightAfterPaint = async () => {
+  if (currentPlugin.value.name) return;
+  const token = ++heightApplyToken;
+  await nextTick();
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  if (token !== heightApplyToken || currentPlugin.value.name) return;
+  window.rubick.setExpendHeight(calcLauncherHeight());
+};
+
+const flushExpendHeight = debounce(() => {
+  void applyHeightAfterPaint();
+}, 16);
+
+const flushEmptySearchHeight = debounce(() => {
+  void applyHeightAfterPaint();
+}, 120);
 
 watch(
   [
     options,
     pluginHistory,
     currentPlugin,
-    searchValue,
     clipboardFile,
     () => config.value.perf.common.history,
   ],
   () => {
     currentSelect.value = 0;
+    flushEmptySearchHeight.cancel();
     flushExpendHeight();
   },
   {
     immediate: true,
+    flush: 'post',
   }
 );
+
+watch(searchValue, () => {
+  currentSelect.value = 0;
+  if (currentPlugin.value.name) return;
+  if (!searchValue.value) {
+    flushEmptySearchHeight.cancel();
+    flushExpendHeight();
+    return;
+  }
+  if (options.value.length) {
+    flushEmptySearchHeight.cancel();
+    flushExpendHeight();
+    return;
+  }
+  flushEmptySearchHeight();
+}, { flush: 'post' });
 
 const changeIndex = (index) => {
   const len = options.value.length || pluginHistory.value.length;

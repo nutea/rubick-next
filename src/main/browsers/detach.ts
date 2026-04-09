@@ -99,8 +99,7 @@ export default () => {
     }
 
     const detachFile = `file://${path.join(__static, './detach/index.html')}`;
-    const detachUrl =
-      devSubAppHttpUrl(DEV_APP_PORTS.detach, '/') ?? detachFile;
+    const detachUrl = devSubAppHttpUrl(DEV_APP_PORTS.detach, '/') ?? detachFile;
     void createWin.loadURL(detachUrl);
     if (shouldOpenSubAppShellDevTools()) {
       createWin.webContents.once('did-finish-load', () => {

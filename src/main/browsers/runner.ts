@@ -16,6 +16,19 @@ function rubickSessionPreloadPath(): string {
   return path.join(app.getAppPath(), 'dist', 'preload', 'index.js');
 }
 
+const registeredSessionPreloads = new WeakMap<Electron.Session, string>();
+
+function ensureSessionPreload(ses: Electron.Session): void {
+  const filePath = rubickSessionPreloadPath();
+  if (typeof ses.registerPreloadScript === 'function') {
+    if (registeredSessionPreloads.has(ses)) return;
+    const id = ses.registerPreloadScript({ type: 'frame', filePath });
+    registeredSessionPreloads.set(ses, id);
+    return;
+  }
+  ses.setPreloads([filePath]);
+}
+
 const getRelativePath = (indexPath) => {
   return commonConst.windows()
     ? indexPath.replace('file://', '')
@@ -148,7 +161,7 @@ export default () => {
     const preload = getPreloadPath(plugin, preloadPath || pluginIndexPath);
 
     const ses = session.fromPartition('<' + name + '>');
-    ses.setPreloads([rubickSessionPreloadPath()]);
+    ensureSessionPreload(ses);
 
     view = new BrowserView({
       webPreferences: {
