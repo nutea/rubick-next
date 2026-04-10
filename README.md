@@ -71,6 +71,25 @@ Create a local installer package:
 pnpm electron:build:local
 ```
 
+## Release
+
+GitHub Actions can build the Windows installer and publish it to GitHub Releases automatically when you push a version tag.
+
+Recommended release flow:
+
+```bash
+git checkout main
+git pull
+git tag v5.0.0
+git push origin main --tags
+```
+
+Notes:
+
+- Tag format must be `v<package.json version>`, for example `v5.0.0`
+- The workflow validates that the tag matches `package.json`
+- Release assets include the installer `.exe`, `.blockmap`, and `latest.yml`
+
 ## Project Structure
 
 ```text

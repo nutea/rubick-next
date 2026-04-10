@@ -10,6 +10,8 @@ import {
   devSubAppHttpUrl,
   shouldOpenSubAppShellDevTools,
 } from '@/main/common/devSubAppServers';
+import commonConst from '@/common/utils/commonConst';
+import { showStartupError, writeStartupLog } from '@/main/common/startupDiagnostics';
 
 const getWindowPos = (width, height) => {
   const screenPoint = screen.getCursorScreenPoint();
@@ -43,7 +45,7 @@ export default () => {
       minimizable: false,
       maximizable: false,
       // closable: false,
-      skipTaskbar: true,
+      skipTaskbar: commonConst.macOS(),
       autoHideMenuBar: true,
       frame: false,
       enableLargerThanScreen: true,
@@ -63,7 +65,7 @@ export default () => {
       },
     });
     const guideFile = `file://${path.join(__static, './guide/index.html')}`;
-    win.loadURL(devSubAppHttpUrl(DEV_APP_PORTS.guide, '/') ?? guideFile);
+    void win.loadURL(devSubAppHttpUrl(DEV_APP_PORTS.guide, '/') ?? guideFile);
     if (shouldOpenSubAppShellDevTools()) {
       win.webContents.once('did-finish-load', () => {
         if (!win || win.isDestroyed()) return;
@@ -73,6 +75,22 @@ export default () => {
     }
     win.on('closed', () => {
       win = undefined;
+    });
+
+    win.webContents.on(
+      'did-fail-load',
+      (_event, code, desc, validatedURL, isMainFrame) => {
+        if (!isMainFrame) return;
+        showStartupError(
+          'Rubick Guide Error',
+          `Guide window failed to load: ${validatedURL || 'unknown URL'}`,
+          `${code}: ${desc}`
+        );
+      }
+    );
+
+    win.webContents.once('did-finish-load', () => {
+      writeStartupLog('guide window finished load');
     });
 
     win.once('ready-to-show', () => {

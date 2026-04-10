@@ -71,6 +71,25 @@ pnpm apps:build
 pnpm electron:build:local
 ```
 
+## 发版
+
+现在支持通过 GitHub Actions 自动构建 Windows 安装包，并在推送版本 tag 后自动发布到 GitHub Release。
+
+推荐发版流程：
+
+```bash
+git checkout main
+git pull
+git tag v5.0.0
+git push origin main --tags
+```
+
+说明：
+
+- tag 格式必须是 `v<package.json 版本号>`，例如 `v5.0.0`
+- 工作流会校验 tag 是否与 `package.json` 中的版本一致
+- Release 附件会包含安装包 `.exe`、`.blockmap` 和 `latest.yml`
+
 ## 目录结构
 
 ```text
