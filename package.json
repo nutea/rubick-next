@@ -6,6 +6,7 @@
   "scripts": {
     "serve": "electron-vite dev",
     "build": "electron-vite build",
+    "check:packaged-runtime": "node scripts/check-packaged-runtime.mjs",
     "check:runtime-deps": "node scripts/check-runtime-deps.mjs",
     "lint": "eslint src",
     "dev:all": "concurrently -n apps,electron \"pnpm run dev:apps\" \"electron-vite dev\"",
@@ -49,6 +50,7 @@
     "mime": "2.6.0",
     "mime-db": "1.52.0",
     "min-document": "2.19.0",
+    "ms": "0.7.1",
     "napi-macros": "2.0.0",
     "node-key-sender": "^1.0.11",
     "parse-bmfont-ascii": "1.0.6",

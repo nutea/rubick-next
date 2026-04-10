@@ -176,6 +176,9 @@ importers:
       min-document:
         specifier: 2.19.0
         version: 2.19.0
+      ms:
+        specifier: 0.7.1
+        version: 0.7.1
       napi-macros:
         specifier: 2.0.0
         version: 2.0.0
