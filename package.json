@@ -79,6 +79,7 @@
     "xml2js": "0.5.0"
   },
   "devDependencies": {
+    "@electron/asar": "^3.4.1",
     "@eslint/js": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vue/compiler-sfc": "catalog:",

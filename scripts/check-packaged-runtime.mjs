@@ -4,7 +4,7 @@ import path from 'path';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const asar = require('asar');
+const asar = require('@electron/asar');
 
 const rootDir = process.cwd();
 const asarPath =
