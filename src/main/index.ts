@@ -3,6 +3,7 @@ import electron, {
   app,
   globalShortcut,
   BrowserWindow,
+  Tray,
 } from 'electron';
 import { main, guide } from './browsers';
 import commonConst from '../common/utils/commonConst';
@@ -24,10 +25,12 @@ import checkVersion from './common/versionHandler';
 import registerSystemPlugin from './common/registerSystemPlugin';
 import registerCdwhereIpc from './common/registerCdwhereIpc';
 import { warmupDevSubAppServers } from './common/devSubAppServers';
+import { showStartupError, writeStartupLog } from './common/startupDiagnostics';
 
 class App {
   public windowCreator: { init: () => void; getWindow: () => BrowserWindow };
   private systemPlugins: any;
+  private tray: Tray | null = null;
 
   constructor() {
     this.windowCreator = main();
@@ -61,27 +64,64 @@ class App {
   }
   onReady() {
     const readyFunction = async () => {
-      await warmupDevSubAppServers();
-      registerCdwhereIpc();
-      checkVersion();
-      await localConfig.init();
-      const config = await localConfig.getConfig();
-      if (!config.perf.common.guide) {
-        guide().init();
-        config.perf.common.guide = true;
-        localConfig.setConfig(config);
+      try {
+        await warmupDevSubAppServers();
+        registerCdwhereIpc();
+        void checkVersion();
+        await localConfig.init();
+        const config = await localConfig.getConfig();
+        if (!config.perf.common.guide) {
+          guide().init();
+          config.perf.common.guide = true;
+          localConfig.setConfig(config);
+        }
+        this.createWindow();
+        const mainWindow = this.windowCreator.getWindow();
+        API.init(mainWindow);
+        this.tray = await createTray(this.windowCreator.getWindow());
+        registerHotKey(this.windowCreator.getWindow());
+        this.systemPlugins.triggerReadyHooks(
+          Object.assign(electron, {
+            mainWindow: this.windowCreator.getWindow(),
+            API,
+          })
+        );
+
+        // Windows packaged app can otherwise end up with no visible entry point
+        // if tray/hotkey/guide does not become visible in time.
+        if (commonConst.windows() && app.isPackaged) {
+          const openedAtLogin =
+            app.getLoginItemSettings &&
+            app.getLoginItemSettings().wasOpenedAtLogin;
+          if (!openedAtLogin) {
+            setTimeout(() => {
+              const guideWindow = guide().getWindow();
+              const hasVisibleGuide =
+                !!guideWindow &&
+                !guideWindow.isDestroyed() &&
+                guideWindow.isVisible();
+              const hasVisibleMain =
+                !!mainWindow &&
+                !mainWindow.isDestroyed() &&
+                mainWindow.isVisible();
+              if (!hasVisibleGuide && !hasVisibleMain) {
+                writeStartupLog(
+                  'startup fallback showing main window on Windows packaged build'
+                );
+                mainWindow.setSkipTaskbar(false);
+                mainWindow.show();
+                mainWindow.focus();
+              }
+            }, 1800);
+          }
+        }
+      } catch (error) {
+        showStartupError(
+          'Rubick Startup Error',
+          'Failed while initializing the main process.',
+          error
+        );
       }
-      this.createWindow();
-      const mainWindow = this.windowCreator.getWindow();
-      API.init(mainWindow);
-      createTray(this.windowCreator.getWindow());
-      registerHotKey(this.windowCreator.getWindow());
-      this.systemPlugins.triggerReadyHooks(
-        Object.assign(electron, {
-          mainWindow: this.windowCreator.getWindow(),
-          API,
-        })
-      );
     };
     if (!app.isReady()) {
       app.on('ready', readyFunction);
@@ -127,6 +167,10 @@ class App {
 
     app.on('will-quit', () => {
       globalShortcut.unregisterAll();
+      if (this.tray) {
+        this.tray.destroy();
+        this.tray = null;
+      }
     });
 
     if (commonConst.dev()) {

@@ -9,8 +9,10 @@ import {
 } from 'electron';
 import screenCapture from '@/core/screen-capture';
 import localConfig from '@/main/common/initLocalConfig';
+import commonConst from '@/common/utils/commonConst';
 import winPosition from './getWinPosition';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
+import { writeStartupLog } from './startupDiagnostics';
 
 const registerHotKey = (mainWindow: BrowserWindow): void => {
   // 设置开机启动
@@ -97,9 +99,33 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       // 双击快捷键（如 Ctrl+Ctrl）详见 uIOhookRegister 函数实现
     } else {
       // 注册普通快捷键（如 Ctrl+Space、F8 等）
-      globalShortcut.register(config.perf.shortCut.showAndHidden, () => {
-        mainWindowPopUp();
-      });
+      const candidates = [config.perf.shortCut.showAndHidden];
+      if (commonConst.windows()) {
+        if (config.perf.shortCut.showAndHidden.includes('Option+')) {
+          candidates.push(
+            config.perf.shortCut.showAndHidden.replace(/Option\+/g, 'Alt+')
+          );
+        }
+        candidates.push('Ctrl+SPACE');
+      }
+      let registered = false;
+      for (const shortcut of Array.from(new Set(candidates))) {
+        try {
+          if (
+            globalShortcut.register(shortcut, () => {
+              mainWindowPopUp();
+            })
+          ) {
+            registered = true;
+            break;
+          }
+        } catch (error) {
+          writeStartupLog(`globalShortcut.register failed for ${shortcut}`, error);
+        }
+      }
+      if (!registered) {
+        writeStartupLog('no global shortcut registered for main window popup');
+      }
     }
 
     // 截图快捷键

@@ -7,6 +7,8 @@ import {
   WINDOW_MIN_HEIGHT,
   WINDOW_WIDTH,
 } from '@/common/constans/common';
+import commonConst from '@/common/utils/commonConst';
+import { showStartupError, writeStartupLog } from '@/main/common/startupDiagnostics';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('@electron/remote/main').initialize();
 
@@ -29,7 +31,7 @@ export default () => {
       frame: false,
       title: '拉比克',
       show: false,
-      skipTaskbar: true,
+      skipTaskbar: commonConst.macOS(),
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c28' : '#fff',
       webPreferences: {
         webSecurity: false,
@@ -44,10 +46,12 @@ export default () => {
     const devServerUrl = process.env.ELECTRON_RENDERER_URL;
     if (devServerUrl) {
       // Load the url of the dev server if in development mode
-      win.loadURL(devServerUrl);
+      void win.loadURL(devServerUrl);
     } else {
       // 主进程在 dist/main/chunks 下时 __dirname 多一层，不能用相对 chunks 的 ../renderer
-      win.loadFile(path.join(app.getAppPath(), 'dist', 'renderer', 'index.html'));
+      void win.loadFile(
+        path.join(app.getAppPath(), 'dist', 'renderer', 'index.html')
+      );
     }
     protocol.interceptFileProtocol('image', (req, callback) => {
       const url = req.url.substr(8);
@@ -55,6 +59,30 @@ export default () => {
     });
     win.on('closed', () => {
       win = undefined;
+    });
+
+    win.webContents.on(
+      'did-fail-load',
+      (_event, code, desc, validatedURL, isMainFrame) => {
+        if (!isMainFrame) return;
+        showStartupError(
+          'Rubick Window Error',
+          `Main window failed to load: ${validatedURL || 'unknown URL'}`,
+          `${code}: ${desc}`
+        );
+      }
+    );
+
+    win.webContents.on('render-process-gone', (_event, details) => {
+      showStartupError(
+        'Rubick Window Error',
+        'Main window render process exited unexpectedly.',
+        details
+      );
+    });
+
+    win.webContents.once('did-finish-load', () => {
+      writeStartupLog('main window finished load');
     });
 
     win.on('show', () => {

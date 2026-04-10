@@ -10,6 +10,9 @@ files:
   - dist/**/*
   - public/**/*
   - package.json
+  - node_modules/{ajv,bluebird,buffer-equal,deferred-leveldown,delayed-stream,dom-walk,event-target-shim,fast-deep-equal,fast-json-stable-stringify,file-uri-to-path,global,har-schema,is-function,json-schema-traverse,jsonfile,level-iterator-stream,mime,mime-db,min-document,napi-macros,parse-bmfont-ascii,parse-bmfont-binary,parse-bmfont-xml,parse-headers,performance-now,pouchdb-collections,querystringify,requires-port,uri-js,xhr,xml-parse-from-string,xml2js}/**/*
+  - node_modules/.pnpm/*/node_modules/request-promise-core/**/*
+  - node_modules/.pnpm/*/node_modules/stealthy-require/**/*
 asarUnpack:
   - '**/public/bin/**'
 extraMetadata:

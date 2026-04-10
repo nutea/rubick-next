@@ -116,33 +116,87 @@ importers:
       axios:
         specifier: 'catalog:'
         version: 1.14.0
+      buffer-equal:
+        specifier: 1.0.0
+        version: 1.0.0
       compressing:
         specifier: ^1.10.4
         version: 1.10.4
       cross-spawn:
         specifier: ^7.0.6
         version: 7.0.6
+      deferred-leveldown:
+        specifier: 5.3.0
+        version: 5.3.0
+      delayed-stream:
+        specifier: 1.0.0
+        version: 1.0.0
       electron-updater:
         specifier: ^6.3.0
         version: 6.8.3
+      event-target-shim:
+        specifier: 5.0.1
+        version: 5.0.1
       extract-file-icon:
         specifier: ^0.3.2
         version: 0.3.2
+      file-uri-to-path:
+        specifier: 1.0.0
+        version: 1.0.0
       fix-path:
         specifier: ^3.0.0
         version: 3.0.0
       fs-extra:
         specifier: ^10.1.0
         version: 10.1.0
+      global:
+        specifier: 4.4.0
+        version: 4.4.0
+      is-function:
+        specifier: 1.0.2
+        version: 1.0.2
+      jsonfile:
+        specifier: 6.2.0
+        version: 6.2.0
+      level-iterator-stream:
+        specifier: 4.0.2
+        version: 4.0.2
       lodash.debounce:
         specifier: 'catalog:'
         version: 4.0.8
       memorystream:
         specifier: ^0.3.1
         version: 0.3.1
+      mime:
+        specifier: 2.6.0
+        version: 2.6.0
+      mime-db:
+        specifier: 1.52.0
+        version: 1.52.0
+      min-document:
+        specifier: 2.19.0
+        version: 2.19.0
+      napi-macros:
+        specifier: 2.0.0
+        version: 2.0.0
       node-key-sender:
         specifier: ^1.0.11
         version: 1.0.11
+      parse-bmfont-ascii:
+        specifier: 1.0.6
+        version: 1.0.6
+      parse-bmfont-binary:
+        specifier: 1.0.6
+        version: 1.0.6
+      parse-bmfont-xml:
+        specifier: 1.1.6
+        version: 1.1.6
+      parse-headers:
+        specifier: 2.0.6
+        version: 2.0.6
+      pinkie:
+        specifier: 2.0.4
+        version: 2.0.4
       pinyin-match:
         specifier: ^1.2.4
         version: 1.2.10
@@ -152,12 +206,21 @@ importers:
       pouchdb:
         specifier: ^7.2.2
         version: 7.3.1(encoding@0.1.13)
+      pouchdb-collections:
+        specifier: 1.0.1
+        version: 1.0.1
       pouchdb-load:
         specifier: ^1.4.6
         version: 1.4.6
       pouchdb-replication-stream:
         specifier: ^1.2.9
         version: 1.2.9
+      querystringify:
+        specifier: 2.2.0
+        version: 2.2.0
+      requires-port:
+        specifier: 1.0.0
+        version: 1.0.0
       rubick-active-win:
         specifier: ^8.1.1
         version: 8.1.1(encoding@0.1.13)
@@ -182,6 +245,15 @@ importers:
       webdav:
         specifier: ^4.11.3
         version: 4.11.3
+      xhr:
+        specifier: 2.6.0
+        version: 2.6.0
+      xml-parse-from-string:
+        specifier: 1.0.1
+        version: 1.0.1
+      xml2js:
+        specifier: 0.5.0
+        version: 0.5.0
     devDependencies:
       '@eslint/js':
         specifier: 'catalog:'
@@ -1779,6 +1851,10 @@ packages:
     resolution: {integrity: sha512-RgSV6InVQ9ODPdLWJ5UAqBqJBOg370Nz6ZQtRzpt6nUjc8v0St97uJ4PYC6NztqIScrAXafKM3mZPMygSe1ggA==}
     engines: {node: '>=0.4.0'}
 
+  buffer-equal@1.0.0:
+    resolution: {integrity: sha512-tcBWO2Dl4e7Asr9hTGcpVrCe+F7DubpmqWCTbj4FHLmjqO2hIaC383acQubWtRJhdceqs5uBHs6Es+Sk//RKiQ==}
+    engines: {node: '>=0.4.0'}
+
   buffer-fill@1.0.0:
     resolution: {integrity: sha512-T7zexNBwiiaCOGDg9xNX9PBmjrubblRkENuptryuI64URkXDFum9il/JGL8Lm8wYfAXpredVXXZz7eMHilimiQ==}
 
@@ -3247,8 +3323,8 @@ packages:
     resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
     engines: {node: '>=10'}
 
-  min-document@2.19.2:
-    resolution: {integrity: sha512-8S5I8db/uZN8r9HSLFVWPdJCvYOejMcEC82VIzNUc6Zkklf/d1gg2psfE79/vyhWOj4+J8MtwmoOz3TmvaGu5A==}
+  min-document@2.19.0:
+    resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==}
 
   minimatch@10.2.5:
     resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
@@ -6107,6 +6183,8 @@ snapshots:
 
   buffer-equal@0.0.1: {}
 
+  buffer-equal@1.0.0: {}
+
   buffer-fill@1.0.0: {}
 
   buffer-from@1.1.2: {}
@@ -7195,7 +7273,7 @@ snapshots:
 
   global@4.4.0:
     dependencies:
-      min-document: 2.19.2
+      min-document: 2.19.0
       process: 0.11.10
 
   globals@14.0.0: {}
@@ -7805,7 +7883,7 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  min-document@2.19.2:
+  min-document@2.19.0:
     dependencies:
       dom-walk: 0.1.2
 

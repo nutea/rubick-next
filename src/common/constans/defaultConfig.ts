@@ -13,7 +13,7 @@ export default {
       username: 'Rubick',
     },
     shortCut: {
-      showAndHidden: 'Option+R',
+      showAndHidden: process.platform === 'win32' ? 'Ctrl+SPACE' : 'Option+R',
       separate: 'Ctrl+D',
       quit: 'Shift+Escape',
       capture: 'Ctrl+Shift+A',
