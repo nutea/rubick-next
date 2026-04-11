@@ -372,7 +372,7 @@ body {
 
 .detach {
   width: 100%;
-  height: 60px;
+  height: 50px;
   display: flex;
   align-items: center;
   color: var(--color-text-primary);
@@ -500,7 +500,7 @@ body {
 
 .window-handle > div {
   width: 48px;
-  height: 56px;
+  height: 50px;
   cursor: pointer;
 }
 

@@ -2,7 +2,6 @@ import { BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import localConfig from '../common/initLocalConfig';
 import path from 'path';
 import commonConst from '@/common/utils/commonConst';
-import { WINDOW_MIN_HEIGHT } from '@/common/constans/common';
 import { executePluginSubInputChangeHook } from '@/main/common/pluginSubInputHook';
 import { resolveDetachWindowIcon } from '@/main/common/detachWindowIcon';
 import {
@@ -13,6 +12,7 @@ import {
 
 export default () => {
   let win: BrowserWindow | undefined;
+  const DETACH_TITLEBAR_HEIGHT = 50;
 
   /** pluginSetting.single 非 false 时同一插件仅保留一个分离窗；key 为插件 `name` */
   const singleDetachWindowByPlugin = new Map<string, BrowserWindow>();
@@ -49,9 +49,9 @@ export default () => {
     const [cw, ch] = w.getContentSize();
     bv.setBounds({
       x: 0,
-      y: WINDOW_MIN_HEIGHT,
+      y: DETACH_TITLEBAR_HEIGHT,
       width: cw,
-      height: Math.max(0, ch - WINDOW_MIN_HEIGHT),
+      height: Math.max(0, ch - DETACH_TITLEBAR_HEIGHT),
     });
   };
 
@@ -68,7 +68,7 @@ export default () => {
     );
     const createWin = new BrowserWindow({
       height: viewInfo.height,
-      minHeight: WINDOW_MIN_HEIGHT,
+      minHeight: DETACH_TITLEBAR_HEIGHT,
       width: viewInfo.width,
       autoHideMenuBar: true,
       titleBarStyle: 'hidden',
