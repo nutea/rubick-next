@@ -1,6 +1,7 @@
 packages:
   - '.'
   - 'apps/*'
+  - 'packages/*'
 
 # 单一路径版本来源；子包与根目录用 "catalog:" 引用（pnpm 文档：Catalogs）
 catalog:

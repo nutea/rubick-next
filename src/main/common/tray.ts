@@ -5,7 +5,16 @@ import os from 'os';
 import commonConst from '@/common/utils/commonConst';
 import { guide } from '../browsers';
 
-function createTray(window: BrowserWindow): Promise<Tray> {
+function getUsableWindow(
+  getWindow: () => BrowserWindow | undefined
+): BrowserWindow | undefined {
+  const win = getWindow();
+  if (!win || win.isDestroyed()) return undefined;
+  if (!win.webContents || win.webContents.isDestroyed()) return undefined;
+  return win;
+}
+
+function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
   return new Promise((resolve) => {
     let icon;
     if (commonConst.macOS()) {
@@ -21,7 +30,9 @@ function createTray(window: BrowserWindow): Promise<Tray> {
     const appIcon = new Tray(path.join(__static, icon));
 
     const openSettings = () => {
-      window.webContents.executeJavaScript(
+      const window = getUsableWindow(getWindow);
+      if (!window) return;
+      void window.webContents.executeJavaScript(
         `window.rubick && window.rubick.openMenu && window.rubick.openMenu({ code: "settings" })`
       );
       window.show();
@@ -55,6 +66,8 @@ function createTray(window: BrowserWindow): Promise<Tray> {
         {
           label: '显示',
           click() {
+            const window = getUsableWindow(getWindow);
+            if (!window) return;
             window.show();
           },
         },

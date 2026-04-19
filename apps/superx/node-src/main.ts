@@ -1,11 +1,11 @@
-import * as path from 'path';
-import { chmodSync, existsSync } from 'fs';
 import * as os from 'os';
-import { keyboard, Key } from '@nut-tree/nut-js';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import activeWin from 'rubick-active-win';
 import createPanelWindow from './panel-window';
 import type { ClipboardSnap } from './clipboard-helpers';
+import {
+  getActiveWindowInfo,
+  onNativeInputEvent,
+  simulateCopyShortcut,
+} from './native';
 import {
   getPos,
   getSelectedContent,
@@ -14,34 +14,11 @@ import {
   readClipboardPayload,
 } from './clipboard-helpers';
 
-keyboard.config.autoDelayMs = 10;
-
 /** macOS：为可执行文件加执行位；优先仓库根 node_modules（与主应用共用依赖）。 */
-function tryChmodRubickActiveWinMain(): void {
-  const candidates = [
-    path.join(__dirname, '..', '..', 'node_modules', 'rubick-active-win', 'main'),
-    path.join(__dirname, 'node_modules', 'rubick-active-win', 'main'),
-    path.join(__dirname, '..', 'rubick-active-win', 'main'),
-  ];
-  for (const bin of candidates) {
-    try {
-      if (existsSync(bin)) {
-        chmodSync(bin, 0o755);
-        return;
-      }
-    } catch {
-      /* try next */
-    }
-  }
-}
-tryChmodRubickActiveWinMain();
-
 const isMacOS = os.type() === 'Darwin';
-const modifier = isMacOS ? Key.LeftSuper : Key.LeftControl;
 
 async function simulateCopy(): Promise<void> {
-  await keyboard.pressKey(modifier, Key.C);
-  await keyboard.releaseKey(modifier, Key.C);
+  await simulateCopyShortcut();
 }
 
 const STORE_ID = 'rubick-system-super-panel-store';
@@ -55,7 +32,11 @@ const SP_MOUSE = {
 } as const;
 
 /** libuiohook MOUSE_BUTTON1..3 */
-const BTN = { LEFT: 1, RIGHT: 2, MIDDLE: 3 } as const;
+const BTN = {
+  LEFT: 'left',
+  RIGHT: 'right',
+  MIDDLE: 'middle',
+} as const;
 
 const LONG_PRESS_MS = 450;
 
@@ -65,25 +46,10 @@ const INITIAL_KEYBOARD_REGISTER_MS = 1000;
 /** 窗口顶边略低于光标，避免无边框窗顶缘与指针重合触发系统调整大小 */
 const SUPER_PANEL_TOP_CURSOR_GAP_PX = 12;
 
+type TriggerButton = (typeof BTN)[keyof typeof BTN];
+
 function isMouseTrigger(s: string): boolean {
   return Object.values(SP_MOUSE).includes(s as (typeof SP_MOUSE)[keyof typeof SP_MOUSE]);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function tryLoadUiohook(): any {
-  const candidates = [
-    () => require('uiohook-napi'),
-    () => require(path.join(__dirname, '../../node_modules/uiohook-napi')),
-    () => require(path.join(__dirname, '../../../node_modules/uiohook-napi')),
-  ];
-  for (const load of candidates) {
-    try {
-      return load();
-    } catch {
-      /* try next */
-    }
-  }
-  return null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,27 +60,20 @@ function createPlugin() {
   let lastPanelClipboardSnap: ClipboardSnap | null = null;
 
   let lastRegisteredKey: string | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mouseDownHandler: ((e: any) => void) | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mouseUpHandler: ((e: any) => void) | null = null;
+  let removeInputSubscription: (() => void) | null = null;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-  let longPressButton: number | null = null;
+  let longPressButton: TriggerButton | null = null;
   let keyboardRegisterTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function clearMouseRegistration(uIOhook: { removeListener: (ev: string, fn: unknown) => void }) {
+  function clearMouseRegistration() {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       longPressTimer = null;
     }
     longPressButton = null;
-    if (mouseDownHandler) {
-      uIOhook.removeListener('mousedown', mouseDownHandler);
-      mouseDownHandler = null;
-    }
-    if (mouseUpHandler) {
-      uIOhook.removeListener('mouseup', mouseUpHandler);
-      mouseUpHandler = null;
+    if (removeInputSubscription) {
+      removeInputSubscription();
+      removeInputSubscription = null;
     }
   }
 
@@ -140,11 +99,8 @@ function createPlugin() {
         }
 
         if (!copyResult.text && !copyResult.fileUrl) {
-          const nativeWinInfo = await activeWin({
-            screenRecordingPermission: false,
-          });
-          copyResult.fileUrl =
-            nativeWinInfo?.owner?.path || copyResult.fileUrl;
+          const nativeWinInfo = await getActiveWindowInfo();
+          copyResult.fileUrl = nativeWinInfo?.path || copyResult.fileUrl;
         }
 
         lastPanelClipboardSnap = snapshotClipboard(clipboard);
@@ -226,23 +182,12 @@ function createPlugin() {
             /* ignore */
           }
         }
-        const hookMod = tryLoadUiohook();
-        const uIOhook = hookMod?.uIOhook;
-        if (uIOhook) {
-          clearMouseRegistration(uIOhook);
-        }
+        clearMouseRegistration();
 
         lastRegisteredKey = superPanelHotKey;
 
         if (isMouseTrigger(superPanelHotKey)) {
-          if (!uIOhook) {
-            console.warn(
-              '[rubick-system-super-panel] uiohook-napi not found; mouse trigger disabled.'
-            );
-            return;
-          }
-
-          const btnFor = (): number | null => {
+          const btnFor = (): TriggerButton | null => {
             if (superPanelHotKey === SP_MOUSE.MIDDLE) return BTN.MIDDLE;
             if (superPanelHotKey === SP_MOUSE.LONG_LEFT) return BTN.LEFT;
             if (superPanelHotKey === SP_MOUSE.LONG_RIGHT) return BTN.RIGHT;
@@ -258,38 +203,35 @@ function createPlugin() {
             superPanelHotKey === SP_MOUSE.LONG_RIGHT ||
             superPanelHotKey === SP_MOUSE.LONG_MIDDLE;
 
-          mouseDownHandler = (e: { button: number }) => {
-            const b = Number(e.button);
-            if (b !== wantBtn) return;
+          removeInputSubscription = onNativeInputEvent((event) => {
+            if (event.kind !== 'mouse') return;
+            if (event.button !== wantBtn) return;
 
-            if (!isLong) {
-              void showSuperPanel();
+            if (event.state === 'down') {
+              if (!isLong) {
+                void showSuperPanel();
+                return;
+              }
+
+              longPressButton = wantBtn;
+              if (longPressTimer) clearTimeout(longPressTimer);
+              longPressTimer = setTimeout(() => {
+                longPressTimer = null;
+                longPressButton = null;
+                void showSuperPanel();
+              }, LONG_PRESS_MS);
               return;
             }
 
-            longPressButton = b;
-            if (longPressTimer) clearTimeout(longPressTimer);
-            longPressTimer = setTimeout(() => {
-              longPressTimer = null;
-              longPressButton = null;
-              void showSuperPanel();
-            }, LONG_PRESS_MS);
-          };
-
-          mouseUpHandler = (e: { button: number }) => {
-            const b = Number(e.button);
             if (!isLong) return;
-            if (longPressButton !== null && b === longPressButton) {
+            if (longPressButton === wantBtn) {
               if (longPressTimer) {
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
               }
               longPressButton = null;
             }
-          };
-
-          uIOhook.on('mousedown', mouseDownHandler);
-          uIOhook.on('mouseup', mouseUpHandler);
+          });
           return;
         }
 

@@ -28,3 +28,7 @@ pnpm-debug.log*
 /dist_electron
 /dist
 .gitnexus
+.codex-logs/
+packages/rubick-native-next/dist/
+packages/rubick-native-next/native/target/
+packages/rubick-native-next/native/rubick_native_next.node

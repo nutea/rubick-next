@@ -13,7 +13,7 @@ import {
 import fs from 'fs';
 import { screenCapture } from '@/core';
 import plist from 'plist';
-import ks from 'node-key-sender';
+import { input } from 'rubick-native-next';
 
 import {
   DECODE_KEY,
@@ -187,6 +187,15 @@ class API extends DBInstance {
       (_e, pluginPayload: unknown) =>
         this.tryRedirectSingletonDetach({ data: pluginPayload }, mainWindow)
     );
+    try {
+      ipcMain.removeHandler('msg-trigger-async');
+    } catch {
+      /* 首次启动 */
+    }
+    ipcMain.handle('msg-trigger-async', async (_event, arg) => {
+      const window = arg.winId ? BrowserWindow.fromId(arg.winId) : mainWindow;
+      return this[arg.type](arg, window, undefined);
+    });
     // 响应 preload.js 事件
     ipcMain.on('msg-trigger', async (event, arg) => {
       const window = arg.winId ? BrowserWindow.fromId(arg.winId) : mainWindow;
@@ -878,13 +887,10 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
   }
 
   public simulateKeyboardTap({ data: { key, modifier } }) {
-    let keys = [key.toLowerCase()];
-    if (modifier && Array.isArray(modifier) && modifier.length > 0) {
-      keys = modifier.concat(keys);
-      ks.sendCombination(keys);
-    } else {
-      ks.sendKeys(keys);
-    }
+    return input.sendKeyboardTap(
+      String(key || ''),
+      Array.isArray(modifier) ? modifier.map((item) => String(item)) : []
+    );
   }
 
   public addLocalStartPlugin({ data: { plugin } }, window) {

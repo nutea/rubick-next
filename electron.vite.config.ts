@@ -83,9 +83,6 @@ export default defineConfig({
       },
       emptyOutDir: true,
     },
-    optimizeDeps: {
-      exclude: ['extract-file-icon'],
-    },
     plugins: [vue()],
   },
 });

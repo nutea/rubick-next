@@ -51,8 +51,9 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits, ref, watch } from 'vue';
 import { MoreOutlined } from '@ant-design/icons-vue';
+import fileIconUrl from '../assets/file.png';
 
 const remote = window.require('@electron/remote');
 const { ipcRenderer } = window.require('electron');
@@ -60,6 +61,7 @@ import localConfig from '../confOp';
 const { Menu, dialog, getCurrentWindow } = remote;
 
 const config: any = ref(localConfig.getConfig());
+const clipboardIcon = ref('');
 
 const props: any = defineProps({
   searchValue: {
@@ -310,17 +312,42 @@ const changeHideOnBlur = () => {
   config.value = cfg;
 };
 
-const getIcon = () => {
-  if (props.clipboardFile[0].dataUrl) return props.clipboardFile[0].dataUrl;
+const fallbackClipboardIcon = fileIconUrl;
+
+const updateClipboardIcon = async () => {
+  const current = props.clipboardFile?.[0];
+  if (!current) {
+    clipboardIcon.value = '';
+    return;
+  }
+  if (current.dataUrl) {
+    clipboardIcon.value = current.dataUrl;
+    return;
+  }
+  if (!current.path) {
+    clipboardIcon.value = fallbackClipboardIcon;
+    return;
+  }
   try {
-    return ipcRenderer.sendSync('msg-trigger', {
-      type: 'getFileIcon',
-      data: { path: props.clipboardFile[0].path },
-    });
-  } catch (e) {
-    return require('../assets/file.png');
+    clipboardIcon.value =
+      (await window.rubick.getFileIcon(current.path)) || fallbackClipboardIcon;
+  } catch {
+    clipboardIcon.value = fallbackClipboardIcon;
   }
 };
+
+const getIcon = () => clipboardIcon.value || fallbackClipboardIcon;
+
+watch(
+  () => props.clipboardFile,
+  () => {
+    void updateClipboardIcon();
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
 
 const newWindow = () => {
   ipcRenderer.send('msg-trigger', {

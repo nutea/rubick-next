@@ -8,12 +8,20 @@ import {
   WINDOW_WIDTH,
 } from '@/common/constans/common';
 import commonConst from '@/common/utils/commonConst';
-import { showStartupError, writeStartupLog } from '@/main/common/startupDiagnostics';
+import {
+  showStartupError,
+  writeStartupLog,
+} from '@/main/common/startupDiagnostics';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('@electron/remote/main').initialize();
 
 export default () => {
   let win: any;
+  const canUseWindow = () =>
+    !!win &&
+    !win.isDestroyed() &&
+    !!win.webContents &&
+    !win.webContents.isDestroyed();
 
   const init = () => {
     createWindow();
@@ -73,6 +81,30 @@ export default () => {
       }
     );
 
+    win.webContents.on(
+      'console-message',
+      (_event, level, message, line, sourceId) => {
+        if (!process.env.ELECTRON_RENDERER_URL && app.isPackaged) {
+          return;
+        }
+        if (
+          typeof sourceId === 'string' &&
+          sourceId.startsWith('devtools://')
+        ) {
+          return;
+        }
+        if (level < 2) {
+          return;
+        }
+        writeStartupLog('main window console-message', {
+          level,
+          message,
+          line,
+          sourceId,
+        });
+      }
+    );
+
     win.webContents.on('render-process-gone', (_event, details) => {
       showStartupError(
         'Rubick Window Error',
@@ -86,8 +118,9 @@ export default () => {
     });
 
     win.on('show', () => {
+      if (!canUseWindow()) return;
       // 触发主窗口的 onShow hook
-      win.webContents.executeJavaScript(
+      void win.webContents.executeJavaScript(
         `window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onShow === "function" && window.rubick.hooks.onShow()`
       );
       // versonHandler.checkUpdate();
@@ -95,16 +128,18 @@ export default () => {
     });
 
     win.on('hide', () => {
+      if (!canUseWindow()) return;
       // 触发主窗口的 onHide hook
-      win.webContents.executeJavaScript(
+      void win.webContents.executeJavaScript(
         `window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onHide === "function" && window.rubick.hooks.onHide()`
       );
     });
 
     // 判断失焦是否隐藏
     win.on('blur', async () => {
+      if (!canUseWindow()) return;
       const config = await localConfig.getConfig();
-      if (config.perf.common.hideOnBlur) {
+      if (config.perf.common.hideOnBlur && canUseWindow()) {
         win.hide();
       }
     });

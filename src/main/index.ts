@@ -1,10 +1,5 @@
 'use strict';
-import electron, {
-  app,
-  globalShortcut,
-  BrowserWindow,
-  Tray,
-} from 'electron';
+import electron, { app, globalShortcut, BrowserWindow, Tray } from 'electron';
 import { main, guide } from './browsers';
 import commonConst from '../common/utils/commonConst';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -78,7 +73,7 @@ class App {
         this.createWindow();
         const mainWindow = this.windowCreator.getWindow();
         API.init(mainWindow);
-        this.tray = await createTray(this.windowCreator.getWindow());
+        this.tray = await createTray(() => this.windowCreator.getWindow());
         registerHotKey(this.windowCreator.getWindow());
         this.systemPlugins.triggerReadyHooks(
           Object.assign(electron, {

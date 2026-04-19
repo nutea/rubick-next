@@ -26,7 +26,7 @@ npm run build
 
 等价于 **`vite build`**（前端 + publicDir）后 **`tsc -p tsconfig.node.json`**（`node-src` → `public/superx/*.js`）。也可分步：`npm run build:web`、`npm run build:node`。
 
-原生依赖（`@nut-tree/nut-js`、`rubick-active-win`、`uiohook-napi` 等）以 **仓库根目录** `node_modules` 为准，无需在 `public/superx` 下单独 `npm install`。Windows 下 **`cdwhere.exe`** 由主应用 **`public/bin`** 提供（见主进程 `registerCdwhereIpc`）。
+当前 superx 的原生能力入口已经收敛到 **`rubick-native-next`**。原生依赖与系统能力现在由该 workspace 包统一管理和封装；当前底层仍会复用 `@nut-tree/nut-js`、`uiohook-napi`，以及 Windows 下由主应用 **`public/bin`** 提供的 **`cdwhere.exe`**，因此无需在 `public/superx` 下单独 `npm install`。
 
 ### 开发调试（仅前端，无 Electron API 时部分能力不可用）
 

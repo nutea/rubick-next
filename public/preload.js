@@ -6,6 +6,23 @@ const path = require('path');
 const appPath = app.getPath('userData');
 
 const baseDir = path.join(appPath, './rubick-plugins-new');
+const enableStartupDiagnostics =
+  !app.isPackaged || !!process.env.ELECTRON_RENDERER_URL;
+
+if (enableStartupDiagnostics) {
+  window.addEventListener('error', (event) => {
+    const detail = event.error?.stack || event.message || 'unknown error';
+    console.error('[main-renderer-error]', detail);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const detail =
+      reason?.stack ||
+      (typeof reason === 'string' ? reason : JSON.stringify(reason));
+    console.error('[main-renderer-unhandledrejection]', detail);
+  });
+}
 
 const ipcSendSync = (type, data) => {
   const returnValue = ipcRenderer.sendSync('msg-trigger', {
@@ -18,6 +35,13 @@ const ipcSendSync = (type, data) => {
 
 const ipcSend = (type, data) => {
   ipcRenderer.send('msg-trigger', {
+    type,
+    data,
+  });
+};
+
+const ipcInvoke = (type, data) => {
+  return ipcRenderer.invoke('msg-trigger-async', {
     type,
     data,
   });
@@ -183,9 +207,7 @@ window.rubick = {
     ipcSend('shellBeep');
   },
 
-  getFileIcon: (path) => {
-    return ipcSendSync('getFileIcon', { path });
-  },
+  getFileIcon: (path) => ipcInvoke('getFileIcon', { path }),
 
   getCopyedFiles: () => {
     return ipcSendSync('getCopyFiles');

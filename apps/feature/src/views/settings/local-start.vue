@@ -47,14 +47,14 @@ const checkFileExists = () => {
 
 checkFileExists();
 
-const dropFile = (e) => {
-  const files = Array.from(e.dataTransfer.files).map((file) => {
+const dropFile = async (e) => {
+  const files = await Promise.all(Array.from(e.dataTransfer.files).map(async (file) => {
     const action =
       process.platform === 'win32'
         ? `start "dummyclient" "${file.path}"`
         : `open ${file.path.replace(/ /g, '\\ ')}`;
     const plugin = {
-      icon: window.rubick.getFileIcon(file.path),
+      icon: await window.rubick.getFileIcon(file.path),
       value: 'plugin',
       desc: file.path,
       pluginType: 'app',
@@ -65,7 +65,7 @@ const dropFile = (e) => {
     };
     window.market.addLocalStartPlugin(plugin);
     return plugin;
-  });
+  }));
   localStartList.value = [
     ...localStartList.value,
     ...files,

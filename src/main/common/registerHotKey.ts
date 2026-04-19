@@ -7,15 +7,31 @@ import {
   app,
   Notification,
 } from 'electron';
+import { input } from 'rubick-native-next';
+import type { NativeInputEvent } from 'rubick-native-next';
 import screenCapture from '@/core/screen-capture';
 import localConfig from '@/main/common/initLocalConfig';
 import commonConst from '@/common/utils/commonConst';
 import winPosition from './getWinPosition';
-import { uIOhook, UiohookKey } from 'uiohook-napi';
 import { writeStartupLog } from './startupDiagnostics';
 
+let removeInputSubscription: (() => void) | null = null;
+
+const DOUBLE_PRESS_SHORTCUTS = [
+  'Ctrl+Ctrl',
+  'Option+Option',
+  'Shift+Shift',
+  'Command+Command',
+];
+
+const DOUBLE_PRESS_KEY_MAP: Record<string, string[]> = {
+  Ctrl: ['ControlLeft', 'ControlRight'],
+  Shift: ['ShiftLeft', 'ShiftRight'],
+  Option: ['AltLeft', 'AltRight'],
+  Command: ['MetaLeft', 'MetaRight'],
+};
+
 const registerHotKey = (mainWindow: BrowserWindow): void => {
-  // 设置开机启动
   const setAutoLogin = async () => {
     const config = await localConfig.getConfig();
     if (app.getLoginItemSettings().openAtLogin !== config.perf.common.start) {
@@ -37,7 +53,6 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     });
   };
 
-  // 设置暗黑模式
   const setDarkMode = async () => {
     const config = await localConfig.getConfig();
     const isDark = config.perf.common.darkMode;
@@ -64,11 +79,10 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     }
   };
 
-  // 显示主窗口
   function mainWindowPopUp() {
     const currentShow = mainWindow.isVisible() && mainWindow.isFocused();
     if (currentShow) {
-      mainWindow.blur(); // 先失去焦点，使焦点恢复到之前的应用程序
+      mainWindow.blur();
       mainWindow.hide();
       return;
     }
@@ -90,15 +104,11 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     const config = await localConfig.getConfig();
     globalShortcut.unregisterAll();
 
-    // 注册偏好快捷键
-    // 处理显示/隐藏快捷键的注册
-    const doublePressShortcuts = ['Ctrl+Ctrl', 'Option+Option', 'Shift+Shift', 'Command+Command'];
-    const isDoublePressShortcut = doublePressShortcuts.includes(config.perf.shortCut.showAndHidden);
-    
-    if (isDoublePressShortcut) {
-      // 双击快捷键（如 Ctrl+Ctrl）详见 uIOhookRegister 函数实现
-    } else {
-      // 注册普通快捷键（如 Ctrl+Space、F8 等）
+    const isDoublePressShortcut = DOUBLE_PRESS_SHORTCUTS.includes(
+      config.perf.shortCut.showAndHidden
+    );
+
+    if (!isDoublePressShortcut) {
       const candidates = [config.perf.shortCut.showAndHidden];
       if (commonConst.windows()) {
         if (config.perf.shortCut.showAndHidden.includes('Option+')) {
@@ -128,7 +138,6 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       }
     }
 
-    // 截图快捷键
     globalShortcut.register(config.perf.shortCut.capture, () => {
       screenCapture(mainWindow, (data) => {
         data &&
@@ -144,10 +153,13 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       // mainWindow.show();
     });
 
-    // 添加局部快捷键监听
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-      if (input.key.toLowerCase() === 'w'
-        && (input.control || input.meta) && !input.alt && !input.shift) {
+    mainWindow.webContents.on('before-input-event', (event, inputEvent) => {
+      if (
+        inputEvent.key.toLowerCase() === 'w' &&
+        (inputEvent.control || inputEvent.meta) &&
+        !inputEvent.alt &&
+        !inputEvent.shift
+      ) {
         event.preventDefault();
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.hide();
@@ -155,7 +167,6 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       }
     });
 
-    // 注册自定义全局快捷键
     config.global.forEach((sc) => {
       if (!sc.key || !sc.value) return;
       globalShortcut.register(sc.key, () => {
@@ -170,41 +181,29 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     init();
   });
 };
+
 export default registerHotKey;
 
 function uIOhookRegister(callback: () => void) {
   let lastModifierPress = Date.now();
-  uIOhook.on('keydown', async (uio_event) => {
-    const config = await localConfig.getConfig(); // 此处还有优化空间
+  removeInputSubscription?.();
+  removeInputSubscription = input.onInputEvent(async (event: NativeInputEvent) => {
+    if (event.kind !== 'key' || event.state !== 'down') return;
 
-    if (
-      ![
-        'Ctrl+Ctrl',
-        'Option+Option',
-        'Shift+Shift',
-        'Command+Command',
-      ].includes(config.perf.shortCut.showAndHidden)
-    ) {
+    const config = await localConfig.getConfig();
+    if (!DOUBLE_PRESS_SHORTCUTS.includes(config.perf.shortCut.showAndHidden)) {
       return;
     }
 
-    // 双击快捷键，如 Ctrl+Ctrl
-    const modifers = config.perf.shortCut.showAndHidden.split('+');
-    const showAndHiddenKeyStr = modifers.pop(); // Ctrl
-    const keyStr2uioKeyCode = {
-      Ctrl: UiohookKey.Ctrl,
-      Shift: UiohookKey.Shift,
-      Option: UiohookKey.Alt,
-      Command: UiohookKey.Comma,
-    };
+    const modifiers = config.perf.shortCut.showAndHidden.split('+');
+    const showAndHiddenKeyStr = modifiers.pop() || '';
+    const expectedKeys = DOUBLE_PRESS_KEY_MAP[showAndHiddenKeyStr] || [];
+    if (!expectedKeys.includes(event.key)) return;
 
-    if (uio_event.keycode === keyStr2uioKeyCode[showAndHiddenKeyStr]) {
-      const currentTime = Date.now();
-      if (currentTime - lastModifierPress < 300) {
-        callback(); // 调用 mainWindowPopUp
-      }
-      lastModifierPress = currentTime;
+    const currentTime = Date.now();
+    if (currentTime - lastModifierPress < 300) {
+      callback();
     }
+    lastModifierPress = currentTime;
   });
-  uIOhook.start();
 }

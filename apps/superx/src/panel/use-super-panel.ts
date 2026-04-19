@@ -339,11 +339,6 @@ export function useSuperPanel() {
         .then((data: { stdout?: string }) => {
           const folder = String(data?.stdout ?? '').trim();
           if (folder) cb(folder);
-        })
-        .catch(() => {
-          const data = ipcRenderer.sendSync('get-path') as { stdout?: string };
-          const folder = String(data?.stdout ?? '').trim();
-          if (folder) cb(folder);
         });
     }
   }

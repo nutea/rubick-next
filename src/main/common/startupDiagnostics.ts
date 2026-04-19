@@ -4,6 +4,10 @@ import { app, dialog } from 'electron';
 
 let installed = false;
 
+function diagnosticsEnabled(): boolean {
+  return !app.isPackaged || !!process.env.ELECTRON_RENDERER_URL;
+}
+
 function logFilePath(): string | null {
   try {
     return path.join(app.getPath('userData'), 'startup.log');
@@ -25,6 +29,7 @@ function stringifyError(error: unknown): string {
 }
 
 export function writeStartupLog(label: string, error?: unknown): void {
+  if (!diagnosticsEnabled()) return;
   const target = logFilePath();
   if (!target) return;
   const lines = [
@@ -51,6 +56,7 @@ export function showStartupError(title: string, message: string, error?: unknown
 }
 
 export function installProcessErrorHandlers(): void {
+  if (!diagnosticsEnabled()) return;
   if (installed) return;
   installed = true;
 
