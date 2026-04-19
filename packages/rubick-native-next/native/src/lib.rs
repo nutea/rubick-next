@@ -1,5 +1,11 @@
 #![allow(non_snake_case)]
 
+#[cfg(windows)]
+mod folder_open_path;
+
+#[cfg(windows)]
+mod keyboard_win;
+
 use napi::bindgen_prelude::Result;
 use napi_derive::napi;
 
@@ -170,4 +176,33 @@ mod windows_impl {
 #[napi]
 pub fn get_active_window() -> Result<Option<ActiveWindowInfo>> {
   Ok(windows_impl::get_active_window())
+}
+
+#[napi(js_name = "getFolderOpenPath")]
+pub fn get_folder_open_path_napi() -> Result<String> {
+  #[cfg(windows)]
+  {
+    return Ok(
+      folder_open_path::get_folder_open_path().unwrap_or_default(),
+    );
+  }
+  #[cfg(not(windows))]
+  {
+    Ok(String::new())
+  }
+}
+
+#[napi(js_name = "sendKeyboardChord")]
+pub fn send_keyboard_chord_napi(modifiers: Vec<String>, key: String) -> Result<()> {
+  #[cfg(windows)]
+  {
+    keyboard_win::send_chord(&modifiers, &key)
+      .map_err(|message| napi::Error::from_reason(message))?;
+    return Ok(());
+  }
+  #[cfg(not(windows))]
+  {
+    let _ = (modifiers, key);
+    Ok(())
+  }
 }

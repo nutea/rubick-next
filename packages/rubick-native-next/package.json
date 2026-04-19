@@ -15,7 +15,6 @@
     "native:build:release": "node ./scripts/build-native.mjs --release"
   },
   "dependencies": {
-    "@nut-tree/nut-js": "catalog:",
     "@types/node": "catalog:",
     "uiohook-napi": "^1.5.5",
     "typescript": "catalog:"

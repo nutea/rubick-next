@@ -26,7 +26,7 @@ npm run build
 
 等价于 **`vite build`**（前端 + publicDir）后 **`tsc -p tsconfig.node.json`**（`node-src` → `public/superx/*.js`）。也可分步：`npm run build:web`、`npm run build:node`。
 
-当前 superx 的原生能力入口已经收敛到 **`rubick-native-next`**。原生依赖与系统能力现在由该 workspace 包统一管理和封装；当前底层仍会复用 `@nut-tree/nut-js`、`uiohook-napi`，以及 Windows 下由主应用 **`public/bin`** 提供的 **`cdwhere.exe`**，因此无需在 `public/superx` 下单独 `npm install`。
+当前 superx 的原生能力入口已经收敛到 **`rubick-native-next`**。原生依赖与系统能力现在由该 workspace 包统一管理和封装；当前底层仍会复用 **`uiohook-napi`**（全局输入监听），键盘模拟由 **`rubick-native-next`** 内置实现（Windows N-API `SendInput`、macOS `osascript`、Linux `xdotool` 等），以及 Windows 下同一 N-API 提供的资源管理器路径等能力，因此无需在 `public/superx` 下单独 `npm install`。
 
 ### 开发调试（仅前端，无 Electron API 时部分能力不可用）
 

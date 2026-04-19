@@ -39,9 +39,9 @@ capabilities Rubick Next actually needs, without depending on the upstream
 
 ## Initial Migration Targets
 
-1. Replace `@nut-tree/nut-js`
+1. `@nut-tree/nut-js` removed: Windows `SendInput` via N-API; macOS `osascript`; Linux `xdotool` when available
 2. Evaluate replacing `uiohook-napi`
-3. Keep `cdwhere.exe` until a native Windows implementation is proven reliable
+3. Windows Explorer folder path now uses the in-repo N-API (`ShellWindows` / `IWebBrowser2`) instead of `cdwhere.exe`
 
 ## Design Rules
 
@@ -67,27 +67,19 @@ Current integration status:
 
 Current intentionally retained fallbacks:
 
-- `input.sendCopyShortcut` and `input.sendKeyboardTap` still reuse
-  `@nut-tree/nut-js`
 - `input.onInputEvent` still adapts `uiohook-napi`
-- `system.getFolderOpenPath` and `system.getFolderOpenPathSync` still use the
-  verified `cdwhere.exe` path on Windows
 - `clipboard.getClipboardContent` still prefers `electron-clipboard-ex` on
   Windows when it is available
 
 Implemented first:
 
 - `input.sendCopyShortcut`
-  First implementation currently reuses the repository's proven
-  `@nut-tree/nut-js` flow and sends:
-  - macOS: `Command + C`
-  - other platforms: `Control + C`
-  This keeps business integration stable while the package-owned API boundary is
-  established.
+  Sends `Command + C` on macOS and `Control + C` elsewhere without `@nut-tree/nut-js`:
+  Windows uses the N-API `sendKeyboardChord` (`SendInput`); macOS uses `osascript`
+  + System Events; Linux uses `xdotool` when installed and an X session is present.
 - `input.sendKeyboardTap`
-  General keyboard simulation is now also routed through the same package-owned
-  input layer, so main-process callers no longer need to import
-  `node-key-sender` directly.
+  Same stack as `sendCopyShortcut`, with a small canonical key/modifier map for
+  IPC callers (letters, digits, `F1`–`F24`, arrows, Enter, Tab, Space, etc.).
 - `input.onInputEvent`
   First implementation adapts `uiohook-napi` behind a shared subscription
   layer. The package now exposes unsubscribe callbacks even though the app code
@@ -96,9 +88,10 @@ Implemented first:
   The current implementation now uses the package-owned Windows native binding
   directly and returns `null` on non-Windows platforms for now.
 - `system.getFolderOpenPath`
-  First implementation keeps the currently verified Windows `cdwhere.exe`
-  strategy, resolved from development and packaged app locations. This keeps
-  the API inside `rubick-native-next` without regressing Explorer path lookup.
+  Windows resolves the foreground Explorer folder (or last `file:` folder among
+  open shell windows) via COM in `native/`, exposed as `getFolderOpenPath` on the
+  N-API addon. Requires a successful native build; otherwise returns an empty
+  string.
 - `clipboard.getClipboardContent`
   First implementation reads from Electron's clipboard and returns:
   - `file` when file paths are present

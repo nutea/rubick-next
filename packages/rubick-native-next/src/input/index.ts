@@ -1,9 +1,9 @@
-import { keyboard, Key } from '@nut-tree/nut-js';
 import type {
   NativeInputApi,
   NativeInputEvent,
   NativeMouseButton,
 } from '../types';
+import { sendKeyboardChordDarwinLinux } from './platform-chord';
 
 interface UiohookKeyboardEventLike {
   keycode: number;
@@ -57,76 +57,163 @@ interface UiohookModuleLike {
 const listeners = new Set<(event: NativeInputEvent) => void>();
 let stopHook: (() => void) | null = null;
 
-keyboard.config.autoDelayMs = 10;
-
-const keyMap = Key as Record<string, unknown>;
-
-const KEY_ALIASES: Record<string, string> = {
-  ctrl: 'LeftControl',
-  control: 'LeftControl',
-  alt: 'LeftAlt',
-  option: 'LeftAlt',
-  shift: 'LeftShift',
-  command: 'LeftSuper',
-  cmd: 'LeftSuper',
-  meta: 'LeftSuper',
-  super: 'LeftSuper',
-  enter: 'Enter',
-  return: 'Enter',
-  esc: 'Escape',
-  escape: 'Escape',
-  space: 'Space',
-  tab: 'Tab',
-  backspace: 'Backspace',
-  delete: 'Delete',
-  del: 'Delete',
-  up: 'Up',
-  down: 'Down',
-  left: 'Left',
-  right: 'Right',
-  pageup: 'PageUp',
-  pagedown: 'PageDown',
+/** Normalized names: modifiers `control`|`alt`|`shift`|`super`, plus key tokens (`a`…`z`, `0`…`9`, `f1`…, `enter`, …). */
+const TOKEN_ALIASES: Record<string, string> = {
+  ctrl: 'control',
+  control: 'control',
+  leftcontrol: 'control',
+  rightcontrol: 'control',
+  alt: 'alt',
+  option: 'alt',
+  leftalt: 'alt',
+  rightalt: 'alt',
+  shift: 'shift',
+  leftshift: 'shift',
+  rightshift: 'shift',
+  command: 'super',
+  cmd: 'super',
+  meta: 'super',
+  super: 'super',
+  leftsuper: 'super',
+  rightsuper: 'super',
+  enter: 'enter',
+  'return': 'enter',
+  esc: 'escape',
+  escape: 'escape',
+  del: 'delete',
+  delete: 'delete',
+  backspace: 'backspace',
+  space: 'space',
+  tab: 'tab',
+  up: 'up',
+  down: 'down',
+  left: 'left',
+  right: 'right',
+  pageup: 'pageup',
+  pagedown: 'pagedown',
+  pgup: 'pageup',
+  pgdn: 'pagedown',
+  home: 'home',
+  end: 'end',
+  insert: 'insert',
+  minus: '-',
+  equal: '=',
+  grave: '`',
 };
 
-const toNutKeyName = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
-  if (!normalized) return '';
+const MODIFIERS = new Set(['control', 'alt', 'shift', 'super']);
 
-  if (KEY_ALIASES[normalized]) {
-    return KEY_ALIASES[normalized];
+/** Tokens that are already canonical key names (after lowercasing). */
+const KNOWN_KEY_NAMES = new Set([
+  'enter',
+  'escape',
+  'tab',
+  'space',
+  'backspace',
+  'delete',
+  'up',
+  'down',
+  'left',
+  'right',
+  'pageup',
+  'pagedown',
+  'home',
+  'end',
+  'insert',
+  '-',
+  '=',
+  '`',
+]);
+
+const toCanonicalToken = (raw: string): string | null => {
+  const normalized = raw.trim().toLowerCase().replace(/[\s_-]+/g, '');
+  if (!normalized) return null;
+
+  if (TOKEN_ALIASES[normalized]) {
+    return TOKEN_ALIASES[normalized];
+  }
+
+  if (KNOWN_KEY_NAMES.has(normalized)) {
+    return normalized;
   }
 
   if (/^f\d{1,2}$/.test(normalized)) {
-    return normalized.toUpperCase();
+    return normalized;
   }
 
   if (/^[a-z]$/.test(normalized)) {
-    return normalized.toUpperCase();
+    return normalized;
   }
 
   if (/^\d$/.test(normalized)) {
     return normalized;
   }
 
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  if (/^[A-Z]$/.test(raw.trim())) {
+    return raw.trim().toLowerCase();
+  }
+
+  return null;
 };
 
-const resolveNutKey = (value: string): unknown | null => {
-  const alias = toNutKeyName(value);
-  if (!alias) return null;
+const parseChordTokens = (
+  tokens: string[]
+): { modifiers: string[]; key: string } | null => {
+  const mods: string[] = [];
+  const keys: string[] = [];
 
-  return keyMap[alias] ?? null;
+  for (const t of tokens) {
+    if (MODIFIERS.has(t)) mods.push(t);
+    else keys.push(t);
+  }
+
+  if (keys.length !== 1) return null;
+
+  const order = ['control', 'alt', 'shift', 'super'];
+  const uniq = Array.from(new Set(mods));
+  uniq.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  return { modifiers: uniq, key: keys[0] };
 };
 
-const sendKeySequence = async (keys: string[]): Promise<void> => {
-  const resolved = keys
-    .map((key) => resolveNutKey(key))
-    .filter((key): key is unknown => key !== null);
+interface NativeChordBinding {
+  sendKeyboardChord?: (modifiers: string[], key: string) => void;
+}
 
-  if (!resolved.length) return;
+const tryLoadNativeChord = (): NativeChordBinding | null => {
+  if (process.platform !== 'win32') return null;
 
-  await keyboard.pressKey(...resolved);
-  await keyboard.releaseKey(...resolved);
+  try {
+    return require('../../native') as NativeChordBinding;
+  } catch {
+    return null;
+  }
+};
+
+const dispatchChord = async (rawKeys: string[]): Promise<void> => {
+  const tokens = rawKeys
+    .map(toCanonicalToken)
+    .filter((t): t is string => Boolean(t));
+  const parsed = parseChordTokens(tokens);
+  if (!parsed) return;
+
+  if (process.platform === 'win32') {
+    try {
+      tryLoadNativeChord()?.sendKeyboardChord?.(
+        parsed.modifiers,
+        parsed.key
+      );
+    } catch {
+      // N-API failure: ignore to match prior fire-and-forget behaviour.
+    }
+    return;
+  }
+
+  await sendKeyboardChordDarwinLinux(
+    process.platform,
+    parsed.modifiers,
+    parsed.key
+  );
 };
 
 const createKeyNameMap = (
@@ -280,10 +367,11 @@ const startSharedHook = (): (() => void) | null => {
 
 export const input: NativeInputApi = {
   async sendCopyShortcut(): Promise<void> {
-    await sendKeySequence([process.platform === 'darwin' ? 'command' : 'control', 'c']);
+    const mod = process.platform === 'darwin' ? 'super' : 'control';
+    await dispatchChord([mod, 'c']);
   },
   async sendKeyboardTap(key: string, modifiers: string[] = []): Promise<void> {
-    await sendKeySequence([...modifiers, key]);
+    await dispatchChord([...modifiers, key]);
   },
   onInputEvent(listener: (event: NativeInputEvent) => void): () => void {
     listeners.add(listener);
