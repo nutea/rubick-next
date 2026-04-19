@@ -69,7 +69,13 @@ export default defineConfig({
       alias: {
         '@': path.resolve(__dirname, 'src'),
         'original-fs': 'fs',
+        // PouchDB (via @/core/db) subclasses Node's EventEmitter; Vite otherwise
+        // externalizes `events` and breaks `inherits(..., events.EventEmitter)`.
+        events: path.resolve(__dirname, 'node_modules/events/events.js'),
       },
+    },
+    optimizeDeps: {
+      include: ['events', 'pouchdb'],
     },
     define: {
       __static: 'globalThis.__static',

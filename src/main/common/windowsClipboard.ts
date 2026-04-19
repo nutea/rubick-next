@@ -1,29 +1,10 @@
 import { clipboard } from 'electron';
 import path from 'path';
+import { clipboard as nativeClipboard } from 'rubick-native-next';
 
 // 仅在 Windows 平台辅助操作剪贴板多文件格式。
-type ClipboardExModule = typeof import('electron-clipboard-ex');
 
 const DROPFILES_HEADER_SIZE = 20;
-
-let clipboardExModule: ClipboardExModule | null = null;
-
-/**
- * Windows 平台专用：尝试加载第三方库 electron-clipboard-ex。
- * 这个库能够调用系统底层接口写入“文件复制”数据，成功率更高。
- * 其他系统无需加载它，因此这里做了“按需加载”的处理。
- */
-const ensureClipboardEx = (): ClipboardExModule | null => {
-  if (process.platform !== 'win32') return null;
-  if (clipboardExModule) return clipboardExModule;
-  try {
-    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-    clipboardExModule = require('electron-clipboard-ex');
-  } catch {
-    clipboardExModule = null;
-  }
-  return clipboardExModule;
-};
 
 /**
  * 把一组文件路径变成 Windows 规定的文本格式。
@@ -75,12 +56,9 @@ const buildDropEffectBuffer = (effect: 'copy' | 'move' | 'link' = 'copy') => {
 };
 
 /**
- * 直接使用 Electron 内置 API 写入多种剪贴板格式。
- * 步骤：
- * 1. 写入二进制的 CF_HDROP（含头部与路径列表）
- * 2. 写入纯文本形式的 FileNameW（备选格式）
- * 3. 写入 Preferred DropEffect（告诉系统“这是复制”）
- * 全部成功后，读取一次 CF_HDROP 的长度，确认剪贴板里确实有内容。
+ * 兜底通道：直接通过 Electron 的 `clipboard.writeBuffer` 写入多种格式。
+ * 仅当原生通道（`rubick-native-next`）不可用或调用失败时才会用到，
+ * 例如未编译 N-API 插件的开发环境。
  */
 const writeWindowsBuffers = (files: string[]): boolean => {
   try {
@@ -94,40 +72,18 @@ const writeWindowsBuffers = (files: string[]): boolean => {
 };
 
 /**
- * 如果项目中安装了 electron-clipboard-ex，我们优先使用它。
- * 理由：该库通过原生方式与系统交互，兼容性往往优于 Electron 的 JS 层写入。
- * 调用成功后，必要时读回文件列表做一次数量校验，确保复制的文件数量正确。
- */
-const writeWithClipboardEx = (files: string[]): boolean => {
-  const clipboardEx = ensureClipboardEx();
-  if (!clipboardEx) return false;
-  try {
-    clipboardEx.writeFilePaths(files);
-    if (typeof clipboardEx.readFilePaths === 'function') {
-      const result = clipboardEx.readFilePaths();
-      return Array.isArray(result) && result.length === files.length;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
  * 对外暴露的唯一入口。
  * 1. 先把所有路径换成 Windows 可识别的标准形式（path.normalize）。
- * 2. 尝试使用 electron-clipboard-ex 写入，如果成功就结束。
- * 3. 若第三方库不可用或失败，再退回 Electron 原生写入流程。
- * 这一层屏蔽了所有细节，外部调用者只需传入字符串数组即可。
+ * 2. 走 `rubick-native-next` 的原生 Win32 通道写入。
+ * 3. 若原生通道不可用（例如未编译 N-API 附加件），再退回 Electron buffer 写入流程。
  */
 export const copyFilesToWindowsClipboard = (files: string[]): boolean => {
   const normalizedFiles = files
     .map((filePath) => path.normalize(filePath))
     .filter(Boolean);
   if (!normalizedFiles.length) return false;
-  if (writeWithClipboardEx(normalizedFiles)) {
+  if (nativeClipboard.writeFilePaths(normalizedFiles)) {
     return true;
   }
   return writeWindowsBuffers(normalizedFiles);
 };
-

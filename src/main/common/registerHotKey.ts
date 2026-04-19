@@ -31,6 +31,13 @@ const DOUBLE_PRESS_KEY_MAP: Record<string, string[]> = {
   Command: ['MetaLeft', 'MetaRight'],
 };
 
+/**
+ * Cached double-press target keys. Populated by `init()` / `re-register`, so
+ * the hotpath input listener never has to call `localConfig.getConfig()` (which
+ * hits PouchDB) on every keystroke.
+ */
+let doublePressExpectedKeys: string[] = [];
+
 const registerHotKey = (mainWindow: BrowserWindow): void => {
   const setAutoLogin = async () => {
     const config = await localConfig.getConfig();
@@ -108,7 +115,22 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
       config.perf.shortCut.showAndHidden
     );
 
-    if (!isDoublePressShortcut) {
+    if (isDoublePressShortcut) {
+      // Double-press relies on the global low-level keyboard hook, not on
+      // electron.globalShortcut. Cache the expected key codes so the per-event
+      // listener can short-circuit without touching PouchDB.
+      const modifiers = config.perf.shortCut.showAndHidden.split('+');
+      const showAndHiddenKeyStr = modifiers.pop() || '';
+      doublePressExpectedKeys =
+        DOUBLE_PRESS_KEY_MAP[showAndHiddenKeyStr] || [];
+      uIOhookRegister(mainWindowPopUp);
+    } else {
+      // Drop the native hook subscription so the OS hook can be torn down when
+      // no other consumer (e.g. super-panel mouse trigger) needs it.
+      doublePressExpectedKeys = [];
+      removeInputSubscription?.();
+      removeInputSubscription = null;
+
       const candidates = [config.perf.shortCut.showAndHidden];
       if (commonConst.windows()) {
         if (config.perf.shortCut.showAndHidden.includes('Option+')) {
@@ -175,7 +197,6 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     });
   };
 
-  uIOhookRegister(mainWindowPopUp);
   init();
   ipcMain.on('re-register', () => {
     init();
@@ -184,26 +205,30 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
 
 export default registerHotKey;
 
+/**
+ * Subscribe to native input events for double-press hot-keys. Idempotent: if
+ * an existing subscription is active, it is reused and we just refresh the
+ * cached `doublePressExpectedKeys`.
+ *
+ * The listener intentionally does NOT call `localConfig.getConfig()` on every
+ * keystroke (it would hit PouchDB on every key event). Configuration changes
+ * flow through `init()` which updates `doublePressExpectedKeys` in place.
+ */
 function uIOhookRegister(callback: () => void) {
-  let lastModifierPress = Date.now();
-  removeInputSubscription?.();
-  removeInputSubscription = input.onInputEvent(async (event: NativeInputEvent) => {
-    if (event.kind !== 'key' || event.state !== 'down') return;
+  if (removeInputSubscription) return;
 
-    const config = await localConfig.getConfig();
-    if (!DOUBLE_PRESS_SHORTCUTS.includes(config.perf.shortCut.showAndHidden)) {
+  let lastModifierPress = 0;
+  removeInputSubscription = input.onInputEvent((event: NativeInputEvent) => {
+    if (event.kind !== 'key' || event.state !== 'down') return;
+    if (doublePressExpectedKeys.length === 0) return;
+    if (!doublePressExpectedKeys.includes(event.key)) return;
+
+    const now = Date.now();
+    if (now - lastModifierPress < 300) {
+      callback();
+      lastModifierPress = 0;
       return;
     }
-
-    const modifiers = config.perf.shortCut.showAndHidden.split('+');
-    const showAndHiddenKeyStr = modifiers.pop() || '';
-    const expectedKeys = DOUBLE_PRESS_KEY_MAP[showAndHiddenKeyStr] || [];
-    if (!expectedKeys.includes(event.key)) return;
-
-    const currentTime = Date.now();
-    if (currentTime - lastModifierPress < 300) {
-      callback();
-    }
-    lastModifierPress = currentTime;
+    lastModifierPress = now;
   });
 }

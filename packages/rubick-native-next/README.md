@@ -40,7 +40,7 @@ capabilities Rubick Next actually needs, without depending on the upstream
 ## Initial Migration Targets
 
 1. `@nut-tree/nut-js` removed: Windows `SendInput` via N-API; macOS `osascript`; Linux `xdotool` when available
-2. Evaluate replacing `uiohook-napi`
+2. ~~Evaluate replacing `uiohook-napi`~~ (done on Windows: `WH_KEYBOARD_LL` / `WH_MOUSE_LL` in `native/`; non-Windows `startInputHook` is a no-op until a platform hook is added)
 3. Windows Explorer folder path now uses the in-repo N-API (`ShellWindows` / `IWebBrowser2`) instead of `cdwhere.exe`
 
 ## Design Rules
@@ -67,9 +67,9 @@ Current integration status:
 
 Current intentionally retained fallbacks:
 
-- `input.onInputEvent` still adapts `uiohook-napi`
-- `clipboard.getClipboardContent` still prefers `electron-clipboard-ex` on
-  Windows when it is available
+- `clipboard.writeFilePaths` falls back to Electron `clipboard.writeBuffer`
+  (via `src/main/common/windowsClipboard.ts`) when the native addon is
+  unavailable in a developer environment without a Rust toolchain
 
 Implemented first:
 
@@ -81,9 +81,10 @@ Implemented first:
   Same stack as `sendCopyShortcut`, with a small canonical key/modifier map for
   IPC callers (letters, digits, `F1`–`F24`, arrows, Enter, Tab, Space, etc.).
 - `input.onInputEvent`
-  First implementation adapts `uiohook-napi` behind a shared subscription
-  layer. The package now exposes unsubscribe callbacks even though the app code
-  no longer needs to depend on `uIOhook` directly.
+  On **Windows**, global keyboard/mouse/wheel events come from low-level hooks in
+  the N-API addon (`startInputHook` → JSON payloads → `NativeInputEvent`). On
+  other platforms the exported `startInputHook` currently installs no native
+  listener (no events) until a macOS/Linux implementation lands.
 - `system.getActiveWindow`
   The current implementation now uses the package-owned Windows native binding
   directly and returns `null` on non-Windows platforms for now.
@@ -93,12 +94,17 @@ Implemented first:
   N-API addon. Requires a successful native build; otherwise returns an empty
   string.
 - `clipboard.getClipboardContent`
-  First implementation reads from Electron's clipboard and returns:
+  Reads from Electron's clipboard and returns:
   - `file` when file paths are present
   - `text` when plain text is present
   - `null` otherwise
-  On Windows it prefers `electron-clipboard-ex` when available, then falls back
-  to Electron clipboard formats.
+  Windows file-path reads now go through the in-repo N-API
+  (`readClipboardFilePaths` → `CF_HDROP` + `DragQueryFileW`); macOS still uses
+  Electron's pasteboard formats.
+- `clipboard.readFilePaths` / `clipboard.writeFilePaths`
+  Synchronous Windows file-clipboard helpers backed by `CF_HDROP` (with
+  `Preferred DropEffect = COPY`) in the native addon. These replace the legacy
+  `electron-clipboard-ex` dependency.
 
 First implementation targets:
 

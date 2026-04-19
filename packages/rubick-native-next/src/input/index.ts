@@ -5,55 +5,6 @@ import type {
 } from '../types';
 import { sendKeyboardChordDarwinLinux } from './platform-chord';
 
-interface UiohookKeyboardEventLike {
-  keycode: number;
-}
-
-interface UiohookMouseEventLike {
-  button: unknown;
-  x: number;
-  y: number;
-}
-
-interface UiohookWheelEventLike {
-  direction: number;
-  rotation: number;
-}
-
-interface UiohookLike {
-  on(
-    event:
-      | 'keydown'
-      | 'keyup'
-      | 'mousedown'
-      | 'mouseup'
-      | 'mousemove'
-      | 'wheel',
-    listener: (event: unknown) => void
-  ): this;
-  removeListener(
-    event:
-      | 'keydown'
-      | 'keyup'
-      | 'mousedown'
-      | 'mouseup'
-      | 'mousemove'
-      | 'wheel',
-    listener: (event: unknown) => void
-  ): this;
-  start(): void;
-  stop(): void;
-}
-
-interface UiohookModuleLike {
-  uIOhook: UiohookLike;
-  UiohookKey?: Record<string, number>;
-  WheelDirection?: {
-    VERTICAL?: number;
-    HORIZONTAL?: number;
-  };
-}
-
 const listeners = new Set<(event: NativeInputEvent) => void>();
 let stopHook: (() => void) | null = null;
 
@@ -176,18 +127,18 @@ const parseChordTokens = (
   return { modifiers: uniq, key: keys[0] };
 };
 
-interface NativeChordBinding {
-  sendKeyboardChord?: (modifiers: string[], key: string) => void;
-}
-
-const tryLoadNativeChord = (): NativeChordBinding | null => {
-  if (process.platform !== 'win32') return null;
-
+// Native addon shape comes from `src/nativeBinding.d.ts`.
+const tryLoadNativeAddon = () => {
   try {
-    return require('../../native') as NativeChordBinding;
+    return require('../../native');
   } catch {
     return null;
   }
+};
+
+const tryLoadNativeChord = () => {
+  if (process.platform !== 'win32') return null;
+  return tryLoadNativeAddon();
 };
 
 const dispatchChord = async (rawKeys: string[]): Promise<void> => {
@@ -216,153 +167,87 @@ const dispatchChord = async (rawKeys: string[]): Promise<void> => {
   );
 };
 
-const createKeyNameMap = (
-  uiohookKey?: Record<string, number>
-): Map<number, string> => {
-  const entries = Object.entries(uiohookKey || {});
-  const map = new Map<number, string>();
-
-  for (const [name, keycode] of entries) {
-    if (typeof keycode !== 'number' || map.has(keycode)) continue;
-
-    switch (name) {
-      case 'Ctrl':
-        map.set(keycode, 'ControlLeft');
-        break;
-      case 'CtrlRight':
-        map.set(keycode, 'ControlRight');
-        break;
-      case 'Alt':
-        map.set(keycode, 'AltLeft');
-        break;
-      case 'AltRight':
-        map.set(keycode, 'AltRight');
-        break;
-      case 'Shift':
-        map.set(keycode, 'ShiftLeft');
-        break;
-      case 'ShiftRight':
-        map.set(keycode, 'ShiftRight');
-        break;
-      case 'Meta':
-        map.set(keycode, 'MetaLeft');
-        break;
-      case 'MetaRight':
-        map.set(keycode, 'MetaRight');
-        break;
-      default:
-        map.set(keycode, name);
-        break;
+const emit = (event: NativeInputEvent): void => {
+  // Isolate listener exceptions so one bad subscriber can't suppress the others.
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[rubick-native-next] input listener threw', err);
     }
   }
-
-  return map;
 };
 
-const normalizeButton = (button: unknown): NativeMouseButton | 'unknown' => {
-  if (button === 1) return 'left';
-  if (button === 2) return 'right';
-  if (button === 3) return 'middle';
-  if (button === 4) return 'back';
-  if (button === 5) return 'forward';
-  return 'unknown';
-};
-
-const emit = (event: NativeInputEvent): void => {
-  for (const listener of listeners) {
-    listener(event);
-  }
-};
-
-const tryLoadUiohook = (): UiohookModuleLike | null => {
+const parseNativeInputPayload = (raw: string): NativeInputEvent | null => {
   try {
-    return require('uiohook-napi') as UiohookModuleLike;
+    const o = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      o.kind === 'key' &&
+      (o.state === 'down' || o.state === 'up') &&
+      typeof o.key === 'string'
+    ) {
+      return {
+        kind: 'key',
+        state: o.state,
+        key: o.key,
+        text:
+          o.text === undefined || o.text === null
+            ? null
+            : String(o.text),
+      };
+    }
+
+    if (
+      o.kind === 'mouse' &&
+      (o.state === 'down' || o.state === 'up') &&
+      typeof o.button === 'string'
+    ) {
+      const b = o.button as NativeMouseButton | 'unknown';
+      return { kind: 'mouse', state: o.state, button: b };
+    }
+
+    if (
+      o.kind === 'mouse-move' &&
+      typeof o.x === 'number' &&
+      typeof o.y === 'number'
+    ) {
+      return { kind: 'mouse-move', x: o.x, y: o.y };
+    }
+
+    if (
+      o.kind === 'wheel' &&
+      typeof o.deltaX === 'number' &&
+      typeof o.deltaY === 'number'
+    ) {
+      return { kind: 'wheel', deltaX: o.deltaX, deltaY: o.deltaY };
+    }
   } catch {
     return null;
   }
+
+  return null;
 };
 
 const startSharedHook = (): (() => void) | null => {
-  const hookModule = tryLoadUiohook();
-  if (!hookModule) return null;
+  const native = tryLoadNativeAddon();
+  if (typeof native?.startInputHook !== 'function') {
+    return null;
+  }
 
-  const { uIOhook } = hookModule;
-  const keyNames = createKeyNameMap(hookModule.UiohookKey);
-  const verticalWheelDirection = hookModule.WheelDirection?.VERTICAL ?? 3;
-
-  const keydown = (event: unknown) => {
-    const input = event as UiohookKeyboardEventLike;
-    emit({
-      kind: 'key',
-      state: 'down',
-      key: keyNames.get(input.keycode) || `KeyCode:${input.keycode}`,
+  try {
+    return native.startInputHook((...args: unknown[]) => {
+      // CalleeHandled threadsafe function → (err, payload). Be lenient.
+      const payload = args.find(
+        (a): a is string => typeof a === 'string'
+      );
+      if (payload === undefined) return;
+      const event = parseNativeInputPayload(payload);
+      if (event) emit(event);
     });
-  };
-
-  const keyup = (event: unknown) => {
-    const input = event as UiohookKeyboardEventLike;
-    emit({
-      kind: 'key',
-      state: 'up',
-      key: keyNames.get(input.keycode) || `KeyCode:${input.keycode}`,
-    });
-  };
-
-  const mousedown = (event: unknown) => {
-    const input = event as UiohookMouseEventLike;
-    emit({
-      kind: 'mouse',
-      state: 'down',
-      button: normalizeButton(input.button),
-    });
-  };
-
-  const mouseup = (event: unknown) => {
-    const input = event as UiohookMouseEventLike;
-    emit({
-      kind: 'mouse',
-      state: 'up',
-      button: normalizeButton(input.button),
-    });
-  };
-
-  const mousemove = (event: unknown) => {
-    const input = event as UiohookMouseEventLike;
-    emit({
-      kind: 'mouse-move',
-      x: input.x,
-      y: input.y,
-    });
-  };
-
-  const wheel = (event: unknown) => {
-    const input = event as UiohookWheelEventLike;
-    const rotation = Number(input.rotation) || 0;
-    const isVertical = input.direction === verticalWheelDirection;
-    emit({
-      kind: 'wheel',
-      deltaX: isVertical ? 0 : rotation,
-      deltaY: isVertical ? rotation : 0,
-    });
-  };
-
-  uIOhook.on('keydown', keydown);
-  uIOhook.on('keyup', keyup);
-  uIOhook.on('mousedown', mousedown);
-  uIOhook.on('mouseup', mouseup);
-  uIOhook.on('mousemove', mousemove);
-  uIOhook.on('wheel', wheel);
-  uIOhook.start();
-
-  return () => {
-    uIOhook.removeListener('keydown', keydown);
-    uIOhook.removeListener('keyup', keyup);
-    uIOhook.removeListener('mousedown', mousedown);
-    uIOhook.removeListener('mouseup', mouseup);
-    uIOhook.removeListener('mousemove', mousemove);
-    uIOhook.removeListener('wheel', wheel);
-    uIOhook.stop();
-  };
+  } catch {
+    return null;
+  }
 };
 
 export const input: NativeInputApi = {

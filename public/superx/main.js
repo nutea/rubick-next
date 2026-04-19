@@ -42,7 +42,7 @@ const SP_MOUSE = {
     LONG_RIGHT: 'rubick:sp:long-right',
     LONG_MIDDLE: 'rubick:sp:long-middle',
 };
-/** libuiohook MOUSE_BUTTON1..3 */
+/** 与 `NativeInputEvent.button` 一致：left / right / middle */
 const BTN = {
     LEFT: 'left',
     RIGHT: 'right',

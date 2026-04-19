@@ -70,6 +70,18 @@ export interface NativeInputApi {
 
 export interface NativeClipboardApi {
   getClipboardContent(): Promise<NativeClipboardContent>;
+  /**
+   * Reads the file paths currently held on the OS clipboard.
+   * Returns an empty array on platforms or formats where no file list exists.
+   */
+  readFilePaths(): string[];
+  /**
+   * Publishes the given file paths on the OS clipboard so the system paste
+   * action drops them as files. Returns false if the platform is unsupported
+   * or the underlying call fails; the caller can then fall back to a JS-side
+   * implementation.
+   */
+  writeFilePaths(files: string[]): boolean;
 }
 
 export interface NativeRuntimeApi {

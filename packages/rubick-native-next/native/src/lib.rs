@@ -1,16 +1,21 @@
 #![allow(non_snake_case)]
 
 #[cfg(windows)]
+mod clipboard_win;
+
+#[cfg(windows)]
 mod folder_open_path;
 
 #[cfg(windows)]
 mod keyboard_win;
 
-use napi::bindgen_prelude::Result;
+#[cfg(windows)]
+mod input_hook_win;
+
+use napi::bindgen_prelude::{AsyncTask, Env, JsFunction, Result, Task};
 use napi_derive::napi;
 
 #[napi(object)]
-#[allow(non_snake_case)]
 pub struct ActiveWindowInfo {
   pub title: Option<String>,
   pub path: Option<String>,
@@ -26,11 +31,13 @@ pub struct ActiveWindowInfo {
 mod windows_impl {
   use super::ActiveWindowInfo;
   use std::path::Path;
-  use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, RECT};
-  use windows_sys::Win32::System::Threading::{
-    OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
+  use windows::core::PWSTR;
+  use windows::Win32::Foundation::{CloseHandle, HANDLE, HWND, RECT};
+  use windows::Win32::System::Threading::{
+    OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+    PROCESS_QUERY_LIMITED_INFORMATION,
   };
-  use windows_sys::Win32::UI::WindowsAndMessaging::{
+  use windows::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetWindowRect, GetWindowTextLengthW, GetWindowTextW,
     GetWindowThreadProcessId,
   };
@@ -39,27 +46,30 @@ mod windows_impl {
 
   impl Drop for ProcessHandle {
     fn drop(&mut self) {
-      if !self.0.is_null() {
+      if !self.0.is_invalid() {
         unsafe {
-          CloseHandle(self.0);
+          let _ = CloseHandle(self.0);
         }
       }
     }
   }
 
   fn from_utf16(buffer: &[u16]) -> String {
-    let end = buffer.iter().position(|&value| value == 0).unwrap_or(buffer.len());
+    let end = buffer
+      .iter()
+      .position(|&value| value == 0)
+      .unwrap_or(buffer.len());
     String::from_utf16_lossy(&buffer[..end])
   }
 
   fn get_window_title(hwnd: HWND) -> Option<String> {
     let length = unsafe { GetWindowTextLengthW(hwnd) };
-    if length < 0 {
-      return None;
+    if length <= 0 {
+      return Some(String::new());
     }
 
     let mut buffer = vec![0u16; length as usize + 1];
-    let written = unsafe { GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32) };
+    let written = unsafe { GetWindowTextW(hwnd, &mut buffer) };
     if written <= 0 {
       return Some(String::new());
     }
@@ -68,50 +78,43 @@ mod windows_impl {
   }
 
   fn get_window_rect(hwnd: HWND) -> Option<RECT> {
-    let mut rect = RECT {
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-    };
-
-    let ok = unsafe { GetWindowRect(hwnd, &mut rect) };
-    if ok == 0 {
+    let mut rect = RECT::default();
+    if unsafe { GetWindowRect(hwnd, &mut rect) }.is_err() {
       return None;
     }
-
     Some(rect)
   }
 
   fn get_process_id(hwnd: HWND) -> Option<u32> {
-    let mut process_id = 0u32;
+    let mut pid = 0u32;
     unsafe {
-      GetWindowThreadProcessId(hwnd, &mut process_id);
+      GetWindowThreadProcessId(hwnd, Some(&mut pid));
     }
-
-    if process_id == 0 {
-      return None;
+    if pid == 0 {
+      None
+    } else {
+      Some(pid)
     }
-
-    Some(process_id)
   }
 
   fn get_process_path(process_id: u32) -> Option<String> {
-    let raw_handle =
-      unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id) };
-    if raw_handle.is_null() {
-      return None;
-    }
+    let handle =
+      unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id) }.ok()?;
+    let process_handle = ProcessHandle(handle);
 
-    let handle = ProcessHandle(raw_handle);
     let mut buffer = vec![0u16; 32768];
     let mut size = buffer.len() as u32;
 
-    let ok = unsafe {
-      QueryFullProcessImageNameW(handle.0, 0, buffer.as_mut_ptr(), &mut size)
+    let result = unsafe {
+      QueryFullProcessImageNameW(
+        process_handle.0,
+        PROCESS_NAME_WIN32,
+        PWSTR(buffer.as_mut_ptr()),
+        &mut size,
+      )
     };
 
-    if ok == 0 || size == 0 {
+    if result.is_err() || size == 0 {
       return None;
     }
 
@@ -128,7 +131,7 @@ mod windows_impl {
 
   pub fn get_active_window() -> Option<ActiveWindowInfo> {
     let hwnd = unsafe { GetForegroundWindow() };
-    if hwnd.is_null() {
+    if hwnd.is_invalid() {
       return None;
     }
 
@@ -173,18 +176,64 @@ mod windows_impl {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Async wrappers (run on the libuv thread pool, free the Node main thread).
+// ---------------------------------------------------------------------------
+
+pub struct GetActiveWindowTask;
+
+impl Task for GetActiveWindowTask {
+  type Output = Option<ActiveWindowInfo>;
+  type JsValue = Option<ActiveWindowInfo>;
+
+  fn compute(&mut self) -> Result<Self::Output> {
+    Ok(windows_impl::get_active_window())
+  }
+
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+    Ok(output)
+  }
+}
+
 #[napi]
-pub fn get_active_window() -> Result<Option<ActiveWindowInfo>> {
-  Ok(windows_impl::get_active_window())
+pub fn get_active_window() -> AsyncTask<GetActiveWindowTask> {
+  AsyncTask::new(GetActiveWindowTask)
+}
+
+pub struct GetFolderOpenPathTask;
+
+impl Task for GetFolderOpenPathTask {
+  type Output = String;
+  type JsValue = String;
+
+  fn compute(&mut self) -> Result<Self::Output> {
+    #[cfg(windows)]
+    {
+      Ok(folder_open_path::get_folder_open_path().unwrap_or_default())
+    }
+    #[cfg(not(windows))]
+    {
+      Ok(String::new())
+    }
+  }
+
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+    Ok(output)
+  }
 }
 
 #[napi(js_name = "getFolderOpenPath")]
-pub fn get_folder_open_path_napi() -> Result<String> {
+pub fn get_folder_open_path_async_napi() -> AsyncTask<GetFolderOpenPathTask> {
+  AsyncTask::new(GetFolderOpenPathTask)
+}
+
+/// Synchronous variant retained for `event.returnValue` IPC handlers (e.g.
+/// `registerCdwhereIpc`) that cannot await a Promise. Prefer the async form.
+#[napi(js_name = "getFolderOpenPathSync")]
+pub fn get_folder_open_path_sync_napi() -> Result<String> {
   #[cfg(windows)]
   {
-    return Ok(
-      folder_open_path::get_folder_open_path().unwrap_or_default(),
-    );
+    Ok(folder_open_path::get_folder_open_path().unwrap_or_default())
   }
   #[cfg(not(windows))]
   {
@@ -196,13 +245,55 @@ pub fn get_folder_open_path_napi() -> Result<String> {
 pub fn send_keyboard_chord_napi(modifiers: Vec<String>, key: String) -> Result<()> {
   #[cfg(windows)]
   {
-    keyboard_win::send_chord(&modifiers, &key)
-      .map_err(|message| napi::Error::from_reason(message))?;
+    keyboard_win::send_chord(&modifiers, &key).map_err(napi::Error::from_reason)?;
     return Ok(());
   }
   #[cfg(not(windows))]
   {
     let _ = (modifiers, key);
+    Ok(())
+  }
+}
+
+#[napi(js_name = "startInputHook")]
+pub fn start_input_hook_napi(env: Env, callback: JsFunction) -> Result<JsFunction> {
+  #[cfg(windows)]
+  {
+    return input_hook_win::start(&env, callback);
+  }
+  #[cfg(not(windows))]
+  {
+    let _ = callback;
+    env.create_function_from_closure("stopInputHook", |_| Ok(()))
+  }
+}
+
+/// Reads the file paths currently on the OS clipboard (Windows `CF_HDROP`).
+/// Returns an empty array when no file list is present, or on non-Windows
+/// platforms.
+#[napi(js_name = "readClipboardFilePaths")]
+pub fn read_clipboard_file_paths_napi() -> Result<Vec<String>> {
+  #[cfg(windows)]
+  {
+    return clipboard_win::read_file_paths().map_err(napi::Error::from_reason);
+  }
+  #[cfg(not(windows))]
+  {
+    Ok(Vec::new())
+  }
+}
+
+/// Writes the given file paths to the OS clipboard as a `CF_HDROP` payload
+/// (and `Preferred DropEffect = COPY`). No-op on non-Windows platforms.
+#[napi(js_name = "writeClipboardFilePaths")]
+pub fn write_clipboard_file_paths_napi(files: Vec<String>) -> Result<()> {
+  #[cfg(windows)]
+  {
+    return clipboard_win::write_file_paths(&files).map_err(napi::Error::from_reason);
+  }
+  #[cfg(not(windows))]
+  {
+    let _ = files;
     Ok(())
   }
 }

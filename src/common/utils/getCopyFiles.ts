@@ -10,6 +10,17 @@ const fs = nodeRequire('fs');
 const path = nodeRequire('path');
 const ofs = nodeRequire('original-fs');
 
+// 通过 require 加载，避免渲染进程的 Vite 处理出现解析问题；
+// 该包在两个进程都可用，且其内部会按需懒加载平台原生模块。
+const tryLoadNativeClipboard = (): { readFilePaths(): string[] } | null => {
+  try {
+    const mod = nodeRequire('rubick-native-next');
+    return mod?.clipboard ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export default function getCopyFiles(): Array<any> | null {
   let fileInfo;
   if (commonConst.macOS()) {
@@ -22,12 +33,13 @@ export default function getCopyFiles(): Array<any> | null {
       return null;
     }
   } else if (process.platform === 'win32') {
-    try {
-      /* eslint-disable */
-      const clipboardEx = require('electron-clipboard-ex');
-      fileInfo = clipboardEx.readFilePaths();
-    } catch (e) {
-      // todo
+    const nativeClipboard = tryLoadNativeClipboard();
+    if (nativeClipboard) {
+      try {
+        fileInfo = nativeClipboard.readFilePaths();
+      } catch {
+        // 原生模块不可用时返回空，下面的存在性校验会自然过滤掉。
+      }
     }
   } else {
     if (!commonConst.linux()) return null;

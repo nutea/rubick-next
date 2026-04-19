@@ -1,36 +1,22 @@
 import type { NativeWindowInfo } from '../types';
 
-interface WindowsActiveWindowBindingResult {
-  title?: string;
-  path?: string;
-  processId?: number;
-  appName?: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-}
-
-interface WindowsActiveWindowBinding {
-  getActiveWindow(): WindowsActiveWindowBindingResult | null;
-}
-
-const tryLoadWindowsActiveWindowBinding =
-  (): WindowsActiveWindowBinding | null => {
-    try {
-      return require('../../native') as WindowsActiveWindowBinding;
-    } catch {
-      return null;
-    }
-  };
+const tryLoadAddon = () => {
+  try {
+    return require('../../native');
+  } catch {
+    return null;
+  }
+};
 
 export const getWindowsActiveWindow =
   async (): Promise<NativeWindowInfo | null> => {
-    const binding = tryLoadWindowsActiveWindowBinding();
-    if (!binding) return null;
+    const addon = tryLoadAddon();
+    if (!addon?.getActiveWindow) return null;
 
     try {
-      const current = binding.getActiveWindow();
+      // Native side resolves on the libuv worker pool, so this `await`
+      // does not block the Node main thread on `OpenProcess` calls.
+      const current = await addon.getActiveWindow();
       if (!current) return null;
 
       return {

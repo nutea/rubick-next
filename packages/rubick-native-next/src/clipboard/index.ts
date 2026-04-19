@@ -3,60 +3,12 @@ import type { NativeClipboardApi, NativeClipboardContent } from '../types';
 interface ElectronClipboardLike {
   has(format: string): boolean;
   read(format: string): string;
-  readBuffer(format: string): Uint8Array;
   readText(format?: string): string;
-}
-
-interface ClipboardExLike {
-  readFilePaths(): string[];
 }
 
 interface ElectronLike {
   clipboard: ElectronClipboardLike;
 }
-
-const decodeUtf16le = (value: Uint8Array): string => {
-  if (!value.length) return '';
-  const view = value.byteOffset
-    ? value.slice().buffer
-    : value.buffer.slice(0, value.byteLength);
-  return new TextDecoder('utf-16le').decode(view);
-};
-
-const stripNulls = (value: string): string =>
-  value.split(String.fromCharCode(0)).join('').trim();
-
-const parseWindowsFileNameW = (value: Uint8Array): string[] => {
-  const decoded = stripNulls(decodeUtf16le(value));
-  return decoded ? [decoded] : [];
-};
-
-const parseWindowsCfHdrop = (raw: string): string[] => {
-  if (!raw) return [];
-
-  let normalized = [...raw]
-    .filter((_, index) => raw.charCodeAt(index) !== 0)
-    .join('');
-
-  const drivePrefix = normalized.match(/[a-zA-Z]:\\/);
-  if (!drivePrefix) return [];
-
-  const prefix = drivePrefix[0];
-  const prefixIndex = normalized.indexOf(prefix);
-  if (prefixIndex > 0) {
-    normalized = normalized.slice(prefixIndex);
-  }
-
-  return normalized
-    .split(prefix)
-    .filter(Boolean)
-    .map((item) => `${prefix}${item}`);
-};
-
-const parseMacFileUrls = (raw: string): string[] =>
-  (raw.match(/<string>.*?<\/string>/g) || [])
-    .map((item) => item.replace(/<string>|<\/string>/g, '').trim())
-    .filter(Boolean);
 
 const tryLoadElectron = (): ElectronLike | null => {
   try {
@@ -66,37 +18,36 @@ const tryLoadElectron = (): ElectronLike | null => {
   }
 };
 
-const tryLoadClipboardEx = (): ClipboardExLike | null => {
+/**
+ * Loads the in-repo N-API addon. The addon is the single source of truth for
+ * Windows file-path clipboard reads (replaces `electron-clipboard-ex`); on
+ * non-Windows platforms it is intentionally absent and we return null.
+ */
+const tryLoadNativeAddon = () => {
   if (process.platform !== 'win32') return null;
   try {
-    return require('electron-clipboard-ex') as ClipboardExLike;
+    return require('../../native');
   } catch {
     return null;
   }
 };
 
-const readWindowsFilePaths = (clipboard: ElectronClipboardLike): string[] => {
-  const clipboardEx = tryLoadClipboardEx();
-  if (clipboardEx) {
-    try {
-      const filePaths = clipboardEx.readFilePaths();
-      if (Array.isArray(filePaths) && filePaths.length > 0) {
-        return filePaths.filter(Boolean);
-      }
-    } catch {
-      // Fall through to Electron clipboard parsing.
-    }
+const readWindowsFilePaths = (): string[] => {
+  const addon = tryLoadNativeAddon();
+  if (!addon?.readClipboardFilePaths) return [];
+  try {
+    const filePaths = addon.readClipboardFilePaths();
+    if (!Array.isArray(filePaths)) return [];
+    return filePaths.filter((path: unknown): path is string => Boolean(path));
+  } catch {
+    return [];
   }
-
-  if (clipboard.has('CF_HDROP')) {
-    const filePaths = parseWindowsCfHdrop(clipboard.read('CF_HDROP') || '');
-    if (filePaths.length > 0) {
-      return filePaths;
-    }
-  }
-
-  return parseWindowsFileNameW(clipboard.readBuffer('FileNameW'));
 };
+
+const parseMacFileUrls = (raw: string): string[] =>
+  (raw.match(/<string>.*?<\/string>/g) || [])
+    .map((item) => item.replace(/<string>|<\/string>/g, '').trim())
+    .filter(Boolean);
 
 const readMacFilePaths = (clipboard: ElectronClipboardLike): string[] => {
   if (clipboard.has('NSFilenamesPboardType')) {
@@ -112,7 +63,7 @@ const readMacFilePaths = (clipboard: ElectronClipboardLike): string[] => {
 
 const readFilePaths = (clipboard: ElectronClipboardLike): string[] => {
   if (process.platform === 'win32') {
-    return readWindowsFilePaths(clipboard);
+    return readWindowsFilePaths();
   }
 
   if (process.platform === 'darwin') {
@@ -120,6 +71,17 @@ const readFilePaths = (clipboard: ElectronClipboardLike): string[] => {
   }
 
   return [];
+};
+
+const writeWindowsFilePaths = (files: string[]): boolean => {
+  const addon = tryLoadNativeAddon();
+  if (!addon?.writeClipboardFilePaths) return false;
+  try {
+    addon.writeClipboardFilePaths(files);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const clipboard: NativeClipboardApi = {
@@ -144,5 +106,25 @@ export const clipboard: NativeClipboardApi = {
       type: 'text',
       content: text,
     };
+  },
+
+  readFilePaths(): string[] {
+    if (process.platform === 'win32') {
+      return readWindowsFilePaths();
+    }
+    const electron = tryLoadElectron();
+    if (!electron) return [];
+    if (process.platform === 'darwin') {
+      return readMacFilePaths(electron.clipboard);
+    }
+    return [];
+  },
+
+  writeFilePaths(files: string[]): boolean {
+    if (!Array.isArray(files) || files.length === 0) return false;
+    if (process.platform === 'win32') {
+      return writeWindowsFilePaths(files);
+    }
+    return false;
   },
 };
