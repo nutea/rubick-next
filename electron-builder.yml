@@ -6,17 +6,39 @@ directories:
 releaseInfo:
   releaseName: normal
   releaseNotesFile: ./release/releaseNotes.md
+removePackageScripts: true
+buildDependenciesFromSource: false
+nodeGypRebuild: false
+electronLanguages:
+  - en-US
+  - zh-CN
 files:
   - dist/**/*
   - public/**/*
   - package.json
   - "!**/*.{md,ts,map,d.ts,tsbuildinfo,flow,nycrc}"
-  - "!**/{__tests__,test,tests,example,examples,powered-test,docs}/**"
+  - "!**/*.{coffee,scss,sass,h,c,cc,cpp,hpp,rs,gyp}"
+  - "!**/{__tests__,test,tests,example,examples,powered-test,docs,doc,benchmark,benchmarks}/**"
+  - "!**/{CHANGELOG,HISTORY,AUTHORS,CONTRIBUTORS,README,readme}*"
+  - "!**/{.github,.circleci,.vscode,.idea}/**"
+  - "!**/.DS_Store"
+  - "!**/*.log"
+  - "!**/yarn.lock"
+  - "!**/package-lock.json"
+  - "!**/pnpm-lock.yaml"
   - "!**/node_modules/rubick-native-next/native/{src,target,build.rs,Cargo.lock,Cargo.toml}"
   - "!**/node_modules/rubick-native-next/native/target/**"
+  # better-sqlite3: ship only the prebuilt .node + JS wrapper
+  - "!**/node_modules/better-sqlite3/build/Release/*.{iobj,ipdb,lib,exp,pdb}"
+  - "!**/node_modules/better-sqlite3/build/Release/obj/**"
+  - "!**/node_modules/better-sqlite3/build/Release/test_extension.node"
+  - "!**/node_modules/better-sqlite3/build/deps/**"
+  - "!**/node_modules/better-sqlite3/deps/**"
+  - "!**/node_modules/better-sqlite3/src/**"
+  - "!**/node_modules/better-sqlite3/binding.gyp"
 asarUnpack:
   - "**/*.node"
-  - node_modules/better-sqlite3/**/*
+  - node_modules/better-sqlite3/build/Release/better_sqlite3.node
   - node_modules/rubick-native-next/native/rubick_native_next.node
   - node_modules/rubick-native-next/index.js
   - node_modules/rubick-native-next/package.json

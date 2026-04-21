@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { createClient } from 'webdav';
-import { WebDAVClient } from 'webdav/dist/node/types';
+import type { WebDAVClient } from 'webdav';
 
 import type DB from './index';
 
@@ -22,39 +21,54 @@ type WebDavOptions = {
  * Backup / restore over WebDav. The local store is a single SQLite file, so
  * both directions are straightforward binary transfers: upload the file on
  * backup, overwrite the file on restore.
+ *
+ * `webdav` v5 is ESM-only. The main process bundle is CJS, so the module is
+ * loaded via dynamic `import()` and the concrete client is created lazily the
+ * first time a method is invoked.
  */
 export default class WebDav {
-  public client: WebDAVClient;
+  private readonly clientPromise: Promise<WebDAVClient>;
   private readonly sqlitePath = '/rubick/db.sqlite';
 
   constructor({ username, password, url }: WebDavOptions) {
-    this.client = createClient(url, {
-      username,
-      password,
-    });
-    this.client
-      .exists('/')
-      .then((result) => {
-        if (!result) {
+    this.clientPromise = import('webdav').then(({ createClient }) => {
+      const client = createClient(url, { username, password });
+      client
+        .exists('/')
+        .then((result) => {
+          if (!result) {
+            new Notification({
+              title: '导出失败',
+              body: 'webdav 连接失败',
+            }).show();
+          }
+        })
+        .catch((r) => {
           new Notification({
             title: '导出失败',
-            body: 'webdav 连接失败',
+            body: 'WebDav连接出错' + r,
           }).show();
-        }
-      })
-      .catch((r) => {
-        new Notification({
-          title: '导出失败',
-          body: 'WebDav连接出错' + r,
-        }).show();
-      });
+        });
+      return client;
+    });
   }
 
   async uploadSqliteFile(dbFile: string): Promise<void> {
+    let client: WebDAVClient;
     try {
-      const dirExists = await this.client.exists('/rubick');
+      client = await this.clientPromise;
+    } catch (e) {
+      new Notification({
+        title: '导出失败',
+        body: 'WebDav客户端初始化失败:' + e,
+      }).show();
+      return;
+    }
+
+    try {
+      const dirExists = await client.exists('/rubick');
       if (!dirExists) {
-        await this.client.createDirectory('/rubick');
+        await client.createDirectory('/rubick');
       }
     } catch (e) {
       new Notification({
@@ -77,7 +91,7 @@ export default class WebDav {
       // data lives in `-wal`/`-shm` alongside it), so a straight `readFile`
       // produces a snapshot the remote side can reopen without our help.
       const buffer = await fs.promises.readFile(dbFile);
-      await this.client.putFileContents(this.sqlitePath, buffer, {
+      await client.putFileContents(this.sqlitePath, buffer, {
         overwrite: true,
       });
 
@@ -94,8 +108,19 @@ export default class WebDav {
   }
 
   async downloadSqliteFile(db: DB): Promise<void> {
+    let client: WebDAVClient;
     try {
-      const exists = await this.client.exists(this.sqlitePath);
+      client = await this.clientPromise;
+    } catch (e) {
+      new Notification({
+        title: '导入失败',
+        body: 'WebDav客户端初始化失败:' + e,
+      }).show();
+      return;
+    }
+
+    try {
+      const exists = await client.exists(this.sqlitePath);
       if (!exists) {
         new Notification({
           title: '导入失败',
@@ -104,7 +129,7 @@ export default class WebDav {
         return;
       }
 
-      const data = (await this.client.getFileContents(this.sqlitePath, {
+      const data = (await client.getFileContents(this.sqlitePath, {
         format: 'binary',
       })) as Buffer | ArrayBuffer;
 
