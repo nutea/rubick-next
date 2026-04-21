@@ -34,7 +34,7 @@ const DOUBLE_PRESS_KEY_MAP: Record<string, string[]> = {
 /**
  * Cached double-press target keys. Populated by `init()` / `re-register`, so
  * the hotpath input listener never has to call `localConfig.getConfig()` (which
- * hits PouchDB) on every keystroke.
+ * hits the local SQLite store) on every keystroke.
  */
 let doublePressExpectedKeys: string[] = [];
 
@@ -118,7 +118,7 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     if (isDoublePressShortcut) {
       // Double-press relies on the global low-level keyboard hook, not on
       // electron.globalShortcut. Cache the expected key codes so the per-event
-      // listener can short-circuit without touching PouchDB.
+      // listener can short-circuit without touching the DB.
       const modifiers = config.perf.shortCut.showAndHidden.split('+');
       const showAndHiddenKeyStr = modifiers.pop() || '';
       doublePressExpectedKeys =
@@ -211,7 +211,7 @@ export default registerHotKey;
  * cached `doublePressExpectedKeys`.
  *
  * The listener intentionally does NOT call `localConfig.getConfig()` on every
- * keystroke (it would hit PouchDB on every key event). Configuration changes
+ * keystroke (it would hit the DB on every key event). Configuration changes
  * flow through `init()` which updates `doublePressExpectedKeys` in place.
  */
 function uIOhookRegister(callback: () => void) {

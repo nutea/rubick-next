@@ -10,9 +10,16 @@ files:
   - dist/**/*
   - public/**/*
   - package.json
-  - node_modules/{ajv,bluebird,buffer-equal,deferred-leveldown,delayed-stream,dom-walk,event-target-shim,fast-deep-equal,fast-json-stable-stringify,file-uri-to-path,global,har-schema,is-function,json-schema-traverse,jsonfile,level-iterator-stream,mime,mime-db,min-document,napi-macros,parse-bmfont-ascii,parse-bmfont-binary,parse-bmfont-xml,parse-headers,performance-now,pouchdb-collections,querystringify,requires-port,uri-js,xhr,xml-parse-from-string,xml2js}/**/*
-  - node_modules/.pnpm/*/node_modules/request-promise-core/**/*
-  - node_modules/.pnpm/*/node_modules/stealthy-require/**/*
+  - "!**/*.{md,ts,map,d.ts,tsbuildinfo,flow,nycrc}"
+  - "!**/{__tests__,test,tests,example,examples,powered-test,docs}/**"
+  - "!**/node_modules/rubick-native-next/native/{src,target,build.rs,Cargo.lock,Cargo.toml}"
+  - "!**/node_modules/rubick-native-next/native/target/**"
+asarUnpack:
+  - "**/*.node"
+  - node_modules/better-sqlite3/**/*
+  - node_modules/rubick-native-next/native/rubick_native_next.node
+  - node_modules/rubick-native-next/index.js
+  - node_modules/rubick-native-next/package.json
 extraMetadata:
   main: dist/main/entry.js
 win:

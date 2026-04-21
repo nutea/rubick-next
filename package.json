@@ -26,23 +26,20 @@
     "@electron/remote": "catalog:",
     "ant-design-vue": "catalog:",
     "axios": "catalog:",
+    "better-sqlite3": "^11.10.0",
     "buffer-equal": "1.0.0",
     "compressing": "^1.10.4",
     "cross-spawn": "^7.0.6",
-    "deferred-leveldown": "5.3.0",
     "delayed-stream": "1.0.0",
     "electron-updater": "^6.3.0",
     "event-target-shim": "5.0.1",
-    "events": "^3.3.0",
     "file-uri-to-path": "1.0.0",
     "fix-path": "^3.0.0",
     "fs-extra": "^10.1.0",
     "global": "4.4.0",
     "is-function": "1.0.2",
     "jsonfile": "6.2.0",
-    "level-iterator-stream": "4.0.2",
     "lodash.debounce": "catalog:",
-    "memorystream": "^0.3.1",
     "mime": "2.6.0",
     "mime-db": "1.52.0",
     "min-document": "2.19.0",
@@ -54,10 +51,6 @@
     "pinkie": "2.0.4",
     "pinyin-match": "^1.2.4",
     "plist": "^3.1.0",
-    "pouchdb": "^7.2.2",
-    "pouchdb-collections": "1.0.1",
-    "pouchdb-load": "^1.4.6",
-    "pouchdb-replication-stream": "^1.2.9",
     "querystringify": "2.2.0",
     "requires-port": "1.0.0",
     "rubick-native-next": "workspace:*",
@@ -79,7 +72,7 @@
     "@vue/eslint-config-typescript": "catalog:",
     "concurrently": "^9.1.2",
     "electron": "35.4.0",
-    "electron-builder": "26.8.1",
+    "electron-builder": "26.9.0",
     "electron-vite": "^2.3.0",
     "eslint": "catalog:",
     "eslint-plugin-vue": "catalog:",
@@ -89,16 +82,13 @@
     "typescript-eslint": "catalog:",
     "vite": "catalog:"
   },
-  "resolutions": {
-    "leveldown": "6.0.3"
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "ejs",
       "electron",
       "electron-winstaller",
-      "esbuild",
-      "leveldown"
+      "esbuild"
     ]
   },
   "volta": {

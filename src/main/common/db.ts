@@ -1,4 +1,4 @@
-import { LocalDb } from '@/core';
+import LocalDb from '@/core/db';
 import { app } from 'electron';
 
 const dbInstance = new LocalDb(app.getPath('userData'));
