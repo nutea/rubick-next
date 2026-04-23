@@ -3,12 +3,6 @@ const WINDOW_MIN_HEIGHT = 60;
 const PRE_ITEM_HEIGHT = 70;
 const HISTORY_HEIGHT = 70;
 
-/**
- * a-list 无数据时默认空状态（插图 + 描述）所需内容区最小高度。
- * 若总高仅保留顶栏 60px，空图标会被裁切。
- */
-const LIST_EMPTY_MIN_BELOW_SEARCH = 200;
-
 export type GetWindowHeightOpts = {
   searchValue?: string | number;
   clipboardFileLength?: number;
@@ -37,16 +31,14 @@ export default (
     !searchList.length &&
     !sv &&
     !hasClipboard &&
-    historyEnabled;
+    historyEnabled &&
+    !!historyList?.length;
 
   if (!searchList.length) {
     if (showHistoryPanel) {
-      return (
-        WINDOW_MIN_HEIGHT +
-        (historyList?.length ? HISTORY_HEIGHT : LIST_EMPTY_MIN_BELOW_SEARCH)
-      );
+      return WINDOW_MIN_HEIGHT + HISTORY_HEIGHT;
     }
-    return WINDOW_MIN_HEIGHT + LIST_EMPTY_MIN_BELOW_SEARCH;
+    return WINDOW_MIN_HEIGHT;
   }
 
   return searchList.length * PRE_ITEM_HEIGHT + WINDOW_MIN_HEIGHT >

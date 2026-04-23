@@ -84,8 +84,11 @@ function createPlugin() {
       const panelInstance = createPanelWindow(ctx);
       panelInstance.init();
 
-      const showSuperPanel = async () => {
+      const showSuperPanel = async (trigger: 'keyboard' | 'mouse') => {
         const { x, y } = screen.getCursorScreenPoint();
+        if (trigger === 'keyboard') {
+          await new Promise((resolve) => setTimeout(resolve, 40));
+        }
         let copyResult = await getSelectedContent(clipboard, simulateCopy);
         const snapNow = snapshotClipboard(clipboard);
 
@@ -209,7 +212,7 @@ function createPlugin() {
 
             if (event.state === 'down') {
               if (!isLong) {
-                void showSuperPanel();
+                void showSuperPanel('mouse');
                 return;
               }
 
@@ -218,7 +221,7 @@ function createPlugin() {
               longPressTimer = setTimeout(() => {
                 longPressTimer = null;
                 longPressButton = null;
-                void showSuperPanel();
+                void showSuperPanel('mouse');
               }, LONG_PRESS_MS);
               return;
             }
@@ -242,7 +245,7 @@ function createPlugin() {
           keyboardRegisterTimer = null;
           try {
             globalShortcut.register(superPanelHotKey, () => {
-              void showSuperPanel();
+              void showSuperPanel('keyboard');
             });
           } catch (err) {
             console.warn('[rubick-system-super-panel] globalShortcut.register failed:', err);

@@ -69,11 +69,10 @@
 
     <div v-if="matchPlugins.length" class="plugins-content">
       <div class="plugin-title">匹配插件</div>
-      <a-row class="plugin-row" :gutter="[0, 0]">
-        <a-col
+      <div class="plugin-grid">
+        <div
           v-for="(item, idx) in matchPlugins"
           :key="idx"
-          :span="8"
           class="plugin-item"
           @click="runPluginClick(item, $event)"
         >
@@ -83,25 +82,24 @@
             class="plugin-default-icon"
           />
           <img v-else width="30" :src="item.logo" alt="" />
-          <div>{{ item.name }}</div>
-        </a-col>
-      </a-row>
+          <div>{{ displayPluginLabel(item.name) }}</div>
+        </div>
+      </div>
     </div>
 
     <div v-if="userPlugins.length" class="plugins-content">
       <div class="plugin-title">固定插件</div>
-      <a-row class="plugin-row" :gutter="[0, 0]">
-        <a-col
+      <div class="plugin-grid">
+        <div
           v-for="(item, idx) in userPlugins"
           :key="idx"
-          :span="8"
           class="plugin-item"
           @click="runPluginClick(item, $event)"
         >
           <img width="30" :src="item.logo" alt="" />
           <div>{{ item.pluginName }}</div>
-        </a-col>
-      </a-row>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -140,6 +138,10 @@ const defaultIconByName: Record<string, typeof CodeOutlined> = {
 
 function iconFor(item: MatchPluginItem) {
   return defaultIconByName[item.name] || CopyOutlined;
+}
+
+function displayPluginLabel(name: string) {
+  return name === '复制当前路径' ? '复制路径' : name;
 }
 
 function normalizePath(raw: string): string {
@@ -438,8 +440,9 @@ body {
 .plugin-item {
   height: 74px;
   margin: 4px 0;
-  width: 100%;
-  max-width: 100%;
+  width: 72px;
+  max-width: 72px;
+  min-width: 72px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -470,7 +473,7 @@ body {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 0 2px;
+  padding: 0 1px;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
@@ -488,14 +491,12 @@ body {
   letter-spacing: 0.3px;
   box-sizing: border-box;
 }
-:deep(.plugins-content .plugin-row.ant-row) {
+.plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 72px);
+  justify-content: center;
+  gap: 8px;
   padding: 0 4px;
-  margin-inline: 0 !important;
-}
-:deep(.plugins-content .plugin-row .ant-col) {
-  min-width: 0;
-  flex: 0 0 33.333333% !important;
-  max-width: 33.333333% !important;
 }
 .spinner > div {
   width: 10px;

@@ -80,8 +80,11 @@ function createPlugin() {
             const { clipboard, screen, globalShortcut, API, ipcMain } = ctx;
             const panelInstance = (0, panel_window_1.default)(ctx);
             panelInstance.init();
-            const showSuperPanel = async () => {
+            const showSuperPanel = async (trigger) => {
                 const { x, y } = screen.getCursorScreenPoint();
+                if (trigger === 'keyboard') {
+                    await new Promise((resolve) => setTimeout(resolve, 40));
+                }
                 let copyResult = await (0, clipboard_helpers_1.getSelectedContent)(clipboard, simulateCopy);
                 const snapNow = (0, clipboard_helpers_1.snapshotClipboard)(clipboard);
                 if (!copyResult.text && !copyResult.fileUrl) {
@@ -194,7 +197,7 @@ function createPlugin() {
                             return;
                         if (event.state === 'down') {
                             if (!isLong) {
-                                void showSuperPanel();
+                                void showSuperPanel('mouse');
                                 return;
                             }
                             longPressButton = wantBtn;
@@ -203,7 +206,7 @@ function createPlugin() {
                             longPressTimer = setTimeout(() => {
                                 longPressTimer = null;
                                 longPressButton = null;
-                                void showSuperPanel();
+                                void showSuperPanel('mouse');
                             }, LONG_PRESS_MS);
                             return;
                         }
@@ -225,7 +228,7 @@ function createPlugin() {
                     keyboardRegisterTimer = null;
                     try {
                         globalShortcut.register(superPanelHotKey, () => {
-                            void showSuperPanel();
+                            void showSuperPanel('keyboard');
                         });
                     }
                     catch (err) {

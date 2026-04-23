@@ -622,6 +622,8 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
   }
 
   public showMainWindow(arg, window) {
+    const { x, y } = getWinPosition.getPosition();
+    window.setPosition(x, y);
     window.show();
   }
 

@@ -28,7 +28,11 @@
         </a-col>
       </a-row>
     </div>
-    <a-list v-else item-layout="horizontal" :dataSource="sort(options)">
+    <a-list
+      v-else-if="options.length || searchValue || clipboardFile.length"
+      item-layout="horizontal"
+      :dataSource="sort(options)"
+    >
       <template #renderItem="{ item, index }">
         <a-list-item
           @click="() => item.click()"

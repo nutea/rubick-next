@@ -1,4 +1,8 @@
 import { screen } from 'electron';
+import {
+  WINDOW_HEIGHT,
+  WINDOW_WIDTH,
+} from '@/common/constans/common';
 
 const winPosition = {
   x: 0,
@@ -11,12 +15,16 @@ const winPosition = {
       winPosition.id = currentDisplay.id;
       winPosition.x = parseInt(
         String(
-          currentDisplay.workArea.x + currentDisplay.workArea.width / 2 - 400
+          currentDisplay.workArea.x +
+            currentDisplay.workArea.width / 2 -
+            WINDOW_WIDTH / 2
         )
       );
       winPosition.y = parseInt(
         String(
-          currentDisplay.workArea.y + currentDisplay.workArea.height / 2 - 200
+          currentDisplay.workArea.y +
+            currentDisplay.workArea.height / 3 -
+            WINDOW_HEIGHT / 2
         )
       );
     }

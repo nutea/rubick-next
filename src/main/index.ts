@@ -8,6 +8,7 @@ import API from './common/api';
 import createTray from './common/tray';
 import registerHotKey from './common/registerHotKey';
 import localConfig from './common/initLocalConfig';
+import winPosition from './common/getWinPosition';
 import {
   getSearchFiles,
   putFileToRubick,
@@ -103,7 +104,9 @@ class App {
                 writeStartupLog(
                   'startup fallback showing main window on Windows packaged build'
                 );
+                const { x, y } = winPosition.getPosition();
                 mainWindow.setSkipTaskbar(false);
+                mainWindow.setPosition(x, y);
                 mainWindow.show();
                 mainWindow.focus();
               }
@@ -135,6 +138,8 @@ class App {
         if (win.isMinimized()) {
           win.restore();
         }
+        const { x, y } = winPosition.getPosition();
+        win.setPosition(x, y);
         // 第二实例被拒绝后，确保主窗口可见，避免仅 focus 但窗口仍隐藏
         win.show();
         win.focus();

@@ -4,6 +4,7 @@ import pkg from '../../../package.json';
 import os from 'os';
 import commonConst from '@/common/utils/commonConst';
 import { guide } from '../browsers';
+import winPosition from './getWinPosition';
 
 function getUsableWindow(
   getWindow: () => BrowserWindow | undefined
@@ -32,9 +33,11 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
     const openSettings = () => {
       const window = getUsableWindow(getWindow);
       if (!window) return;
+      const { x, y } = winPosition.getPosition();
       void window.webContents.executeJavaScript(
         `window.rubick && window.rubick.openMenu && window.rubick.openMenu({ code: "settings" })`
       );
+      window.setPosition(x, y);
       window.show();
     };
 
@@ -68,6 +71,8 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
           click() {
             const window = getUsableWindow(getWindow);
             if (!window) return;
+            const { x, y } = winPosition.getPosition();
+            window.setPosition(x, y);
             window.show();
           },
         },
