@@ -3,7 +3,7 @@ import pkg from '../../../package.json';
 import { lt } from 'semver';
 import { getLatestVersion } from './getLatestVersion';
 const version = pkg.version;
-const downloadUrl = 'https://github.com/rubickCenter/rubick/releases/latest';
+const downloadUrl = 'https://github.com/flickCenter/flick/releases/latest';
 
 const checkVersion = async () => {
   const res: string = await getLatestVersion();
@@ -14,7 +14,7 @@ const checkVersion = async () => {
       dialog
         .showMessageBox({
           type: 'info',
-          title: 'Rubick 更新提示',
+          title: 'Flick 更新提示',
           buttons: ['Yes', 'No'],
           message: `发现新版本 v${latest}，是否更新？`,
         })

@@ -17,7 +17,7 @@ interface ImportMeta {
 }
 
 interface Window {
-  rubick: any;
+  flick: any;
   market: any
 }
 

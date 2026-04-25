@@ -83,7 +83,7 @@ watch(state, setConfig);
 const { custom } = toRefs(state);
 
 const changeLogo = () => {
-  const [logoPath] = window.rubick.showOpenDialog({
+  const [logoPath] = window.flick.showOpenDialog({
     title: '请选择 logo 路径',
     filters: [{ name: 'images', extensions: ['png'] }],
     properties: ['openFile'],

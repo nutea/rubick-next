@@ -34,13 +34,13 @@ const isMacOS = os.type() === 'Darwin';
 async function simulateCopy() {
     await (0, native_1.simulateCopyShortcut)();
 }
-const STORE_ID = 'rubick-system-super-panel-store';
+const STORE_ID = 'flick-system-super-panel-store';
 /** 与插件市场「超级面板」设置页写入的 dbStorage 键一致 */
 const SP_MOUSE = {
-    MIDDLE: 'rubick:sp:mouse-middle',
-    LONG_LEFT: 'rubick:sp:long-left',
-    LONG_RIGHT: 'rubick:sp:long-right',
-    LONG_MIDDLE: 'rubick:sp:long-middle',
+    MIDDLE: 'flick:sp:mouse-middle',
+    LONG_LEFT: 'flick:sp:long-left',
+    LONG_RIGHT: 'flick:sp:long-right',
+    LONG_MIDDLE: 'flick:sp:long-middle',
 };
 /** 与 `NativeInputEvent.button` 一致：left / right / middle */
 const BTN = {
@@ -49,7 +49,7 @@ const BTN = {
     MIDDLE: 'middle',
 };
 const LONG_PRESS_MS = 450;
-/** 首次注册延迟，避免与 Rubick 其它 globalShortcut 抢注册冲突；热更新时为 0 */
+/** 首次注册延迟，避免与 Flick 其它 globalShortcut 抢注册冲突；热更新时为 0 */
 const INITIAL_KEYBOARD_REGISTER_MS = 1000;
 /** 窗口顶边略低于光标，避免无边框窗顶缘与指针重合触发系统调整大小 */
 const SUPER_PANEL_TOP_CURSOR_GAP_PX = 12;
@@ -232,7 +232,7 @@ function createPlugin() {
                         });
                     }
                     catch (err) {
-                        console.warn('[rubick-system-super-panel] globalShortcut.register failed:', err);
+                        console.warn('[flick-system-super-panel] globalShortcut.register failed:', err);
                     }
                 }, delayMs);
             };

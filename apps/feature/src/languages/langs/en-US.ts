@@ -45,7 +45,7 @@ export default {
         },
         importErrors: {
           INVALID_BUNDLE:
-            'Invalid bundle (use a zip exported by Rubick)',
+            'Invalid bundle (use a zip exported by Flick)',
           NOTHING_IMPORTED: 'No plugin folders found inside the bundle',
           UNKNOWN: 'Import failed',
         },
@@ -64,7 +64,7 @@ export default {
         title: 'Account And Setting',
         account: {
           accountInfo: 'Account Info',
-          tips1: 'rubick',
+          tips1: 'flick',
           tips2:
             'After the software preferences are set, please restart the software. Please go to the mini program set avatar and nickname.',
           themeColor: 'Theme Setting',
@@ -121,7 +121,7 @@ export default {
         },
         intranet: {
           title: 'Intranet Deployment',
-          tips: "If publishing plug-ins to the public network npm does not meet your company's security requirements, rubick supports private network private sources and private plug-in libraries. If you need private network deployment, you can configure the following rules.",
+          tips: "If publishing plug-ins to the public network npm does not meet your company's security requirements, flick supports private network private sources and private plug-in libraries. If you need private network deployment, you can configure the following rules.",
           npmMirror: 'npm mirror',
           dbUrl: 'database url',
           accessToken: 'access token',
@@ -138,7 +138,7 @@ export default {
         tabShortcut: 'Shortcut',
         tabTranslate: 'Translate',
         tipDesc:
-          'Super panel is a system plugin. Saving applies the new trigger immediately (shortcut / mouse hook re-registered). Restart Rubick if it does not take effect.',
+          'Super panel is a system plugin. Saving applies the new trigger immediately (shortcut / mouse hook re-registered). Restart Flick if it does not take effect.',
         triggerType: 'Trigger',
         modeKeyboard: 'Keyboard shortcut',
         modeMouseMiddle: 'Middle mouse button',
@@ -150,7 +150,7 @@ export default {
         required: 'Set a keyboard combo or choose a mouse trigger.',
         save: 'Save',
         saveOk: 'Saved',
-        saveDevHint: 'Save inside the Rubick plugin environment (ignore in dev).',
+        saveDevHint: 'Save inside the Flick plugin environment (ignore in dev).',
         translateConfigHint:
           'Save multiple profiles. Fill URL, API key, and model before enabling auto-translate.',
         translateSectionProfiles: 'Profiles',
@@ -191,7 +191,7 @@ export default {
       },
       dev: {
         title: 'Developer',
-        tips: 'The rubick plug-in system relies on npm management. Local debugging needs to first execute npm link in the current directory of the local plug-in.',
+        tips: 'The flick plug-in system relies on npm management. Local debugging needs to first execute npm link in the current directory of the local plug-in.',
         pluginName: 'Plugin Name',
         install: 'Install',
         refreshPlugins: 'Refresh Plugins',

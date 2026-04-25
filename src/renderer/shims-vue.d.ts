@@ -14,13 +14,13 @@ declare const __static: string;
 declare module 'lodash.throttle';
 
 interface Window {
-  rubick: any;
+  flick: any;
   setSubInput: ({ placeholder }: { placeholder: string }) => void;
   setSubInputValue: ({ value }: { value: string }) => void;
   removeSubInput: () => void;
   loadPlugin: (plugin: any) => void;
   updatePlugin: (plugin: any) => void;
-  initRubick: () => void;
+  initFlick: () => void;
   addLocalStartPlugin: (plugin: any) => void;
   removeLocalStartPlugin: (plugin: any) => void;
   setCurrentPlugin: (plugin: any) => void;

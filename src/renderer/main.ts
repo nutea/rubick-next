@@ -22,7 +22,7 @@ ConfigProvider.config({
   theme: config.perf.custom || {},
 });
 
-window.rubick.changeTheme = () => {
+window.flick.changeTheme = () => {
   const config: any = localConfig.getConfig();
   ConfigProvider.config({
     theme: config.perf.custom || {},

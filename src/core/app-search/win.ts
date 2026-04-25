@@ -6,8 +6,8 @@ const fs = nodeRequire('fs');
 const path = nodeRequire('path');
 const os = nodeRequire('os');
 const { shell } = nodeRequire('electron');
-const rubickApi =
-  typeof window !== 'undefined' ? (window as any).rubick ?? null : null;
+const flickApi =
+  typeof window !== 'undefined' ? (window as any).flick ?? null : null;
 
 const filePath = path.resolve(
   'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs'
@@ -25,7 +25,7 @@ const isZhRegex = /[\u4e00-\u9fa5]/;
 
 const getico = async (targetPath: string) => {
   try {
-    return (await rubickApi?.getFileIcon?.(targetPath)) || '';
+    return (await flickApi?.getFileIcon?.(targetPath)) || '';
   } catch (e) {
     console.log(e, targetPath);
     return '';

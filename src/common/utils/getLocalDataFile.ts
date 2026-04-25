@@ -6,9 +6,9 @@ export default (): string => {
   if (!localDataFile) {
     localDataFile = process.env.LOCALAPPDATA;
   }
-  const rubickPath = path.join(localDataFile, 'rubick');
-  if (!fs.existsSync(rubickPath)) {
-    fs.mkdirSync(rubickPath);
+  const flickPath = path.join(localDataFile, 'flick');
+  if (!fs.existsSync(flickPath)) {
+    fs.mkdirSync(flickPath);
   }
-  return rubickPath;
+  return flickPath;
 };

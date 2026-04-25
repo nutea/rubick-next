@@ -13,7 +13,7 @@ import {
 import fs from 'fs';
 import { screenCapture } from '@/core';
 import plist from 'plist';
-import { input } from 'rubick-native-next';
+import { input } from 'flick-native';
 
 import {
   DECODE_KEY,
@@ -36,11 +36,11 @@ import {
 } from './pluginBundle';
 import { applyMainWindowContentHeight } from './mainWindowContentResize';
 import {
-  readPluginRubickConfigSync,
-  writePluginRubickConfigSync,
+  readPluginFlickConfigSync,
+  writePluginFlickConfigSync,
   flipPluginAutoDetachSync,
   flipPluginDetachAlwaysShowSearchSync,
-} from './pluginRubickConfig';
+} from './pluginFlickConfig';
 import { executePluginSubInputChangeHook } from './pluginSubInputHook';
 import {
   DEV_APP_PORTS,
@@ -75,7 +75,7 @@ const runnerInstance = runner();
 const detachInstance = detach();
 
 /** 与超级面板插件 node main、feature 设置页 dbStorage._id 一致 */
-const SUPER_PANEL_HOTKEY_STORE_ID = 'rubick-system-super-panel-store';
+const SUPER_PANEL_HOTKEY_STORE_ID = 'flick-system-super-panel-store';
 
 class API extends DBInstance {
   public async dbPut(arg: any) {
@@ -89,7 +89,7 @@ class API extends DBInstance {
         try {
           g.__superPanelReregister();
         } catch (err) {
-          console.error('[rubick-system-super-panel] hot reload failed:', err);
+          console.error('[flick-system-super-panel] hot reload failed:', err);
         }
       }
     }
@@ -97,14 +97,14 @@ class API extends DBInstance {
   }
 
   init(mainWindow: BrowserWindow) {
-    const rubickIpcChannels = [
-      'rubick:get-plugin-rubick-config',
-      'rubick:set-plugin-rubick-config',
-      'rubick:flip-plugin-auto-detach',
-      'rubick:flip-plugin-detach-always-show-search',
-      'rubick:detach-adjust-plugin-zoom',
+    const flickIpcChannels = [
+      'flick:get-plugin-flick-config',
+      'flick:set-plugin-flick-config',
+      'flick:flip-plugin-auto-detach',
+      'flick:flip-plugin-detach-always-show-search',
+      'flick:detach-adjust-plugin-zoom',
     ] as const;
-    for (const ch of rubickIpcChannels) {
+    for (const ch of flickIpcChannels) {
       try {
         ipcMain.removeHandler(ch);
       } catch {
@@ -112,11 +112,11 @@ class API extends DBInstance {
       }
     }
     ipcMain.handle(
-      'rubick:get-plugin-rubick-config',
+      'flick:get-plugin-flick-config',
       (_e, pluginName: unknown) => {
         const name = typeof pluginName === 'string' ? pluginName : '';
         if (!name) return { autoDetach: false, detachAlwaysShowSearch: false };
-        const cfg = readPluginRubickConfigSync(name);
+        const cfg = readPluginFlickConfigSync(name);
         return {
           autoDetach: !!cfg.autoDetach,
           detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
@@ -124,7 +124,7 @@ class API extends DBInstance {
       }
     );
     ipcMain.handle(
-      'rubick:set-plugin-rubick-config',
+      'flick:set-plugin-flick-config',
       (_e, payload: unknown) => {
         const p = payload as {
           name?: string;
@@ -144,11 +144,11 @@ class API extends DBInstance {
         if (typeof p.detachAlwaysShowSearch === 'boolean')
           patch.detachAlwaysShowSearch = p.detachAlwaysShowSearch;
         if (!Object.keys(patch).length) return false;
-        return writePluginRubickConfigSync(id, patch);
+        return writePluginFlickConfigSync(id, patch);
       }
     );
     ipcMain.handle(
-      'rubick:flip-plugin-auto-detach',
+      'flick:flip-plugin-auto-detach',
       (_e, pluginName: unknown) => {
         const name = typeof pluginName === 'string' ? pluginName : '';
         if (!name) return { autoDetach: false };
@@ -156,7 +156,7 @@ class API extends DBInstance {
       }
     );
     ipcMain.handle(
-      'rubick:flip-plugin-detach-always-show-search',
+      'flick:flip-plugin-detach-always-show-search',
       (_e, pluginName: unknown) => {
         const name = typeof pluginName === 'string' ? pluginName : '';
         if (!name) return { detachAlwaysShowSearch: false };
@@ -166,7 +166,7 @@ class API extends DBInstance {
       }
     );
     ipcMain.handle(
-      'rubick:detach-adjust-plugin-zoom',
+      'flick:detach-adjust-plugin-zoom',
       (_e, payload: unknown) => {
         const p = payload as { action?: string; winId?: number };
         if (typeof p?.winId !== 'number') return false;
@@ -178,12 +178,12 @@ class API extends DBInstance {
       }
     );
     try {
-      ipcMain.removeHandler('rubick:try-redirect-singleton-detach');
+      ipcMain.removeHandler('flick:try-redirect-singleton-detach');
     } catch {
       /* 首次启动 */
     }
     ipcMain.handle(
-      'rubick:try-redirect-singleton-detach',
+      'flick:try-redirect-singleton-detach',
       (_e, pluginPayload: unknown) =>
         this.tryRedirectSingletonDetach({ data: pluginPayload }, mainWindow)
     );
@@ -412,12 +412,12 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
       const tplHttp = devSubAppHttpUrl(DEV_APP_PORTS.tpl, '/');
       if (tplHttp) plugin.tplPath = tplHttp;
     }
-    if (plugin.name === 'rubick-system-feature') {
+    if (plugin.name === 'flick-system-feature') {
       plugin.logo = plugin.logo || `file://${__static}/logo.png`;
       plugin.indexPath = `file://${__static}/feature/index.html`;
       const featureHttp = devSubAppHttpUrl(DEV_APP_PORTS.feature, '/');
       if (featureHttp) plugin.indexPath = featureHttp;
-    } else if (plugin.name === 'rubick-system-super-panel') {
+    } else if (plugin.name === 'flick-system-super-panel') {
       plugin.indexPath = `file://${path.join(__static, 'superx', 'main.html')}`;
       const superxHttp = devSubAppHttpUrl(DEV_APP_PORTS.superxWeb, '/main.html');
       if (superxHttp) plugin.indexPath = superxHttp;
@@ -481,7 +481,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
       );
       const bv = detachWin.getBrowserView();
       executePluginSubInputChangeHook(bv?.webContents ?? null, value);
-      await mainWindow.webContents.executeJavaScript(`window.initRubick()`);
+      await mainWindow.webContents.executeJavaScript(`window.initFlick()`);
       applyMainWindowContentHeight(mainWindow, 60);
       mainWindow.hide();
       detachWin.show();
@@ -490,13 +490,13 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     })();
   }
 
-  /** 读取合并配置 rubick-plugin-ui-settings.json，开启 autoDetach 时在首屏 dom-ready 后自动分离 */
+  /** 读取合并配置 flick-plugin-ui-settings.json，开启 autoDetach 时在首屏 dom-ready 后自动分离 */
   private scheduleAutoDetachIfEnabled(
     plugin: { name?: string },
     mainWindow: BrowserWindow
   ) {
     const name = plugin?.name;
-    if (!name || name === 'rubick-system-super-panel') {
+    if (!name || name === 'flick-system-super-panel') {
       return;
     }
     const view = runnerInstance.getView();
@@ -504,7 +504,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
 
     const runDetach = () => {
       if (this.currentPlugin?.name !== name) return;
-      const cfg = readPluginRubickConfigSync(name);
+      const cfg = readPluginFlickConfigSync(name);
       if (!cfg.autoDetach) return;
       queueMicrotask(() => {
         if (this.currentPlugin?.name === name) {
@@ -522,7 +522,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     }
   }
 
-  public getPluginRubickConfig({
+  public getPluginFlickConfig({
     data,
   }: {
     data?: { name?: string; pluginName?: string };
@@ -534,14 +534,14 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
           ? data.pluginName
           : '';
     if (!id) return { autoDetach: false, detachAlwaysShowSearch: false };
-    const cfg = readPluginRubickConfigSync(id);
+    const cfg = readPluginFlickConfigSync(id);
     return {
       autoDetach: !!cfg.autoDetach,
       detachAlwaysShowSearch: !!cfg.detachAlwaysShowSearch,
     };
   }
 
-  public setPluginRubickConfig({
+  public setPluginFlickConfig({
     data,
   }: {
     data?: {
@@ -564,7 +564,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
     if (typeof detachAlwaysShowSearch === 'boolean')
       patch.detachAlwaysShowSearch = detachAlwaysShowSearch;
     if (!Object.keys(patch).length) return false;
-    return writePluginRubickConfigSync(id, patch);
+    return writePluginFlickConfigSync(id, patch);
   }
 
   /** 分离窗口内调整插件 BrowserView 缩放（通过 detach 壳 webContents 发 IPC，需带 winId） */
@@ -841,13 +841,13 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
             ...this.currentPlugin,
             subInput,
             detachAlwaysShowSearch:
-              !!readPluginRubickConfigSync(pluginName).detachAlwaysShowSearch,
+              !!readPluginFlickConfigSync(pluginName).detachAlwaysShowSearch,
           },
           window.getBounds(),
           view,
           allowMultipleDetachWindows
         );
-        window.webContents.executeJavaScript(`window.initRubick()`);
+        window.webContents.executeJavaScript(`window.initFlick()`);
         applyMainWindowContentHeight(window, 60);
         this.currentPlugin = null;
       });
@@ -921,7 +921,7 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
       return { ok: false, error: resolved.error };
     }
     const { canceled, filePath } = await dialog.showSaveDialog(window, {
-      title: 'Rubick',
+      title: 'Flick',
       defaultPath: resolved.filename,
       filters: [{ name: 'ZIP', extensions: ['zip'] }],
     });
@@ -933,8 +933,8 @@ void window.loadPlugin(${JSON.stringify(plugin)});`
 
   public async pluginImportBundle(_arg, window) {
     const { canceled, filePaths } = await dialog.showOpenDialog(window, {
-      title: 'Rubick',
-      filters: [{ name: 'Rubick plugin bundle', extensions: ['zip'] }],
+      title: 'Flick',
+      filters: [{ name: 'Flick plugin bundle', extensions: ['zip'] }],
       properties: ['openFile'],
     });
     if (canceled || !filePaths?.[0]) {

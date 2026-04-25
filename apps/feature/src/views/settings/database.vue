@@ -164,8 +164,8 @@ const showSetting = ref(false);
 const currentSelect = ref({ plugin: {} });
 const detail = ref({});
 
-const defaultConfig = window.rubick.dbStorage.getItem(
-  'rubick-db-jg-webdav'
+const defaultConfig = window.flick.dbStorage.getItem(
+  'flick-db-jg-webdav'
 ) || {
   url: 'https://dav.jianguoyun.com/dav/',
   username: '',
@@ -184,8 +184,8 @@ const showKeys = (item) => {
 };
 
 const handleOk = () => {
-  window.rubick.dbStorage.setItem(
-    'rubick-db-jg-webdav',
+  window.flick.dbStorage.setItem(
+    'flick-db-jg-webdav',
     JSON.parse(JSON.stringify(formState))
   );
   message.success('保存成功');
@@ -194,7 +194,7 @@ const handleOk = () => {
 
 const showDetail = (key) => {
   show.value = true;
-  detail.value = window.rubick.db.get(key);
+  detail.value = window.flick.db.get(key);
 };
 
 const exportData = () => {
@@ -218,12 +218,12 @@ const importData = () => {
 };
 
 const openHelp = () => {
-  window.rubick.shellOpenExternal('https://help.jianguoyun.com/?p=2064');
+  window.flick.shellOpenExternal('https://help.jianguoyun.com/?p=2064');
 };
 
 const store = useStore();
 
-const pluginsData = window.rubick.db.get('RUBICK_PLUGIN_INFO');
+const pluginsData = window.flick.db.get('FLICK_PLUGIN_INFO');
 
 const totalPlugins = computed(() => store.state.totalPlugins);
 
@@ -231,13 +231,13 @@ const dataPlugins = computed(() => {
   if (!pluginsData) return [];
   return pluginsData.data.map((item) => {
     let plugin = null;
-    if (item.name === 'rubick-system-feature') {
+    if (item.name === 'flick-system-feature') {
       plugin = {
         pluginName: '主程序',
         isdownload: true,
         logo: require('../../assets/logo.png'),
       };
-    } else if (item.name === 'rubick-system-super-panel') {
+    } else if (item.name === 'flick-system-super-panel') {
       plugin = {
         pluginName: '超级面板',
         isdownload: true,
@@ -246,7 +246,7 @@ const dataPlugins = computed(() => {
     } else {
       plugin = totalPlugins.value.find((p) => p.name === item.name);
     }
-    const data = item.keys.map((key) => window.rubick.db.get(key));
+    const data = item.keys.map((key) => window.flick.db.get(key));
     return {
       ...item,
       plugin,

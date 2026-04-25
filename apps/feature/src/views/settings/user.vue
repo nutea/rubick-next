@@ -16,7 +16,7 @@
     <a-modal :footer="null" v-model:visible="visible">
       <a-result
         title="请使用微信扫码登录!"
-        sub-title="使用微信扫描上面的 rubick 小程序二维码进行授权登录"
+        sub-title="使用微信扫描上面的 flick 小程序二维码进行授权登录"
       >
         <template #icon>
           <img width="200" :src="imgCode" />
@@ -33,7 +33,7 @@ import { message } from 'ant-design-vue';
 import Index from './index.vue';
 import service from '../../assets/service';
 
-const userInfo = ref(window.rubick.dbStorage.getItem('rubick-user-info'));
+const userInfo = ref(window.flick.dbStorage.getItem('flick-user-info'));
 
 const imgCode = ref('');
 const scene = nanoid();
@@ -55,7 +55,7 @@ watch([visible], () => {
       service.checkLoginStatus({ scene }).then((res) => {
         console.log(res);
         if (res.openId) {
-          window.rubick.dbStorage.setItem('rubick-user-info', res);
+          window.flick.dbStorage.setItem('flick-user-info', res);
           userInfo.value = res;
           message.success('登录成功！');
           visible.value = false;

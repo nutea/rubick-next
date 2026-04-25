@@ -1,6 +1,6 @@
-﻿English | [简体中文](./README.zh-CN.md)
+English | [简体中文](./README.zh-CN.md)
 
-# Rubick Next
+# Flick
 
 A plugin-based desktop productivity tool built with Electron, Vue, and a pnpm workspace monorepo.
 

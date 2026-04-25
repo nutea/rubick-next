@@ -1,5 +1,5 @@
-productName: rubick
-appId: com.muwoo.rubick
+productName: flick
+appId: com.muwoo.flick
 compression: maximum
 directories:
   output: build
@@ -26,8 +26,8 @@ files:
   - "!**/yarn.lock"
   - "!**/package-lock.json"
   - "!**/pnpm-lock.yaml"
-  - "!**/node_modules/rubick-native-next/native/{src,target,build.rs,Cargo.lock,Cargo.toml}"
-  - "!**/node_modules/rubick-native-next/native/target/**"
+  - "!**/node_modules/flick-native/native/{src,target,build.rs,Cargo.lock,Cargo.toml}"
+  - "!**/node_modules/flick-native/native/target/**"
   # better-sqlite3: ship only the prebuilt .node + JS wrapper
   - "!**/node_modules/better-sqlite3/build/Release/*.{iobj,ipdb,lib,exp,pdb}"
   - "!**/node_modules/better-sqlite3/build/Release/obj/**"
@@ -39,20 +39,20 @@ files:
 asarUnpack:
   - "**/*.node"
   - node_modules/better-sqlite3/build/Release/better_sqlite3.node
-  - node_modules/rubick-native-next/native/rubick_native_next.node
-  - node_modules/rubick-native-next/index.js
-  - node_modules/rubick-native-next/package.json
+  - node_modules/flick-native/native/flick_native.node
+  - node_modules/flick-native/index.js
+  - node_modules/flick-native/package.json
 extraMetadata:
   main: dist/main/entry.js
 win:
   icon: public/icons/icon.ico
-  artifactName: rubick-Setup-${version}-x64.exe
+  artifactName: flick-Setup-${version}-x64.exe
   target:
     - target: nsis
       arch:
         - x64
 nsis:
-  shortcutName: rubick
+  shortcutName: flick
   oneClick: false
   allowToChangeInstallationDirectory: true
   include: public/installer.nsh

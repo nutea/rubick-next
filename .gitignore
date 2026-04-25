@@ -29,6 +29,6 @@ pnpm-debug.log*
 /dist
 .gitnexus
 .codex-logs/
-packages/rubick-native-next/dist/
-packages/rubick-native-next/native/target/
-packages/rubick-native-next/native/rubick_native_next.node
+packages/flick-native/dist/
+packages/flick-native/native/target/
+packages/flick-native/native/flick_native.node

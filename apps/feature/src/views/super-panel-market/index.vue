@@ -288,30 +288,30 @@ import { testTranslateConnection } from '@/utils/translateConnectionTest';
 
 const { t } = useI18n();
 
-const SUPER_PANEL_HOTKEY_DB_ID = 'rubick-system-super-panel-store';
-const SUPER_PANEL_PREF_DB_ID = 'rubick-system-super-panel-preferences';
+const SUPER_PANEL_HOTKEY_DB_ID = 'flick-system-super-panel-store';
+const SUPER_PANEL_PREF_DB_ID = 'flick-system-super-panel-preferences';
 
 /** 与主进程 main.js / superx 约定一致 */
 const SP_MOUSE = {
-  MIDDLE: 'rubick:sp:mouse-middle',
-  LONG_LEFT: 'rubick:sp:long-left',
-  LONG_RIGHT: 'rubick:sp:long-right',
-  LONG_MIDDLE: 'rubick:sp:long-middle',
+  MIDDLE: 'flick:sp:mouse-middle',
+  LONG_LEFT: 'flick:sp:long-left',
+  LONG_RIGHT: 'flick:sp:long-right',
+  LONG_MIDDLE: 'flick:sp:long-middle',
 } as const;
 
-function getRubick() {
-  return (window as unknown as { rubick?: { dbStorage: { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void } } }).rubick;
+function getFlick() {
+  return (window as unknown as { flick?: { dbStorage: { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void } } }).flick;
 }
 
 const initialRaw =
-  getRubick()?.dbStorage.getItem(SUPER_PANEL_HOTKEY_DB_ID) || 'Ctrl+W';
+  getFlick()?.dbStorage.getItem(SUPER_PANEL_HOTKEY_DB_ID) || 'Ctrl+W';
 const initialPref =
   (window as unknown as {
-    rubick?: { db?: { get: (id: string) => { data?: Record<string, unknown> } | null } };
-  }).rubick?.db?.get(SUPER_PANEL_PREF_DB_ID) || { data: {} };
+    flick?: { db?: { get: (id: string) => { data?: Record<string, unknown> } | null } };
+  }).flick?.db?.get(SUPER_PANEL_PREF_DB_ID) || { data: {} };
 
 const lastKeyboardCombo = ref(
-  initialRaw.startsWith('rubick:sp:') ? 'Ctrl+W' : initialRaw
+  initialRaw.startsWith('flick:sp:') ? 'Ctrl+W' : initialRaw
 );
 
 const form = reactive({
@@ -319,7 +319,7 @@ const form = reactive({
 });
 
 const triggerSelect = ref<string>(
-  initialRaw.startsWith('rubick:sp:') ? initialRaw : 'keyboard'
+  initialRaw.startsWith('flick:sp:') ? initialRaw : 'keyboard'
 );
 const activeTab = ref<string[]>(['shortcut']);
 
@@ -515,7 +515,7 @@ function onTriggerTypeChange(v: string) {
   if (v === 'keyboard') {
     form.superPanelHotKey = lastKeyboardCombo.value;
   } else {
-    if (!form.superPanelHotKey.startsWith('rubick:sp:')) {
+    if (!form.superPanelHotKey.startsWith('flick:sp:')) {
       lastKeyboardCombo.value = form.superPanelHotKey;
     }
     form.superPanelHotKey = v;
@@ -606,12 +606,12 @@ onUnmounted(() => {
 });
 
 function onSave() {
-  const rubick = getRubick();
-  if (!rubick) {
+  const flick = getFlick();
+  if (!flick) {
     message.warning(t('feature.superPanelShortcut.saveDevHint'));
     return;
   }
-  rubick.dbStorage.setItem(SUPER_PANEL_HOTKEY_DB_ID, form.superPanelHotKey);
+  flick.dbStorage.setItem(SUPER_PANEL_HOTKEY_DB_ID, form.superPanelHotKey);
   message.success(t('feature.superPanelShortcut.saveOk'));
 }
 
@@ -620,10 +620,10 @@ function applyBuiltinSystemPrompt() {
 }
 
 function onSaveTranslate() {
-  const rubick = getRubick() as unknown as {
+  const flick = getFlick() as unknown as {
     db?: { get: (id: string) => { _id?: string; _rev?: string; data?: unknown } | null; put: (doc: unknown) => unknown };
   };
-  if (!rubick?.db) {
+  if (!flick?.db) {
     message.warning(t('feature.superPanelShortcut.saveDevHint'));
     return;
   }
@@ -632,7 +632,7 @@ function onSaveTranslate() {
     message.warning(t('feature.superPanelShortcut.switchNeedConfig'));
     return;
   }
-  const oldDoc = rubick.db.get(SUPER_PANEL_PREF_DB_ID) || {};
+  const oldDoc = flick.db.get(SUPER_PANEL_PREF_DB_ID) || {};
   const oldData = { ...(oldDoc.data as Record<string, unknown> | undefined) };
   for (const k of LEGACY_TRANSLATE_FLAT_KEYS) {
     delete oldData[k];
@@ -665,7 +665,7 @@ function onSaveTranslate() {
   oldData.autoTranslate = autoTranslate;
   oldData.translateMaxChars = clampTranslateMaxChars(translateMaxChars.value);
 
-  rubick.db.put({
+  flick.db.put({
     ...oldDoc,
     _id: SUPER_PANEL_PREF_DB_ID,
     data: oldData,

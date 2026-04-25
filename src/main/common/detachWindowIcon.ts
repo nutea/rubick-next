@@ -59,7 +59,7 @@ export async function resolveDetachWindowIcon(
         headers: {
           Accept: 'image/*,*/*;q=0.8',
           'User-Agent':
-            'Mozilla/5.0 (compatible; Rubick/1.0; +https://github.com/rubickCenter/rubick)',
+            'Mozilla/5.0 (compatible; Flick/1.0; +https://github.com/flickCenter/flick)',
         },
       });
       const buf = Buffer.from(res.data);

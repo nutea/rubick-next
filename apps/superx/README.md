@@ -1,4 +1,4 @@
-# rubick-superx-source（超级面板 · 可读源码）
+# flick-superx-source（超级面板 · 可读源码）
 
 本目录为 `public/superx` 的 **Vue 3 + TypeScript** 还原实现，便于阅读与修改；与当前线上包行为对齐（快捷键、剪贴板、面板 UI、有道翻译预加载、主进程入口等）。
 
@@ -12,7 +12,7 @@
 | `src/settings/` | 快捷键设置（原 `index.html` 对应 bundle） |
 | `src/panel/` | 超级面板 UI（原 `main.html` 对应 bundle） |
 | `node-src/` | 主进程侧：`main.js` 等价、`panel-window`、`clipboard` 工具、`panel-preload` |
-| `public/` | 与 feature 的 `public` 类似：Rubick 插件清单 `package.json`、`plugin-logo.png`、`.npmrc` 等，构建时复制到 `public/superx/` |
+| `public/` | 与 feature 的 `public` 类似：Flick 插件清单 `package.json`、`plugin-logo.png`、`.npmrc` 等，构建时复制到 `public/superx/` |
 
 ## 安装与构建
 
@@ -26,7 +26,7 @@ npm run build
 
 等价于 **`vite build`**（前端 + publicDir）后 **`tsc -p tsconfig.node.json`**（`node-src` → `public/superx/*.js`）。也可分步：`npm run build:web`、`npm run build:node`。
 
-当前 superx 的原生能力入口已经收敛到 **`rubick-native-next`**。原生依赖与系统能力现在由该 workspace 包统一管理和封装；全局输入监听在 **Windows** 上由同一 N-API 内的低层钩子实现，键盘模拟由 **`rubick-native-next`** 内置实现（Windows `SendInput`、macOS `osascript`、Linux `xdotool` 等），以及资源管理器路径等能力，因此无需在 `public/superx` 下单独 `npm install`。
+当前 superx 的原生能力入口已经收敛到 **`flick-native`**。原生依赖与系统能力现在由该 workspace 包统一管理和封装；全局输入监听在 **Windows** 上由同一 N-API 内的低层钩子实现，键盘模拟由 **`flick-native`** 内置实现（Windows `SendInput`、macOS `osascript`、Linux `xdotool` 等），以及资源管理器路径等能力，因此无需在 `public/superx` 下单独 `npm install`。
 
 ### 开发调试（仅前端，无 Electron API 时部分能力不可用）
 

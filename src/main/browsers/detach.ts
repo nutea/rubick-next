@@ -11,6 +11,8 @@ import {
   shouldOpenSubAppShellDevTools,
 } from '@/main/common/devSubAppServers';
 
+const DETACH_TITLEBAR_HEIGHT = 50;
+
 export default () => {
   let win: BrowserWindow | undefined;
 
@@ -49,9 +51,9 @@ export default () => {
     const [cw, ch] = w.getContentSize();
     bv.setBounds({
       x: 0,
-      y: WINDOW_MIN_HEIGHT,
+      y: DETACH_TITLEBAR_HEIGHT,
       width: cw,
-      height: Math.max(0, ch - WINDOW_MIN_HEIGHT),
+      height: Math.max(0, ch - DETACH_TITLEBAR_HEIGHT),
     });
   };
 
@@ -68,11 +70,11 @@ export default () => {
     );
     const createWin = new BrowserWindow({
       height: viewInfo.height,
-      minHeight: WINDOW_MIN_HEIGHT,
+      minHeight: DETACH_TITLEBAR_HEIGHT,
       width: viewInfo.width,
       autoHideMenuBar: true,
       titleBarStyle: 'hidden',
-      trafficLightPosition: { x: 12, y: 21 },
+      trafficLightPosition: { x: 12, y: 16 },
       title: pluginInfo.pluginName,
       resizable: true,
       frame: true,
@@ -131,7 +133,7 @@ export default () => {
       const darkMode = config.perf.common.darkMode;
       darkMode &&
         createWin.webContents.executeJavaScript(
-          `document.body.classList.add("dark");window.rubick.theme="dark"`
+          `document.body.classList.add("dark");window.flick.theme="dark"`
         );
       createWin.setBrowserView(view);
       view.inDetach = true;
@@ -192,9 +194,9 @@ export default () => {
 
     const executeHooks = (hook: string, data: unknown) => {
       if (!view) return;
-      const evalJs = `console.log(window.rubick);if(window.rubick && window.rubick.hooks && typeof window.rubick.hooks.on${hook} === 'function' ) {
+      const evalJs = `console.log(window.flick);if(window.flick && window.flick.hooks && typeof window.flick.hooks.on${hook} === 'function' ) {
           try {
-            window.rubick.hooks.on${hook}(${data ? JSON.stringify(data) : ''});
+            window.flick.hooks.on${hook}(${data ? JSON.stringify(data) : ''});
           } catch(e) {console.log(e)}
         }
       `;

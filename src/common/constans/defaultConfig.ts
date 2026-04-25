@@ -2,15 +2,15 @@ export default {
   version: 7,
   perf: {
     custom: {
-      theme: 'SPRING',
-      primaryColor: '#ff4ea4',
+      theme: 'SUMMER',
+      primaryColor: '#6078ea',
       errorColor: '#ed6d46',
       warningColor: '#e5a84b',
       successColor: '#c0d695',
       infoColor: '#aa8eeB',
       logo: `file://${__static}/logo.png`,
-      placeholder: '你好，Rubick！请输入插件关键词',
-      username: 'Rubick',
+      placeholder: '你好，Flick！请输入插件关键词',
+      username: 'Flick',
     },
     shortCut: {
       showAndHidden: process.platform === 'win32' ? 'Ctrl+SPACE' : 'Option+R',

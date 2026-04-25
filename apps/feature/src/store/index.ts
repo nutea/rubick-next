@@ -40,8 +40,8 @@ export default createStore({
   actions: {
     async saveLocalPlugins({ dispatch, state }, plugins) {
       // 先移除
-      window.rubick.db.remove(LOCAL_PLUGIN_JSON);
-      window.rubick.db.put({
+      window.flick.db.remove(LOCAL_PLUGIN_JSON);
+      window.flick.db.put({
         _id: LOCAL_PLUGIN_JSON,
         data: JSON.stringify(plugins),
       });
@@ -49,12 +49,12 @@ export default createStore({
     },
     async deleteLocalPlugins({ dispatch, state }) {
       // 先移除
-      window.rubick.db.remove(LOCAL_PLUGIN_JSON);
+      window.flick.db.remove(LOCAL_PLUGIN_JSON);
       await dispatch('init');
     },
     async init({ commit }) {
       const tPlugins = await getTotalPluginsSafe();
-      const lTPlugins = window.rubick.db.get(LOCAL_PLUGIN_JSON);
+      const lTPlugins = window.flick.db.get(LOCAL_PLUGIN_JSON);
       const totalPlugins = tPlugins.concat(JSON.parse(lTPlugins?.data || '[]'));
 
       const localPlugins = window.market.getLocalPlugins();

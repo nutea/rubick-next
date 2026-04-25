@@ -40,14 +40,14 @@ const config: any = localConfig.getConfig();
 // 暗夜模式
 if (config.perf.common.darkMode) {
   document.body.classList.add('dark');
-  window.rubick.theme = 'dark';
+  window.flick.theme = 'dark';
 }
 
 ConfigProvider.config({
   theme: config.perf.custom || {},
 });
 
-window.rubick.changeTheme = () => {
+window.flick.changeTheme = () => {
   const next: any = localConfig.getConfig();
   ConfigProvider.config({
     theme: next.perf.custom || {},

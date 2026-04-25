@@ -18,7 +18,7 @@ export interface AdapterHandlerOptions {
 export interface AdapterInfo {
   // 插件类型
   type: "adapter";
-  // 插件名称 rubick-adapter-xxx
+  // 插件名称 flick-adapter-xxx
   name: string;
   // 可读插件名称
   pluginName: string;

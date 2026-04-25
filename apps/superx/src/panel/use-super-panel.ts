@@ -1,6 +1,6 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { getChildProcess, getElectron, getOs, getPath } from './electron';
-import { rubickDb } from './db';
+import { flickDb } from './db';
 import { openPlugin } from './open-plugin';
 import { parseCmdRegex } from './cmd-regex';
 import type {
@@ -26,7 +26,7 @@ const EXPLORER_LIKE = [
   'FESearchHost.exe',
   'Finder.app',
 ];
-const SUPER_PANEL_PREF_DB_ID = 'rubick-system-super-panel-preferences';
+const SUPER_PANEL_PREF_DB_ID = 'flick-system-super-panel-preferences';
 
 function msgTriggerSync<T>(type: string, data: unknown): T {
   const { ipcRenderer } = getElectron();
@@ -282,7 +282,7 @@ export function useSuperPanel() {
   }
 
   function refreshUserPlugins() {
-    const doc = rubickDb.get('super-panel-user-plugins') as {
+    const doc = flickDb.get('super-panel-user-plugins') as {
       data?: UserPluginItem[];
     } | null;
     if (!doc?.data) {
@@ -302,7 +302,7 @@ export function useSuperPanel() {
 
   function refreshPreferences() {
     try {
-      const doc = rubickDb.get(SUPER_PANEL_PREF_DB_ID) as {
+      const doc = flickDb.get(SUPER_PANEL_PREF_DB_ID) as {
         data?: {
           autoTranslate?: boolean;
           translateMaxChars?: number;
@@ -420,7 +420,7 @@ export function useSuperPanel() {
   function openInstalled() {
     openPlugin({
       plugin: {
-        name: 'rubick-system-feature',
+        name: 'flick-system-feature',
         main: 'index.html',
         preload: 'preload.js',
       },
@@ -428,7 +428,7 @@ export function useSuperPanel() {
       feature: {
         code: '已安装插件',
         type: 'text',
-        payload: 'rubick 插件市场',
+        payload: 'flick 插件市场',
       },
     });
   }

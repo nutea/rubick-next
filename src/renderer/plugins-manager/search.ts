@@ -6,7 +6,7 @@ const searchManager = () => {
     placeholder: '',
   });
 
-  /** 在 initRubick / loadPlugin 清空主搜索框之前保存，供分离窗 getMainInputInfo 合并（自动分离时 dom-ready 很早） */
+  /** 在 initFlick / loadPlugin 清空主搜索框之前保存，供分离窗 getMainInputInfo 合并（自动分离时 dom-ready 很早） */
   let searchSnapshotBeforeOpen: { value: string; placeholder: string } | null =
     null;
 
@@ -47,7 +47,7 @@ const searchManager = () => {
   window.captureSearchSnapshotForNextDetach = () => {
     const value = state.searchValue;
     const placeholder = state.placeholder;
-    /** 主进程 loadPlugin 会在 initRubick 之后再次 capture，避免用空状态覆盖已保存的启动关键词 */
+    /** 主进程 loadPlugin 会在 initFlick 之后再次 capture，避免用空状态覆盖已保存的启动关键词 */
     if (
       searchSnapshotBeforeOpen &&
       !value &&

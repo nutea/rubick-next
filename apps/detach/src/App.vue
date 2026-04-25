@@ -58,11 +58,11 @@ const devToolsActive = ref(false);
 const showInput = ref(false);
 const detachAlwaysShowSearch = ref(false);
 
-const storeInfo = localStorage.getItem('rubick-system-detach') || '{}';
+const storeInfo = localStorage.getItem('flick-system-detach') || '{}';
 const plugInfo = ref({});
 
 function pinStorageKey() {
-  return `rubick-detach-pin:${plugInfo.value.name || 'default'}`;
+  return `flick-detach-pin:${plugInfo.value.name || 'default'}`;
 }
 
 function syncDetachAlwaysOnTop() {
@@ -180,7 +180,7 @@ window.initDetach = (pluginInfo) => {
     detachAlwaysShowSearch.value ||
     (pluginInfo.subInput &&
       (!!pluginInfo.subInput.value || !!pluginInfo.subInput.placeholder));
-  localStorage.setItem('rubick-system-detach', JSON.stringify(pluginInfo));
+  localStorage.setItem('flick-system-detach', JSON.stringify(pluginInfo));
   loadPinFromStorage();
   scheduleDevToolsListenerSetup();
 };
@@ -201,7 +201,7 @@ const changeValue = throttle((e) => {
 }, 500);
 
 const zoomPlugin = (action) => {
-  void ipcRenderer.invoke('rubick:detach-adjust-plugin-zoom', {
+  void ipcRenderer.invoke('flick:detach-adjust-plugin-zoom', {
     action,
     winId: getCurrentWindow().id,
   });
@@ -209,9 +209,9 @@ const zoomPlugin = (action) => {
 
 const openPluginMenu = async () => {
   const name = plugInfo.value.name;
-  const canFileConfig = name && name !== 'rubick-system-super-panel';
-  const rubickCfg = canFileConfig
-    ? await ipcRenderer.invoke('rubick:get-plugin-rubick-config', name)
+  const canFileConfig = name && name !== 'flick-system-super-panel';
+  const flickCfg = canFileConfig
+    ? await ipcRenderer.invoke('flick:get-plugin-flick-config', name)
     : { autoDetach: false, detachAlwaysShowSearch: false };
 
   const items = [
@@ -243,18 +243,18 @@ const openPluginMenu = async () => {
         {
           label: '自动分离为独立窗口',
           type: 'checkbox',
-          checked: !!rubickCfg.autoDetach,
+          checked: !!flickCfg.autoDetach,
           click() {
-            void ipcRenderer.invoke('rubick:flip-plugin-auto-detach', name);
+            void ipcRenderer.invoke('flick:flip-plugin-auto-detach', name);
           },
         },
         {
           label: '独立窗口显示搜索框',
           type: 'checkbox',
-          checked: !!rubickCfg.detachAlwaysShowSearch,
+          checked: !!flickCfg.detachAlwaysShowSearch,
           click() {
             void ipcRenderer
-              .invoke('rubick:flip-plugin-detach-always-show-search', name)
+              .invoke('flick:flip-plugin-detach-always-show-search', name)
               .then((res) => {
                 detachAlwaysShowSearch.value = !!res?.detachAlwaysShowSearch;
                 if (detachAlwaysShowSearch.value && !plugInfo.value.subInput) {
@@ -372,7 +372,7 @@ body {
 
 .detach {
   width: 100%;
-  height: 60px;
+  height: 50px;
   display: flex;
   align-items: center;
   color: var(--color-text-primary);
@@ -494,13 +494,14 @@ body {
 
 .window-handle {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  height: 50px;
   -webkit-app-region: no-drag;
 }
 
 .window-handle > div {
   width: 48px;
-  height: 56px;
+  height: 50px;
   cursor: pointer;
 }
 

@@ -82,7 +82,7 @@ export default () => {
       (_event, code, desc, validatedURL, isMainFrame) => {
         if (!isMainFrame) return;
         showStartupError(
-          'Rubick Guide Error',
+          'Flick Guide Error',
           `Guide window failed to load: ${validatedURL || 'unknown URL'}`,
           `${code}: ${desc}`
         );

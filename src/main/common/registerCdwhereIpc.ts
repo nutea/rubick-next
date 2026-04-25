@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { system } from 'rubick-native-next';
+import { system } from 'flick-native';
 
 export default function registerCdwhereIpc(): void {
   ipcMain.removeHandler('get-path-async');

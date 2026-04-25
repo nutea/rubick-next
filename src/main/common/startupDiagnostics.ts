@@ -61,11 +61,11 @@ export function installProcessErrorHandlers(): void {
   installed = true;
 
   process.on('uncaughtException', (error) => {
-    showStartupError('Rubick Startup Error', 'Main process crashed during startup.', error);
+    showStartupError('Flick Startup Error', 'Main process crashed during startup.', error);
   });
 
   process.on('unhandledRejection', (reason) => {
-    showStartupError('Rubick Startup Error', 'Unhandled promise rejection during startup.', reason);
+    showStartupError('Flick Startup Error', 'Unhandled promise rejection during startup.', reason);
   });
 }
 

@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
-/** Rubick 注入的 ctx，与历史 `panel-window.js` 一致 */
+/** Flick 注入的 ctx，与历史 `panel-window.js` 一致 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function createPanelWindow(ctx: any) {
   const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
@@ -10,7 +10,7 @@ export default function createPanelWindow(ctx: any) {
     process.env.NODE_ENV === 'development' ||
     Boolean(process.env.VITE_DEV_SERVER_URL) ||
     Boolean(process.env.ELECTRON_RENDERER_URL) ||
-    Boolean(process.env.RUBICK_SUPERX_PANEL_DEV_URL);
+    Boolean(process.env.FLICK_SUPERX_PANEL_DEV_URL);
 
   let win: InstanceType<typeof BrowserWindow> | undefined;
   let pinned = false;
@@ -70,7 +70,7 @@ export default function createPanelWindow(ctx: any) {
         preload: path.join(__dirname, 'panel-preload.js'),
       },
     });
-    const panelDev = process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+    const panelDev = process.env.FLICK_SUPERX_PANEL_DEV_URL;
     const panelUrl =
       typeof panelDev === 'string' &&
       (panelDev.startsWith('http://') || panelDev.startsWith('https://'))

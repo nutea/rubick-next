@@ -38,7 +38,7 @@ const createPluginManager = (): any => {
   };
 
   const initPluginHistory = () => {
-    const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
+    const result = window.flick.db.get(PLUGIN_HISTORY) || {};
     if (result && result.data) {
       state.pluginHistory = result.data;
     }
@@ -47,7 +47,7 @@ const createPluginManager = (): any => {
   const initLocalStartPlugin = () => {
     const result = ipcRenderer.sendSync('msg-trigger', {
       type: 'dbGet',
-      data: { id: 'rubick-local-start-app' },
+      data: { id: 'flick-local-start-app' },
     });
     if (result && result.value) {
       appList.value.push(...result.value);
@@ -70,8 +70,8 @@ const createPluginManager = (): any => {
     state.currentPlugin = plugin;
     // 自带的插件不需要检测更新
     if (
-      plugin.name === 'rubick-system-feature' ||
-      plugin.name === 'rubick-system-super-panel'
+      plugin.name === 'flick-system-feature' ||
+      plugin.name === 'flick-system-super-panel'
     ) {
       return;
     }
@@ -82,7 +82,7 @@ const createPluginManager = (): any => {
   const openPlugin = async (plugin, option) => {
     if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       if (state.currentPlugin && state.currentPlugin.name === plugin.name) {
-        window.rubick.showMainWindow();
+        window.flick.showMainWindow();
         return;
       }
       const pluginPayload = JSON.parse(
@@ -97,7 +97,7 @@ const createPluginManager = (): any => {
       );
       /** invoke：sendSync + async msg-trigger 会在 await 微任务之后才设 returnValue，重定向恒为假 */
       const redirected = await ipcRenderer.invoke(
-        'rubick:try-redirect-singleton-detach',
+        'flick:try-redirect-singleton-detach',
         pluginPayload
       );
       if (redirected) {
@@ -114,11 +114,11 @@ const createPluginManager = (): any => {
       type: 'removePlugin',
     });
     window.captureSearchSnapshotForNextDetach?.();
-    window.initRubick();
+    window.initFlick();
 
     if (plugin.pluginType === 'ui' || plugin.pluginType === 'system') {
       await loadPlugin(plugin);
-      window.rubick.openPlugin(
+      window.flick.openPlugin(
         JSON.parse(
           JSON.stringify({
             ...plugin,
@@ -168,8 +168,8 @@ const createPluginManager = (): any => {
       unpin.pop();
     }
     state.pluginHistory = [...pin, ...unpin];
-    const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
-    window.rubick.db.put({
+    const result = window.flick.db.get(PLUGIN_HISTORY) || {};
+    window.flick.db.put({
       _id: PLUGIN_HISTORY,
       _rev: result._rev,
       data: JSON.parse(JSON.stringify(state.pluginHistory)),
@@ -181,8 +181,8 @@ const createPluginManager = (): any => {
     const unpin = state.pluginHistory.filter((plugin) => !plugin.pin);
     const pin = state.pluginHistory.filter((plugin) => plugin.pin);
     state.pluginHistory = [...pin, ...unpin];
-    const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
-    window.rubick.db.put({
+    const result = window.flick.db.get(PLUGIN_HISTORY) || {};
+    window.flick.db.put({
       _id: PLUGIN_HISTORY,
       _rev: result._rev,
       data: JSON.parse(JSON.stringify(state.pluginHistory)),
@@ -241,7 +241,7 @@ const createPluginManager = (): any => {
     setSearchValue('');
   };
 
-  window.initRubick = () => {
+  window.initFlick = () => {
     state.currentPlugin = {};
     setSearchValue('');
     setOptionsRef([]);
@@ -256,7 +256,7 @@ const createPluginManager = (): any => {
     ipcRenderer.send('msg-trigger', {
       type: 'removePlugin',
     });
-    window.initRubick();
+    window.initFlick();
     searchFocus(args, strict);
   };
 

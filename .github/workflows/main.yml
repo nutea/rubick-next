@@ -95,7 +95,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: rubick-win-x64-installer
+          name: flick-win-x64-installer
           path: |
             build/*.exe
             build/*.exe.blockmap

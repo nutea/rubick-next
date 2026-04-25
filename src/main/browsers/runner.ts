@@ -12,14 +12,14 @@ import { applyMainWindowContentHeight } from '@/main/common/mainWindowContentRes
 import { DEV_APP_PORTS, devSubAppHttpUrl } from '@/main/common/devSubAppServers';
 
 /** 与主窗口 webPreferences.preload 一致：须为 electron-vite 产物；勿用 public/preload.js（裸 require @electron/remote 在 session preload 中会解析失败） */
-function rubickSessionPreloadPath(): string {
+function flickSessionPreloadPath(): string {
   return path.join(app.getAppPath(), 'dist', 'preload', 'index.js');
 }
 
 const registeredSessionPreloads = new WeakMap<Electron.Session, string>();
 
 function ensureSessionPreload(ses: Electron.Session): void {
-  const filePath = rubickSessionPreloadPath();
+  const filePath = flickSessionPreloadPath();
   if (typeof ses.registerPreloadScript === 'function') {
     if (registeredSessionPreloads.has(ses)) return;
     const id = ses.registerPreloadScript({ type: 'frame', filePath });
@@ -38,11 +38,11 @@ const getRelativePath = (indexPath) => {
 const getPreloadPath = (plugin, pluginIndexPath) => {
   const { name, preload, tplPath, indexPath } = plugin;
   if (!preload) return;
-  if (name === 'rubick-system-super-panel') {
+  if (name === 'flick-system-super-panel') {
     return path.join(__static, 'superx', preload || 'preload.js');
   }
   // 子项目走 Vite 时 indexPath 为 http://，不可用 path.resolve 相对其推导 preload，须固定磁盘路径
-  if (name === 'rubick-system-feature') {
+  if (name === 'flick-system-feature') {
     return path.join(__static, 'feature', preload || 'preload.js');
   }
   if (tplPath) {
@@ -94,7 +94,7 @@ export default () => {
     const darkMode = config.perf.common.darkMode;
     darkMode &&
       view.webContents.executeJavaScript(
-        `document.body.classList.add("dark");window.rubick.theme="dark"`
+        `document.body.classList.add("dark");window.flick.theme="dark"`
       );
     window.webContents.executeJavaScript(`window.pluginLoaded()`);
   };
@@ -141,20 +141,20 @@ export default () => {
       preloadPath = `file://${path.join(pluginPath, './', main)}`;
     }
     // 再尝试去找
-    if (plugin.name === 'rubick-system-feature' && !pluginIndexPath) {
+    if (plugin.name === 'flick-system-feature' && !pluginIndexPath) {
       pluginIndexPath = `file://${__static}/feature/index.html`;
     }
-    if (plugin.name === 'rubick-system-super-panel' && !pluginIndexPath) {
+    if (plugin.name === 'flick-system-super-panel' && !pluginIndexPath) {
       pluginIndexPath = `file://${path.join(__static, 'superx', main)}`;
     }
     if (!pluginIndexPath) {
       const pluginPath = path.resolve(baseDir, 'node_modules', name);
       pluginIndexPath = `file://${path.join(pluginPath, './', main)}`;
     }
-    if (name === 'rubick-system-feature') {
+    if (name === 'flick-system-feature') {
       const h = devSubAppHttpUrl(DEV_APP_PORTS.feature, '/');
       if (h) pluginIndexPath = h;
-    } else if (name === 'rubick-system-super-panel') {
+    } else if (name === 'flick-system-super-panel') {
       const h = devSubAppHttpUrl(DEV_APP_PORTS.superxWeb, `/${main}`);
       if (h) pluginIndexPath = h;
     }
@@ -219,7 +219,7 @@ export default () => {
       if (currentView === snapshotView) {
         window.setBrowserView(null);
         if (view === snapshotView) {
-          window.webContents?.executeJavaScript(`window.initRubick()`);
+          window.webContents?.executeJavaScript(`window.initFlick()`);
           view = undefined;
         }
       }
@@ -231,9 +231,9 @@ export default () => {
 
   const executeHooks = (hook, data) => {
     if (!view) return;
-    const evalJs = `if(window.rubick && window.rubick.hooks && typeof window.rubick.hooks.on${hook} === 'function' ) {
+    const evalJs = `if(window.flick && window.flick.hooks && typeof window.flick.hooks.on${hook} === 'function' ) {
           try {
-            window.rubick.hooks.on${hook}(${data ? JSON.stringify(data) : ''});
+            window.flick.hooks.on${hook}(${data ? JSON.stringify(data) : ''});
           } catch(e) {}
         }
       `;

@@ -1,7 +1,6 @@
 import { dialog, Menu, Tray, app, shell, BrowserWindow } from 'electron';
 import path from 'path';
 import pkg from '../../../package.json';
-import os from 'os';
 import commonConst from '@/common/utils/commonConst';
 import { guide } from '../browsers';
 import winPosition from './getWinPosition';
@@ -20,11 +19,6 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
     let icon;
     if (commonConst.macOS()) {
       icon = './icons/iconTemplate@2x.png';
-    } else if (commonConst.windows()) {
-      icon =
-        parseInt(os.release()) < 10
-          ? './icons/icon@2x.png'
-          : './icons/icon.ico';
     } else {
       icon = './icons/icon@2x.png';
     }
@@ -35,7 +29,7 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
       if (!window) return;
       const { x, y } = winPosition.getPosition();
       void window.webContents.executeJavaScript(
-        `window.rubick && window.rubick.openMenu && window.rubick.openMenu({ code: "settings" })`
+        `window.flick && window.flick.openMenu && window.flick.openMenu({ code: "settings" })`
       );
       window.setPosition(x, y);
       window.show();
@@ -47,7 +41,7 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
           label: '帮助文档',
           click: () => {
             process.nextTick(() => {
-              shell.openExternal('https://github.com/clouDr-f2e/rubick');
+              shell.openExternal('https://github.com/clouDr-f2e/flick');
             });
           },
         },
@@ -61,7 +55,7 @@ function createTray(getWindow: () => BrowserWindow | undefined): Promise<Tray> {
           label: '意见反馈',
           click: () => {
             process.nextTick(() => {
-              shell.openExternal('https://github.com/clouDr-f2e/rubick/issues');
+              shell.openExternal('https://github.com/clouDr-f2e/flick/issues');
             });
           },
         },

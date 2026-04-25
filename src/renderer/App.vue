@@ -84,7 +84,7 @@ getPluginInfo({
 });
 
 getPluginInfo({
-  pluginName: 'rubick-system-super-panel',
+  pluginName: 'flick-system-super-panel',
   // eslint-disable-next-line no-undef
   pluginPath: `${__static}/superx/package.json`,
 }).then((res) => {
@@ -114,7 +114,7 @@ const applyHeightAfterPaint = async () => {
     requestAnimationFrame(() => resolve());
   });
   if (token !== heightApplyToken || currentPlugin.value.name) return;
-  window.rubick.setExpendHeight(calcLauncherHeight());
+  window.flick.setExpendHeight(calcLauncherHeight());
 };
 
 const flushExpendHeight = debounce(() => {
@@ -182,7 +182,7 @@ const openMenu = (ext) => {
   });
 };
 
-window.rubick.openMenu = openMenu;
+window.flick.openMenu = openMenu;
 
 const choosePlugin = (plugin) => {
   if (options.value.length) {
@@ -206,7 +206,7 @@ const choosePlugin = (plugin) => {
       return false;
     });
     if (hasRemove) {
-      const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
+      const result = window.flick.db.get(PLUGIN_HISTORY) || {};
       const history = result.data.filter(
         (item) => item.originName !== currentChoose.originName
       );
@@ -214,7 +214,7 @@ const choosePlugin = (plugin) => {
       return message.warning('插件已被卸载！');
     }
     changePluginHistory(currentChoose);
-    window.rubick.openPlugin(
+    window.flick.openPlugin(
       JSON.parse(
         JSON.stringify({
           ...currentChoose,

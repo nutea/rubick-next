@@ -137,7 +137,7 @@ const changeMenu = (key: any) => {
   router.push({ path: `/${key}` });
 };
 
-window.rubick.onPluginEnter(({ code }: { code: string }) => {
+window.flick.onPluginEnter(({ code }: { code: string }) => {
   const routeAliases: Record<string, string> = {
     已安装插件: 'installed',
     超级面板: 'superPanel',
@@ -148,7 +148,7 @@ window.rubick.onPluginEnter(({ code }: { code: string }) => {
   changeMenu(key);
 });
 
-window.rubick.setSubInput((e: any) => {
+window.flick.setSubInput((e: any) => {
   if (
     [
       'finder',

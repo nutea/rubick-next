@@ -60,7 +60,7 @@ let defaultConfig = {
 };
 
 try {
-  const dbdata = window.rubick.db.get('rubick-localhost-config');
+  const dbdata = window.flick.db.get('flick-localhost-config');
   defaultConfig = dbdata.data;
   _rev = dbdata._rev;
 } catch (e) {
@@ -88,7 +88,7 @@ const resetForm = () => {
 
 const submit = () => {
   const changeData: any = {
-    _id: 'rubick-localhost-config',
+    _id: 'flick-localhost-config',
     data: toRaw(formState.value),
   };
 
@@ -96,7 +96,7 @@ const submit = () => {
     changeData._rev = _rev;
   }
 
-  window.rubick.db.put(changeData);
+  window.flick.db.put(changeData);
   message.success('设置成功！重启插件市场后生效！');
 };
 </script>

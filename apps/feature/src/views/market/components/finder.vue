@@ -58,7 +58,7 @@ const must = computed(() => {
 });
 
 const jumpTo = (url) => {
-  window.rubick.shellOpenExternal(url);
+  window.flick.shellOpenExternal(url);
 };
 
 const recommend = computed(() => {

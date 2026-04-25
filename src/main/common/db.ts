@@ -6,8 +6,8 @@ dbInstance.init();
 
 export default class DBInstance {
   public currentPlugin: null | any = null;
-  private DBKEY = 'RUBICK_DB_DEFAULT';
-  private DB_INFO_KET = 'RUBICK_PLUGIN_INFO';
+  private DBKEY = 'FLICK_DB_DEFAULT';
+  private DB_INFO_KET = 'FLICK_PLUGIN_INFO';
   public async dbPut({ data }) {
     // 记录插件有哪些 dbkey，用于后续的数据同步
     if (this.currentPlugin && this.currentPlugin.name) {

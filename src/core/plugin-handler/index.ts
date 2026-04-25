@@ -56,7 +56,7 @@ class AdapterHandler {
     try {
       const dbdata = ipcRenderer.sendSync('msg-trigger', {
         type: 'dbGet',
-        data: { id: 'rubick-localhost-config' },
+        data: { id: 'flick-localhost-config' },
       });
       register = dbdata.data.register;
     } catch (e) {

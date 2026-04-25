@@ -3,7 +3,7 @@ import fs from 'fs';
 import getLocalDataFile from './getLocalDataFile';
 import defaultConfigForAnyPlatform from '../constans/defaultConfig';
 
-const configPath = path.join(getLocalDataFile(), './rubick-config.json');
+const configPath = path.join(getLocalDataFile(), './flick-config.json');
 
 global.OP_CONFIG = {
   config: null,

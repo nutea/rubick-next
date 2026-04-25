@@ -1,5 +1,5 @@
 <template>
-  <div class="rubick-select">
+  <div class="flick-select">
     <div
       :class="clipboardFile[0].name ? 'clipboard-tag' : 'clipboard-img'"
       v-if="!!clipboardFile.length"
@@ -10,10 +10,10 @@
         {{ clipboardFile.length }}
       </a-tag>
     </div>
-    <div v-else :class="currentPlugin.cmd ? 'rubick-tag' : ''">
+    <div v-else :class="currentPlugin.cmd ? 'flick-tag' : ''">
       <img
         @click="() => emit('openMenu')"
-        class="rubick-logo"
+        class="flick-logo"
         :src="currentPlugin.logo || config.perf.custom.logo"
       />
       <div class="select-tag" v-show="currentPlugin.cmd">
@@ -79,7 +79,7 @@ const props: any = defineProps({
 });
 
 const changeValue = (e) => {
-  // if (props.currentPlugin.name === 'rubick-system-feature') return;
+  // if (props.currentPlugin.name === 'flick-system-feature') return;
   targetSearch({ value: e.target.value });
   emit('onSearch', e);
 };
@@ -207,12 +207,12 @@ const showSeparate = async () => {
   if (props.currentPlugin && props.currentPlugin.logo) {
     const separateKey = config.value.perf.shortCut.separate || 'Ctrl+D';
     const name = props.currentPlugin.name;
-    const canFileConfig = name && name !== 'rubick-system-super-panel';
-    const rubickCfg = canFileConfig
-      ? await ipcRenderer.invoke('rubick:get-plugin-rubick-config', name)
+    const canFileConfig = name && name !== 'flick-system-super-panel';
+    const flickCfg = canFileConfig
+      ? await ipcRenderer.invoke('flick:get-plugin-flick-config', name)
       : { autoDetach: false, detachAlwaysShowSearch: false };
-    const autoDetachOn = !!rubickCfg.autoDetach;
-    const detachAlwaysShowSearchOn = !!rubickCfg.detachAlwaysShowSearch;
+    const autoDetachOn = !!flickCfg.autoDetach;
+    const detachAlwaysShowSearchOn = !!flickCfg.detachAlwaysShowSearch;
 
     const pluginBlock: any[] = [
       {
@@ -248,7 +248,7 @@ const showSeparate = async () => {
         type: 'checkbox',
         checked: autoDetachOn,
         click() {
-          void ipcRenderer.invoke('rubick:flip-plugin-auto-detach', name);
+          void ipcRenderer.invoke('flick:flip-plugin-auto-detach', name);
         },
       });
       settingsSubmenu.push({
@@ -257,7 +257,7 @@ const showSeparate = async () => {
         checked: detachAlwaysShowSearchOn,
         click() {
           void ipcRenderer.invoke(
-            'rubick:flip-plugin-detach-always-show-search',
+            'flick:flip-plugin-detach-always-show-search',
             name
           );
         },
@@ -330,7 +330,7 @@ const updateClipboardIcon = async () => {
   }
   try {
     clipboardIcon.value =
-      (await window.rubick.getFileIcon(current.path)) || fallbackClipboardIcon;
+      (await window.flick.getFileIcon(current.path)) || fallbackClipboardIcon;
   } catch {
     clipboardIcon.value = fallbackClipboardIcon;
   }
@@ -357,17 +357,17 @@ const newWindow = () => {
 };
 
 const mainInput = ref(null);
-window.rubick.hooks.onShow = () => {
+window.flick.hooks.onShow = () => {
   (mainInput.value as unknown as HTMLDivElement).focus();
 };
 
-window.rubick.hooks.onHide = () => {
+window.flick.hooks.onHide = () => {
   emit('clearSearchValue');
 };
 </script>
 
 <style lang="less">
-.rubick-select {
+.flick-select {
   display: flex;
   padding-left: 16px;
   background: var(--color-body-bg);
@@ -385,7 +385,7 @@ window.rubick.hooks.onHide = () => {
     white-space: nowrap;
     max-width: 200px;
   }
-  .rubick-tag {
+  .flick-tag {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -423,7 +423,7 @@ window.rubick.hooks.onHide = () => {
     }
   }
 
-  .rubick-logo {
+  .flick-logo {
     width: 32px;
     border-radius: 100%;
   }

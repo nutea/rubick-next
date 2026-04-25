@@ -28,7 +28,7 @@ type WebDavOptions = {
  */
 export default class WebDav {
   private readonly clientPromise: Promise<WebDAVClient>;
-  private readonly sqlitePath = '/rubick/db.sqlite';
+  private readonly sqlitePath = '/flick/db.sqlite';
 
   constructor({ username, password, url }: WebDavOptions) {
     this.clientPromise = import('webdav').then(({ createClient }) => {
@@ -66,9 +66,9 @@ export default class WebDav {
     }
 
     try {
-      const dirExists = await client.exists('/rubick');
+      const dirExists = await client.exists('/flick');
       if (!dirExists) {
-        await client.createDirectory('/rubick');
+        await client.createDirectory('/flick');
       }
     } catch (e) {
       new Notification({
@@ -171,7 +171,7 @@ export default class WebDav {
 
       new Notification({
         title: '导入成功',
-        body: '数据已导入到 rubick，主应用数据需重启后生效',
+        body: '数据已导入到 flick，主应用数据需重启后生效',
       }).show();
     } catch (e) {
       new Notification({

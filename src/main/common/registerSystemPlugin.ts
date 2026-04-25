@@ -6,7 +6,7 @@ import { PLUGIN_INSTALL_DIR } from '@/common/constans/main';
 declare const __static: string;
 
 function systemPluginDiskRoot(plugin: { name: string }): string {
-  if (plugin.name === 'rubick-system-super-panel') {
+  if (plugin.name === 'flick-system-super-panel') {
     return path.join(__static, 'superx');
   }
   return path.resolve(PLUGIN_INSTALL_DIR, 'node_modules', plugin.name);
@@ -46,11 +46,11 @@ export default () => {
           try {
             await pluginModule.onReady(ctx);
           } catch (e) {
-            console.error(`[rubick] system plugin onReady failed [${plugin.name}]:`, e);
+            console.error(`[flick] system plugin onReady failed [${plugin.name}]:`, e);
           }
         });
       } catch (e) {
-        console.error(`[rubick] failed to load system plugin [${plugin.name}]:`, e);
+        console.error(`[flick] failed to load system plugin [${plugin.name}]:`, e);
       }
     }
   });

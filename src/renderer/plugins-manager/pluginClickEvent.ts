@@ -27,12 +27,12 @@ export default function pluginClickEvent({
       : `file://${__static}/tpl/index.html`;
   }
   // 插件市场
-  if (plugin.name === 'rubick-system-feature') {
+  if (plugin.name === 'flick-system-feature') {
     pluginDist.indexPath = commonConst.dev()
       ? 'http://localhost:8081/'
       : `file://${__static}/feature/index.html`;
   }
-  if (plugin.name === 'rubick-system-super-panel') {
+  if (plugin.name === 'flick-system-super-panel') {
     pluginDist.indexPath = commonConst.dev()
       ? 'http://localhost:8085/main.html'
       : `file://${path.join(__static, 'superx', 'main.html')}`;

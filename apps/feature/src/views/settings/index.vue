@@ -278,7 +278,7 @@ const state = reactive({
 const lastKeyPressTime = ref(0);
 const DOUBLE_CLICK_THRESHOLD = 300; // 双击时间阈值（毫秒）
 
-const isWindows = window?.rubick?.isWindows();
+const isWindows = window?.flick?.isWindows();
 const tipText = computed(() => {
   const optionKeyName = isWindows ? 'Alt' : 'Option、Command';
   return t('feature.settings.global.addShortcutKeyTips', {

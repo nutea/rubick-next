@@ -9,7 +9,7 @@ import API from '@/main/common/api';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const __static: string;
 
-const configPath = path.join(baseDir, './rubick-local-plugin.json');
+const configPath = path.join(baseDir, './flick-local-plugin.json');
 const BUILTIN_SUPER_PANEL_PKG = path.join(
   __static,
   'superx',
@@ -21,8 +21,8 @@ function ensureBuiltinSuperPanelInList(): void {
     if (!fs.existsSync(BUILTIN_SUPER_PANEL_PKG)) return;
     if (fs.existsSync(configPath)) {
       const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      if (Array.isArray(raw) && raw.some((p) => p.name === 'rubick-superx')) {
-        const next = raw.filter((p) => p.name !== 'rubick-superx');
+      if (Array.isArray(raw) && raw.some((p) => p.name === 'flick-superx')) {
+        const next = raw.filter((p) => p.name !== 'flick-superx');
         fs.writeFileSync(configPath, JSON.stringify(next));
         global.LOCAL_PLUGINS.PLUGINS = [];
       }
@@ -30,7 +30,7 @@ function ensureBuiltinSuperPanelInList(): void {
     const plugins = global.LOCAL_PLUGINS.getLocalPlugins();
     const info = JSON.parse(fs.readFileSync(BUILTIN_SUPER_PANEL_PKG, 'utf-8'));
     const payload = { ...info, isDev: false };
-    const idx = plugins.findIndex((p) => p.name === 'rubick-system-super-panel');
+    const idx = plugins.findIndex((p) => p.name === 'flick-system-super-panel');
     if (idx === -1) {
       global.LOCAL_PLUGINS.addPlugin(payload);
     } else {
@@ -40,7 +40,7 @@ function ensureBuiltinSuperPanelInList(): void {
       fs.writeFileSync(configPath, JSON.stringify(next));
     }
   } catch (e) {
-    console.warn('[rubick] ensureBuiltinSuperPanelInList', e);
+    console.warn('[flick] ensureBuiltinSuperPanelInList', e);
   }
 }
 
@@ -49,10 +49,10 @@ function pluginNmDir(pluginName: string): string {
 }
 
 function pluginDiskRoot(pluginName: string): string {
-  if (pluginName === 'rubick-system-feature') {
+  if (pluginName === 'flick-system-feature') {
     return path.join(__static, 'feature');
   }
-  if (pluginName === 'rubick-system-super-panel') {
+  if (pluginName === 'flick-system-super-panel') {
     return path.join(__static, 'superx');
   }
   return pluginNmDir(pluginName);
@@ -148,7 +148,7 @@ async function normalizeInstalledPluginLogo(
       fs.mkdirSync(pluginRoot, { recursive: true });
       const parsed = new URL(s);
       const ext = path.extname(parsed.pathname || '').slice(0, 16) || '.png';
-      const filePath = path.join(pluginRoot, `.rubick-logo${ext}`);
+      const filePath = path.join(pluginRoot, `.flick-logo${ext}`);
       await downloadToFile(s, filePath);
       return { ...plugin, logo: filePath };
     } catch {
@@ -231,7 +231,7 @@ let pluginInstance;
   try {
     const res = await API.dbGet({
       data: {
-        id: 'rubick-localhost-config',
+        id: 'flick-localhost-config',
       },
     });
 
@@ -298,7 +298,7 @@ global.LOCAL_PLUGINS = {
       if (!global.LOCAL_PLUGINS.PLUGINS.length) {
         const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         global.LOCAL_PLUGINS.PLUGINS = (Array.isArray(raw) ? raw : []).filter(
-          (p) => p && p.name !== 'rubick-superx'
+          (p) => p && p.name !== 'flick-superx'
         );
       }
       return global.LOCAL_PLUGINS.PLUGINS;
@@ -334,8 +334,8 @@ global.LOCAL_PLUGINS = {
   },
   async deletePlugin(plugin) {
     if (
-      plugin.name === 'rubick-system-feature' ||
-      plugin.name === 'rubick-system-super-panel'
+      plugin.name === 'flick-system-feature' ||
+      plugin.name === 'flick-system-super-panel'
     ) {
       return global.LOCAL_PLUGINS.getLocalPlugins();
     }
@@ -354,7 +354,7 @@ global.LOCAL_PLUGINS = {
     try {
       const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       global.LOCAL_PLUGINS.PLUGINS = (Array.isArray(raw) ? raw : []).filter(
-        (p) => p && p.name !== 'rubick-superx'
+        (p) => p && p.name !== 'flick-superx'
       );
     } catch (e) {
       global.LOCAL_PLUGINS.PLUGINS = [];

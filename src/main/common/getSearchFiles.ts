@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import os from 'os';
 
 const getSearchFiles = (argv = process.argv, cwd = process.cwd()) => {
-  const files = argv.slice(2); // 过滤['rubick.exe', 'search']这两个参数，直接获取需要上传的图片路径
+  const files = argv.slice(2); // 过滤['flick.exe', 'search']这两个参数，直接获取需要上传的图片路径
   let result: any = [];
   if (files.length > 0) {
     // 如果图片列表不为空
@@ -31,7 +31,7 @@ const getSearchFiles = (argv = process.argv, cwd = process.cwd()) => {
   return result; // 返回结果
 };
 
-const putFileToRubick = (webContents, files) => {
+const putFileToFlick = (webContents, files) => {
   webContents.executeJavaScript(
     `window.searchFocus(${JSON.stringify(files)}, false)`
   );
@@ -66,7 +66,7 @@ const copyFileOutsideOfElectronAsar = function (
 };
 
 const macBeforeOpen = () => {
-  const dest = `${os.homedir}/Library/Services/rubick.workflow`;
+  const dest = `${os.homedir}/Library/Services/flick.workflow`;
   if (fs.existsSync(dest)) {
     // 判断是否存在
     return true;
@@ -74,7 +74,7 @@ const macBeforeOpen = () => {
     // 如果不存在就复制过去
     try {
       copyFileOutsideOfElectronAsar(
-        path.join(__static, 'rubick.workflow'),
+        path.join(__static, 'flick.workflow'),
         dest
       );
     } catch (e) {
@@ -83,4 +83,4 @@ const macBeforeOpen = () => {
   }
 };
 
-export { getSearchFiles, putFileToRubick, macBeforeOpen };
+export { getSearchFiles, putFileToFlick, macBeforeOpen };

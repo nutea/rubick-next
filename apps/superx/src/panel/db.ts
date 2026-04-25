@@ -7,8 +7,8 @@ function sendSync<T>(type: string, data: unknown): T {
   return res as T;
 }
 
-/** 与原面板内嵌 db 封装一致（走 Rubick 主进程） */
-export const rubickDb = {
+/** 与原面板内嵌 db 封装一致（走 Flick 主进程） */
+export const flickDb = {
   put: (data: unknown) => sendSync('dbPut', { data }),
   get: (id: string) => sendSync<{ data?: unknown }>('dbGet', { id }),
   remove: (doc: unknown) => sendSync('dbRemove', { doc }),

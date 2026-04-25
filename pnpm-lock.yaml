@@ -119,9 +119,9 @@ importers:
       plist:
         specifier: ^3.1.0
         version: 3.1.0
-      rubick-native-next:
+      flick-native:
         specifier: workspace:*
-        version: link:packages/rubick-native-next
+        version: link:packages/flick-native
       semver:
         specifier: ^7.7.4
         version: 7.7.4
@@ -468,7 +468,7 @@ importers:
         specifier: 'catalog:'
         version: 5.4.21(@types/node@22.19.17)(less@4.6.4)
 
-  packages/rubick-native-next:
+  packages/flick-native:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

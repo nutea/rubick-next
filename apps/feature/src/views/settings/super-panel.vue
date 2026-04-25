@@ -49,9 +49,9 @@ const store = useStore();
 const localPlugins = computed(() =>
   store.state.localPlugins.filter(
     (plugin) =>
-      plugin.name !== 'rubick-system-feature' &&
-      plugin.name !== 'rubick-system-super-panel' &&
-      plugin.name !== 'rubick-superx'
+      plugin.name !== 'flick-system-feature' &&
+      plugin.name !== 'flick-system-super-panel' &&
+      plugin.name !== 'flick-superx'
   )
 );
 
@@ -68,7 +68,7 @@ const hasAdded = (plugin) => {
 };
 
 const superPanelPlugins = ref(
-  window.rubick.db.get('super-panel-db') || {
+  window.flick.db.get('super-panel-db') || {
     data: [],
     _id: 'super-panel-db',
   }
@@ -76,7 +76,7 @@ const superPanelPlugins = ref(
 
 const addPluginToSuperPanel = (plugin) => {
   superPanelPlugins.value.data.push(toRaw(plugin));
-  window.rubick.db.put(toRaw(superPanelPlugins.value));
+  window.flick.db.put(toRaw(superPanelPlugins.value));
 };
 
 const removePluginToSuperPanel = (plugin) => {
@@ -85,7 +85,7 @@ const removePluginToSuperPanel = (plugin) => {
       return item.name !== plugin.name;
     }
   );
-  window.rubick.db.put(toRaw(superPanelPlugins.value));
+  window.flick.db.put(toRaw(superPanelPlugins.value));
 };
 </script>
 <style lang="less" scoped>

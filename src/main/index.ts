@@ -11,7 +11,7 @@ import localConfig from './common/initLocalConfig';
 import winPosition from './common/getWinPosition';
 import {
   getSearchFiles,
-  putFileToRubick,
+  putFileToFlick,
   macBeforeOpen,
 } from './common/getSearchFiles';
 
@@ -115,7 +115,7 @@ class App {
         }
       } catch (error) {
         showStartupError(
-          'Rubick Startup Error',
+          'Flick Startup Error',
           'Failed while initializing the main process.',
           error
         );
@@ -144,7 +144,7 @@ class App {
         win.show();
         win.focus();
         if (files.length > 0) {
-          putFileToRubick(win.webContents, files);
+          putFileToFlick(win.webContents, files);
         }
       }
     });

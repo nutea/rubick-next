@@ -143,7 +143,7 @@ const readPlguinJsonByUrl = () => {
 };
 
 // onMounted(() => {
-//   const json = window.rubick.db.get(LOCAL_PLUGIN_JSON);
+//   const json = window.flick.db.get(LOCAL_PLUGIN_JSON);
 //   pluginList.value = JSON.parse(json.data);
 // });
 const configFetchSuccess = (json) => {

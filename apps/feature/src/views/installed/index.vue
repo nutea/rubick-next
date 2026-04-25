@@ -146,8 +146,8 @@ const router = useRouter();
 const localPlugins = computed(() =>
   store.state.localPlugins.filter(
     (plugin) =>
-      plugin.name !== 'rubick-system-feature' &&
-      plugin.name !== 'rubick-system-super-panel'
+      plugin.name !== 'flick-system-feature' &&
+      plugin.name !== 'flick-system-super-panel'
   )
 );
 const updateLocalPlugin = () => store.dispatch('updateLocalPlugin');
@@ -229,7 +229,7 @@ const pluginDetail = computed(() => {
 });
 
 const superPanelPlugins = ref(
-  window.rubick.db.get('super-panel-user-plugins') || {
+  window.flick.db.get('super-panel-user-plugins') || {
     data: [],
     _id: 'super-panel-user-plugins',
   }
@@ -256,7 +256,7 @@ const addCmdToSuperPanel = ({ cmd, code }) => {
   });
   if (!plugin) return;
   superPanelPlugins.value.data.push(plugin);
-  const { rev } = window.rubick.db.put(JSON.parse(JSON.stringify(superPanelPlugins.value)));
+  const { rev } = window.flick.db.put(JSON.parse(JSON.stringify(superPanelPlugins.value)));
   superPanelPlugins.value._rev = rev;
 };
 
@@ -267,7 +267,7 @@ const removePluginToSuperPanel = ({ cmd, name }) => {
       return item.cmd !== cmd;
     }
   );
-  const { rev } = window.rubick.db.put(toRaw(superPanelPlugins.value));
+  const { rev } = window.flick.db.put(toRaw(superPanelPlugins.value));
   superPanelPlugins.value._rev = rev;
 };
 
@@ -290,7 +290,7 @@ const openPlugin = ({ cmd, feature }) => {
     cmd,
   });
   if (!payload) return;
-  window.rubick.openPlugin(
+  window.flick.openPlugin(
     JSON.parse(
       JSON.stringify(payload)
     )

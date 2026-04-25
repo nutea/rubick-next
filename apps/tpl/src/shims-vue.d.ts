@@ -6,5 +6,5 @@ declare module '*.vue' {
 }
 
 interface Window {
-  rubick: any;
+  flick: any;
 }

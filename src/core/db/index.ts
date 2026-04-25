@@ -1,7 +1,7 @@
 /**
  * Local document store. Backed by SQLite (better-sqlite3). Exposes a
  * PouchDB-flavoured document shape (`_id` / `_rev` / `_attachments`) so the
- * existing plugin preload API (`window.rubick.db.*`) stays stable.
+ * existing plugin preload API (`window.flick.db.*`) stays stable.
  *
  * Storage layout:
  *   - `docs(id TEXT PRIMARY KEY, rev TEXT, doc TEXT, updated_at INTEGER)`
@@ -398,7 +398,7 @@ export default class DB {
         if (inputRev) {
           // Client thinks it is updating a doc that does not exist.
           throw Object.assign(new Error('Document update conflict.'), {
-            code: 'RUBICK_DB_CONFLICT',
+            code: 'FLICK_DB_CONFLICT',
             status: 409,
           });
         }
@@ -406,7 +406,7 @@ export default class DB {
       } else {
         if (!inputRev || inputRev !== existing.rev) {
           throw Object.assign(new Error('Document update conflict.'), {
-            code: 'RUBICK_DB_CONFLICT',
+            code: 'FLICK_DB_CONFLICT',
             status: 409,
           });
         }
@@ -419,7 +419,7 @@ export default class DB {
         );
         if (info.changes === 0) {
           throw Object.assign(new Error('Document update conflict.'), {
-            code: 'RUBICK_DB_CONFLICT',
+            code: 'FLICK_DB_CONFLICT',
             status: 409,
           });
         }
@@ -440,7 +440,7 @@ export default class DB {
     try {
       run();
     } catch (e: any) {
-      if (e?.code === 'RUBICK_DB_CONFLICT') {
+      if (e?.code === 'FLICK_DB_CONFLICT') {
         return conflictError(externalId);
       }
       return toErrorInfo(e?.name || 'exception', String(e?.message || e));

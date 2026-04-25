@@ -1,6 +1,6 @@
 {
-  "name": "rubick-next",
-  "version": "5.0.0",
+  "name": "flick",
+  "version": "1.0.0",
   "author": "nutea <nutgeek@gmail.com>",
   "private": true,
   "scripts": {
@@ -8,7 +8,7 @@
     "packages:build": "pnpm --filter ./packages/** run build",
     "build": "pnpm packages:build && electron-vite build",
     "check:runtime-deps": "node scripts/check-runtime-deps.mjs",
-    "lint": "eslint src",
+    "lint": "eslint src" ,
     "dev:all": "concurrently -n apps,electron \"pnpm run dev:apps\" \"electron-vite dev\"",
     "lint:apps": "pnpm --filter ./apps/** run lint",
     "dev:apps": "concurrently -n feature,detach,tpl,guide,sx-web,sx-node \"pnpm --filter feature run dev\" \"pnpm --filter detach run dev\" \"pnpm --filter tpl run dev\" \"pnpm --filter guide run dev\" \"pnpm --filter ./apps/superx run dev:web\" \"pnpm --filter ./apps/superx run dev:node\"",
@@ -30,7 +30,7 @@
     "fix-path": "^3.0.0",
     "fs-extra": "^10.1.0",
     "plist": "^3.1.0",
-    "rubick-native-next": "workspace:*",
+    "flick-native": "workspace:*",
     "semver": "^7.7.4",
     "simple-plist": "^0.2.1",
     "webdav": "^5.8.0"

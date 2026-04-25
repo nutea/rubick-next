@@ -5,7 +5,7 @@ const path = require('path');
 
 const appPath = app.getPath('userData');
 
-const baseDir = path.join(appPath, './rubick-plugins-new');
+const baseDir = path.join(appPath, './flick-plugins-new');
 const enableStartupDiagnostics =
   !app.isPackaged || !!process.env.ELECTRON_RENDERER_URL;
 
@@ -47,27 +47,27 @@ const ipcInvoke = (type, data) => {
   });
 };
 
-window.rubick = {
+window.flick = {
   hooks: {},
   __event__: {},
   // 事件
   onPluginEnter(cb) {
-    typeof cb === 'function' && (window.rubick.hooks.onPluginEnter = cb);
+    typeof cb === 'function' && (window.flick.hooks.onPluginEnter = cb);
   },
   onPluginReady(cb) {
-    typeof cb === 'function' && (window.rubick.hooks.onPluginReady = cb);
+    typeof cb === 'function' && (window.flick.hooks.onPluginReady = cb);
   },
   onPluginOut(cb) {
-    typeof cb === 'function' && (window.rubick.hooks.onPluginOut = cb);
+    typeof cb === 'function' && (window.flick.hooks.onPluginOut = cb);
   },
   openPlugin(plugin) {
     ipcSendSync('loadPlugin', plugin);
   },
   onShow(cb) {
-    typeof cb === 'function' && (window.rubick.hooks.onShow = cb);
+    typeof cb === 'function' && (window.flick.hooks.onShow = cb);
   },
   onHide(cb) {
-    typeof cb === 'function' && (window.rubick.hooks.onHide = cb);
+    typeof cb === 'function' && (window.flick.hooks.onHide = cb);
   },
   // 窗口交互
   hideMainWindow() {
@@ -88,14 +88,14 @@ window.rubick = {
   },
   setSubInput(onChange, placeholder = '', isFocus) {
     typeof onChange === 'function' &&
-      (window.rubick.hooks.onSubInputChange = onChange);
+      (window.flick.hooks.onSubInputChange = onChange);
     ipcSendSync('setSubInput', {
       placeholder,
       isFocus,
     });
   },
   removeSubInput() {
-    delete window.rubick.hooks.onSubInputChange;
+    delete window.flick.hooks.onSubInputChange;
     ipcSendSync('removeSubInput');
   },
   setSubInputValue(text) {
@@ -159,7 +159,7 @@ window.rubick = {
   },
   screenCapture(cb) {
     typeof cb === 'function' &&
-      (window.rubick.hooks.onScreenCapture = ({ data }) => {
+      (window.flick.hooks.onScreenCapture = ({ data }) => {
         cb(data);
       });
     ipcSendSync('screenCapture');
@@ -270,3 +270,9 @@ window.rubick = {
     return win;
   },
 };
+
+// Backward compatibility for legacy Rubick plugins.
+// Many existing plugins still access window.rubick.* APIs.
+if (!window.rubick) {
+  window.rubick = window.flick;
+}

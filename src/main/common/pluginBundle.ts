@@ -6,12 +6,12 @@ import semver from 'semver';
 import { app } from 'electron';
 import { PLUGIN_INSTALL_DIR as baseDir } from '@/common/constans/main';
 
-const MANIFEST = 'rubick-plugins-bundle.json';
+const MANIFEST = 'flick-plugins-bundle.json';
 
 type LocalPluginRecord = Record<string, unknown> & { name: string };
 
 function configPath() {
-  return path.join(baseDir, 'rubick-local-plugin.json');
+  return path.join(baseDir, 'flick-local-plugin.json');
 }
 
 function readLocalPlugins(): LocalPluginRecord[] {
@@ -195,8 +195,8 @@ export function getExportDefaultFilename(pluginName: string): {
     return { ok: false, error: 'PLUGIN_NOT_FOUND' };
   }
   if (
-    plugin.name === 'rubick-system-feature' ||
-    plugin.name === 'rubick-system-super-panel'
+    plugin.name === 'flick-system-feature' ||
+    plugin.name === 'flick-system-super-panel'
   ) {
     return { ok: false, error: 'NO_PLUGINS' };
   }
@@ -259,13 +259,13 @@ export async function exportPluginBundle(
     return { ok: false, error: 'PLUGIN_NOT_FOUND' };
   }
   if (
-    plugin.name === 'rubick-system-feature' ||
-    plugin.name === 'rubick-system-super-panel'
+    plugin.name === 'flick-system-feature' ||
+    plugin.name === 'flick-system-super-panel'
   ) {
     return { ok: false, error: 'NO_PLUGINS' };
   }
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rubick-export-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flick-export-'));
   try {
     const nm = path.join(tmpDir, 'node_modules');
     await fs.mkdirp(nm);
@@ -291,11 +291,11 @@ export async function exportPluginBundle(
       await fs.copy(from, to, { overwrite: true, dereference: true });
     }
 
-    let rubickVersion = '';
+    let flickVersion = '';
     try {
-      rubickVersion = app.getVersion();
+      flickVersion = app.getVersion();
     } catch {
-      rubickVersion = '';
+      flickVersion = '';
     }
 
     const pluginForManifest: LocalPluginRecord = {
@@ -304,10 +304,10 @@ export async function exportPluginBundle(
     };
 
     const manifest = {
-      format: 'rubick-plugins-bundle',
+      format: 'flick-plugins-bundle',
       version: 1,
       exportedAt: new Date().toISOString(),
-      rubickVersion,
+      flickVersion,
       plugins: [pluginForManifest],
       bundledPackageNames: closure,
     };
@@ -391,7 +391,7 @@ async function resolveBundleRoot(extractDir: string): Promise<string | null> {
 export async function importPluginBundle(
   zipPath: string
 ): Promise<ImportPluginBundleResult> {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rubick-import-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flick-import-'));
   try {
     await compressing.zip.uncompress(zipPath, tmpDir);
 
@@ -409,7 +409,7 @@ export async function importPluginBundle(
 
     const manifestPlugins = manifest.plugins;
     if (
-      manifest.format !== 'rubick-plugins-bundle' ||
+      manifest.format !== 'flick-plugins-bundle' ||
       !Array.isArray(manifestPlugins)
     ) {
       return { ok: false, error: 'INVALID_BUNDLE' };
@@ -431,8 +431,8 @@ export async function importPluginBundle(
     for (const plugin of manifestPlugins) {
       if (
         !plugin?.name ||
-        plugin.name === 'rubick-system-feature' ||
-        plugin.name === 'rubick-system-super-panel'
+        plugin.name === 'flick-system-feature' ||
+        plugin.name === 'flick-system-super-panel'
       ) {
         continue;
       }
@@ -508,12 +508,12 @@ export async function importPluginBundle(
     rootPkg.dependencies = rootPkg.dependencies || {};
 
     const system = list.filter((p) =>
-      ['rubick-system-feature', 'rubick-system-super-panel'].includes(p.name)
+      ['flick-system-feature', 'flick-system-super-panel'].includes(p.name)
     );
     const rest = list.filter(
       (p) =>
-        p.name !== 'rubick-system-feature' &&
-        p.name !== 'rubick-system-super-panel'
+        p.name !== 'flick-system-feature' &&
+        p.name !== 'flick-system-super-panel'
     );
 
     for (const name of imported) {

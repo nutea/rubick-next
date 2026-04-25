@@ -1,4 +1,4 @@
-/** 与 rubick 插件 package.json 中 features / cmds 结构一致（节选） */
+/** 与 flick 插件 package.json 中 features / cmds 结构一致（节选） */
 export interface CmdItem {
   type: string;
   label?: string;

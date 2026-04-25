@@ -1,6 +1,6 @@
 import defaultConfig from '@/common/constans/defaultConfig';
 import DBInstance from './db';
-const LOCAL_CONFIG_KEY = 'rubick-local-config';
+const LOCAL_CONFIG_KEY = 'flick-local-config';
 
 const db = new DBInstance();
 

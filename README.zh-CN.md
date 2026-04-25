@@ -1,6 +1,6 @@
-﻿[English](./README.md) | 简体中文
+[English](./README.md) | 简体中文
 
-# Rubick Next
+# Flick
 
 基于 Electron、Vue 和 pnpm workspace 的插件化桌面效率工具。
 

@@ -6,8 +6,8 @@ export function executePluginSubInputChangeHook(
   if (!wc || wc.isDestroyed()) return;
   const payload = JSON.stringify({ text });
   void wc.executeJavaScript(
-    `if (window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onSubInputChange === 'function') {
-      try { window.rubick.hooks.onSubInputChange(${payload}); } catch (e) {}
+    `if (window.flick && window.flick.hooks && typeof window.flick.hooks.onSubInputChange === 'function') {
+      try { window.flick.hooks.onSubInputChange(${payload}); } catch (e) {}
     }`
   );
 }

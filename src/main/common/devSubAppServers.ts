@@ -59,12 +59,12 @@ async function probePort(port: number): Promise<boolean> {
 
 /**
  * development 下探测各子项目 Vite 端口；供主进程将 file:// 换为 http。
- * 各壳窗读对应 RUBICK_*_DEV_URL；与 apps/superx panel-window 打开 DevTools 条件对齐。
+ * 各壳窗读对应 FLICK_*_DEV_URL；与 apps/superx panel-window 打开 DevTools 条件对齐。
  */
 export async function warmupDevSubAppServers(): Promise<void> {
   if (!shouldProbeSubAppDevServers()) {
     servingByPort = null;
-    delete process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+    delete process.env.FLICK_SUPERX_PANEL_DEV_URL;
     return;
   }
   const ports = Object.values(DEV_APP_PORTS);
@@ -74,14 +74,14 @@ export async function warmupDevSubAppServers(): Promise<void> {
 
   // 仅 superx 的 node 包 panel-window 需读 process.env，无法用主进程模块；detach/guide 走 shouldOpenSubAppShellDevTools + devSubAppHttpUrl 即可
   if (servingByPort.get(DEV_APP_PORTS.superxWeb)) {
-    process.env.RUBICK_SUPERX_PANEL_DEV_URL = `http://${DEV_APP_HOST}:${DEV_APP_PORTS.superxWeb}/main.html`;
+    process.env.FLICK_SUPERX_PANEL_DEV_URL = `http://${DEV_APP_HOST}:${DEV_APP_PORTS.superxWeb}/main.html`;
   } else {
-    delete process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+    delete process.env.FLICK_SUPERX_PANEL_DEV_URL;
   }
 }
 
 /**
- * guide/detach 等主进程壳页：electron-vite 会话或端口探测到任一子项目 Vite 时打开 DevTools（不必再为各子项目单独设 RUBICK_*_DEV_URL）。
+ * guide/detach 等主进程壳页：electron-vite 会话或端口探测到任一子项目 Vite 时打开 DevTools（不必再为各子项目单独设 FLICK_*_DEV_URL）。
  */
 export function shouldOpenSubAppShellDevTools(): boolean {
   if (
@@ -91,7 +91,7 @@ export function shouldOpenSubAppShellDevTools(): boolean {
   ) {
     return true;
   }
-  if (Boolean(process.env.RUBICK_SUPERX_PANEL_DEV_URL)) return true;
+  if (Boolean(process.env.FLICK_SUPERX_PANEL_DEV_URL)) return true;
   return servingByPort != null && [...servingByPort.values()].some(Boolean);
 }
 

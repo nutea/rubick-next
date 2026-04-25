@@ -14,7 +14,7 @@ const ofs = nodeRequire('original-fs');
 // 该包在两个进程都可用，且其内部会按需懒加载平台原生模块。
 const tryLoadNativeClipboard = (): { readFilePaths(): string[] } | null => {
   try {
-    const mod = nodeRequire('rubick-native-next');
+    const mod = nodeRequire('flick-native');
     return mod?.clipboard ?? null;
   } catch {
     return null;

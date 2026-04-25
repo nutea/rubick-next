@@ -1,14 +1,14 @@
-const LOCAL_CONFIG_KEY = 'rubick-local-config';
+const LOCAL_CONFIG_KEY = 'flick-local-config';
 
 const localConfig = {
   getConfig(): Promise<any> {
-    const data: any = window.rubick.db.get(LOCAL_CONFIG_KEY) || {};
+    const data: any = window.flick.db.get(LOCAL_CONFIG_KEY) || {};
     return data.data;
   },
 
   setConfig(data) {
-    const localConfig: any = window.rubick.db.get(LOCAL_CONFIG_KEY) || {};
-    window.rubick.db.put({
+    const localConfig: any = window.flick.db.get(LOCAL_CONFIG_KEY) || {};
+    window.flick.db.put({
       _id: LOCAL_CONFIG_KEY,
       _rev: localConfig._rev,
       data: {

@@ -25,7 +25,8 @@ export default ({ currentPlugin, optionsRef, openPlugin, setOptionsRef }) => {
         {
           name: '复制路径',
           value: 'plugin',
-          icon: require('../assets/link.png'),
+          // Avoid hard failure when optional static icon is missing in runtime bundle.
+          icon: '',
           desc: '复制路径到剪切板',
           click: () => {
             clipboard.writeText(fileList.map((file) => file.path).join(','));

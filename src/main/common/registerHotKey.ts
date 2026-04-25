@@ -7,8 +7,8 @@ import {
   app,
   Notification,
 } from 'electron';
-import { input } from 'rubick-native-next';
-import type { NativeInputEvent } from 'rubick-native-next';
+import { input } from 'flick-native';
+import type { NativeInputEvent } from 'flick-native';
 import screenCapture from '@/core/screen-capture';
 import localConfig from '@/main/common/initLocalConfig';
 import commonConst from '@/common/utils/commonConst';
@@ -51,11 +51,11 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
 
   const setTheme = async () => {
     mainWindow.webContents.executeJavaScript(
-      `window.rubick && typeof window.rubick.changeTheme === "function" && window.rubick.changeTheme()`
+      `window.flick && typeof window.flick.changeTheme === "function" && window.flick.changeTheme()`
     );
     mainWindow.getBrowserViews().forEach((view: BrowserView) => {
       view.webContents.executeJavaScript(
-        `window.rubick && typeof window.rubick.changeTheme === "function" && window.rubick.changeTheme()`
+        `window.flick && typeof window.flick.changeTheme === "function" && window.flick.changeTheme()`
       );
     });
   };
@@ -66,21 +66,21 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     if (isDark) {
       nativeTheme.themeSource = 'dark';
       mainWindow.webContents.executeJavaScript(
-        `document.body.classList.add("dark");window.rubick.theme="dark"`
+        `document.body.classList.add("dark");window.flick.theme="dark"`
       );
       mainWindow.getBrowserViews().forEach((view: BrowserView) => {
         view.webContents.executeJavaScript(
-          `document.body.classList.add("dark");window.rubick.theme="dark"`
+          `document.body.classList.add("dark");window.flick.theme="dark"`
         );
       });
     } else {
       nativeTheme.themeSource = 'light';
       mainWindow.webContents.executeJavaScript(
-        `document.body.classList.remove("dark");window.rubick.theme="light"`
+        `document.body.classList.remove("dark");window.flick.theme="light"`
       );
       mainWindow.getBrowserViews().forEach((view: BrowserView) => {
         view.webContents.executeJavaScript(
-          `document.body.classList.remove("dark");window.rubick.theme="light"`
+          `document.body.classList.remove("dark");window.flick.theme="light"`
         );
       });
     }
@@ -171,7 +171,7 @@ const registerHotKey = (mainWindow: BrowserWindow): void => {
     });
 
     globalShortcut.register(config.perf.shortCut.quit, () => {
-      // mainWindow.webContents.send('init-rubick');
+      // mainWindow.webContents.send('init-flick');
       // mainWindow.show();
     });
 

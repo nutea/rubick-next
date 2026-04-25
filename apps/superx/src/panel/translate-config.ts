@@ -1,4 +1,4 @@
-/** 超级面板翻译：与 feature 设置页、DB `rubick-system-super-panel-preferences` 的 data 字段对齐 */
+/** 超级面板翻译：与 feature 设置页、DB `flick-system-super-panel-preferences` 的 data 字段对齐 */
 
 import { DEFAULT_TRANSLATE_SYSTEM_PROMPT as SYSTEM_DEFAULT } from '../../../feature/src/utils/superPanelTranslateBuiltinPrompt';
 

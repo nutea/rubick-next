@@ -29,9 +29,9 @@ import { ref } from 'vue';
 const fs = window.require('fs');
 const process = window.require('process');
 
-const dbId = 'rubick-local-start-app';
+const dbId = 'flick-local-start-app';
 
-const localStartList = ref(window.rubick.dbStorage.getItem(dbId) || []);
+const localStartList = ref(window.flick.dbStorage.getItem(dbId) || []);
 
 const checkFileExists = () => {
   localStartList.value = localStartList.value.map((plugin) => {
@@ -54,7 +54,7 @@ const dropFile = async (e) => {
         ? `start "dummyclient" "${file.path}"`
         : `open ${file.path.replace(/ /g, '\\ ')}`;
     const plugin = {
-      icon: await window.rubick.getFileIcon(file.path),
+      icon: await window.flick.getFileIcon(file.path),
       value: 'plugin',
       desc: file.path,
       pluginType: 'app',
@@ -70,7 +70,7 @@ const dropFile = async (e) => {
     ...localStartList.value,
     ...files,
   ];
-  window.rubick.dbStorage.setItem(
+  window.flick.dbStorage.setItem(
     dbId,
     JSON.parse(JSON.stringify(localStartList.value))
   );
@@ -80,7 +80,7 @@ const remove = (item) => {
   localStartList.value = localStartList.value.filter(
     (app) => app.desc !== item.desc
   );
-  window.rubick.dbStorage.setItem(
+  window.flick.dbStorage.setItem(
     dbId,
     JSON.parse(JSON.stringify(localStartList.value))
   );

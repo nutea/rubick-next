@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = createPanelWindow;
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
-/** Rubick 注入的 ctx，与历史 `panel-window.js` 一致 */
+/** Flick 注入的 ctx，与历史 `panel-window.js` 一致 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createPanelWindow(ctx) {
     const { BrowserWindow, ipcMain, mainWindow, dialog, nativeImage } = ctx;
@@ -34,7 +34,7 @@ function createPanelWindow(ctx) {
     const shouldOpenPanelDevtools = process.env.NODE_ENV === 'development' ||
         Boolean(process.env.VITE_DEV_SERVER_URL) ||
         Boolean(process.env.ELECTRON_RENDERER_URL) ||
-        Boolean(process.env.RUBICK_SUPERX_PANEL_DEV_URL);
+        Boolean(process.env.FLICK_SUPERX_PANEL_DEV_URL);
     let win;
     let pinned = false;
     let ipcHandlersAttached = false;
@@ -93,7 +93,7 @@ function createPanelWindow(ctx) {
                 preload: path.join(__dirname, 'panel-preload.js'),
             },
         });
-        const panelDev = process.env.RUBICK_SUPERX_PANEL_DEV_URL;
+        const panelDev = process.env.FLICK_SUPERX_PANEL_DEV_URL;
         const panelUrl = typeof panelDev === 'string' &&
             (panelDev.startsWith('http://') || panelDev.startsWith('https://'))
             ? panelDev

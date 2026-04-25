@@ -74,7 +74,7 @@ export default () => {
       (_event, code, desc, validatedURL, isMainFrame) => {
         if (!isMainFrame) return;
         showStartupError(
-          'Rubick Window Error',
+          'Flick Window Error',
           `Main window failed to load: ${validatedURL || 'unknown URL'}`,
           `${code}: ${desc}`
         );
@@ -107,7 +107,7 @@ export default () => {
 
     win.webContents.on('render-process-gone', (_event, details) => {
       showStartupError(
-        'Rubick Window Error',
+        'Flick Window Error',
         'Main window render process exited unexpectedly.',
         details
       );
@@ -121,7 +121,7 @@ export default () => {
       if (!canUseWindow()) return;
       // 触发主窗口的 onShow hook
       void win.webContents.executeJavaScript(
-        `window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onShow === "function" && window.rubick.hooks.onShow()`
+        `window.flick && window.flick.hooks && typeof window.flick.hooks.onShow === "function" && window.flick.hooks.onShow()`
       );
       // versonHandler.checkUpdate();
       // win.webContents.openDevTools();
@@ -131,7 +131,7 @@ export default () => {
       if (!canUseWindow()) return;
       // 触发主窗口的 onHide hook
       void win.webContents.executeJavaScript(
-        `window.rubick && window.rubick.hooks && typeof window.rubick.hooks.onHide === "function" && window.rubick.hooks.onHide()`
+        `window.flick && window.flick.hooks && typeof window.flick.hooks.onHide === "function" && window.flick.hooks.onHide()`
       );
     });
 

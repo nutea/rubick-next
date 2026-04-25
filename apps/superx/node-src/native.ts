@@ -1,5 +1,5 @@
-import { input, system } from 'rubick-native-next';
-import type { NativeInputEvent } from 'rubick-native-next';
+import { input, system } from 'flick-native';
+import type { NativeInputEvent } from 'flick-native';
 
 export interface ActiveWindowInfo {
   path?: string;

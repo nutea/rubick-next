@@ -1,6 +1,6 @@
 import { clipboard } from 'electron';
 import path from 'path';
-import { clipboard as nativeClipboard } from 'rubick-native-next';
+import { clipboard as nativeClipboard } from 'flick-native';
 
 // 仅在 Windows 平台辅助操作剪贴板多文件格式。
 
@@ -57,7 +57,7 @@ const buildDropEffectBuffer = (effect: 'copy' | 'move' | 'link' = 'copy') => {
 
 /**
  * 兜底通道：直接通过 Electron 的 `clipboard.writeBuffer` 写入多种格式。
- * 仅当原生通道（`rubick-native-next`）不可用或调用失败时才会用到，
+ * 仅当原生通道（`flick-native`）不可用或调用失败时才会用到，
  * 例如未编译 N-API 插件的开发环境。
  */
 const writeWindowsBuffers = (files: string[]): boolean => {
@@ -74,7 +74,7 @@ const writeWindowsBuffers = (files: string[]): boolean => {
 /**
  * 对外暴露的唯一入口。
  * 1. 先把所有路径换成 Windows 可识别的标准形式（path.normalize）。
- * 2. 走 `rubick-native-next` 的原生 Win32 通道写入。
+ * 2. 走 `flick-native` 的原生 Win32 通道写入。
  * 3. 若原生通道不可用（例如未编译 N-API 附加件），再退回 Electron buffer 写入流程。
  */
 export const copyFilesToWindowsClipboard = (files: string[]): boolean => {

@@ -29,12 +29,12 @@ const defaultHeight = 60;
 
 const { code, type, payload } = route.params;
 const current = window.exports[code];
-window.rubick.setExpendHeight(defaultHeight);
+window.flick.setExpendHeight(defaultHeight);
 
 const lists = ref([]);
 watch([lists], () => {
   const height = lists.value.length > itemMaxNum ? itemMaxNum * itemHeight : itemHeight * lists.value.length
-  window.rubick.setExpendHeight(defaultHeight + height);
+  window.flick.setExpendHeight(defaultHeight + height);
 });
 current.args.enter &&
   current.args.enter({ code: code, type, payload }, (result) => {
@@ -51,7 +51,7 @@ ipcRenderer.on(`changeCurrent`, (e, result) => {
   }
   currentSelect.value = currentSelect.value + result;
 });
-window.rubick.setSubInput(({ text }) => {
+window.flick.setSubInput(({ text }) => {
   current.args.search &&
     current.args.search({ code, type: "", payload: [] }, text, (result) => {
       lists.value = result || [];
